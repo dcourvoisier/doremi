@@ -155,7 +155,7 @@ calculate_gold <-  function(signal,
 excitation_function <- function(amplitude = 1,
                                 nexc = 1,
                                 duration = 10,
-                                deltat = 1,
+                                deltatf = 1,
                                 tmax = 100,
                                 minspacing = 10){
   #Error management
@@ -202,8 +202,8 @@ excitation_function <- function(amplitude = 1,
         else{tal <- sample(minspacing:trest, 1, replace = T)}
       }
     }
-    nf<-tmax/deltat+1
-    sp <- rep(c(0, 1), c(tal / deltat + 1, dur / deltat + 1))
+    nf<-tmax/deltatf+1
+    sp <- rep(c(0, 1), c(tal / deltatf + 1, dur / deltatf + 1))
     #simple unitary pulse
     cumt <- cumt + tal + dur #cumulated time
 
@@ -230,7 +230,7 @@ excitation_function <- function(amplitude = 1,
     warning("Due to input parameters introduced, vector size was larger than npoints and was cut to this value.\n")
   }
   #Generation of time vector
-  tim <- seq(0, tmax, deltat)
+  tim <- seq(0, tmax, deltatf)
 
   data <- list(y = E, t = tim)
   return(data)
@@ -328,7 +328,7 @@ excitation_function <- function(amplitude = 1,
 #'                            minspacing = 0,
 #'                            internoise = 0.2,
 #'                            intranoise = 0.1)
-#' myresult <- doremi_analyse_order1(userdata = mydata,
+#' myresult <- doremi_analyse_order1(userdata = mydata$data,
 #'                            id = "id",
 #'                            input = "excitation",
 #'                            time = "timecol",
@@ -342,9 +342,12 @@ excitation_function <- function(amplitude = 1,
 #'@importFrom data.table :=
 #'@importFrom data.table .SD
 #'@importFrom data.table .N
+#'@importFrom data.table .GRP
 #'@importFrom data.table setnames
 #'@importFrom data.table setcolorder
 #'@importFrom lme4 lmer
+#'@importFrom lme4 lmerControl
+#'@importFrom lme4 ranef
 #'@importFrom stats embed
 #'@importFrom stats lm
 #'@importFrom zoo rollmean

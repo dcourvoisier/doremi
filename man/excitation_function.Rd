@@ -4,7 +4,7 @@
 \alias{excitation_function}
 \title{Excitation signal generation}
 \usage{
-excitation_function(amplitude = 1, nexc = 1, duration = 10, deltat = 1,
+excitation_function(amplitude = 1, nexc = 1, duration = 10, deltatf = 1,
   tmax = 100, minspacing = 10)
 }
 \arguments{
@@ -22,12 +22,12 @@ otherwise an error is generated. As for the amplitude, it should also have as ma
 case and the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered. A warning will also be generated.}
 
+\item{deltatf}{is a signed decimal indicating the time step.}
+
 \item{tmax}{is a signed integer indicating the maximum time range of the excitation in time units. The time vector generated will go from 0 to tmax.}
 
 \item{minspacing}{as pulses are generated randomnly, minspacing is a signed integer that indicates minimum spacing between pulses, thus avoiding
 overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
-
-\item{deltatf}{is a signed decimal indicating the time step.}
 }
 \value{
 Returns two vectors:
