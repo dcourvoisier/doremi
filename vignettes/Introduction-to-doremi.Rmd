@@ -8,7 +8,7 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ```{r}
-devtools::load_all("F:/doremi")
+devtools::load_all("C:/Users/Alba/Documents/Unige/doremi")
 ```
 
 ```{r setup, include = FALSE}
