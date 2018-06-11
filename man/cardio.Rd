@@ -12,6 +12,9 @@
   \item{hr}{patient's cardiac rythm, in heart beats per minute (1/min)}
 
 }}
+\source{
+Mongin et al. 2018, under review (future DOI will be inserted here)
+}
 \usage{
 data(cardio)
 }
