@@ -358,9 +358,6 @@ doremi_analyse_order1 <- function(userdata,
                                   signalcolumn,
                                   embedding = 2){
   data <- copy(userdata) #Keeps the original of data so that it can rename columns freely
-  #Taken from:
-  #https://stackoverflow.com/questions/15913417/why-does-data-table-update-namesdt-by-reference-even-if-i-assign-to-another-v
-
   data <- setDT(data) # Convert input data to data.table.
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
   #Error management
@@ -390,7 +387,7 @@ doremi_analyse_order1 <- function(userdata,
   #Converting data if columns are of type "factor" or "string" instead of numeric
   if (any(is.factor(sapply(data, class))) | any(is.character(sapply(data, class)))){
     strtmp <- c(input, time, signalcolumn)
-    data[, (strtmp) := lapply(.SD, function(x) {as.numeric(as.character(x))}), .SDcols = strtmp]
+    data[, strtmp := lapply(.SD, function(x) {as.numeric(as.character(x))}), .SDcols = strtmp]
     warning("Some columns were found to be of the factor/string type and were converted to numeric.\n")
   }
 
@@ -430,7 +427,6 @@ doremi_analyse_order1 <- function(userdata,
     data[, (paste0(input,"_rolled")) := lapply(.SD, myfun), .SDcols = input, by = id]
 
     #Calculation of the final excitation column (superposition of all the excitation signals)
-    #Taken from stackoverflow https://stackoverflow.com/questions/43263130/r-data-table-sum-of-vectors-in-seperate-columns
     data[, excitation_sum := unlist(Reduce(function(a,b) Map(`+`,a,b), .SD)), .SDcols = input]
   }
 
@@ -440,7 +436,7 @@ doremi_analyse_order1 <- function(userdata,
   resultid <- setDT(list( id = unique(data$id) ))
   #The third table contains the mean values for gamma and thao for all the individuals (single line)
   #Generate mean results with convergence criterions
-  resultmean <- setDT(list(id="All"))
+  resultmean <- setDT(list(id = "All"))
 
   # Regression for SEVERAL INDIVidUALS --------------------------------------
 
@@ -499,7 +495,7 @@ doremi_analyse_order1 <- function(userdata,
         #Ap=gamma
         #Bp=log(A)
 
-        data[, expfit_A:= lm(log(get(signalcolumn) - resultid[.GRP, get(paste0(signalcolumn, "_eqvalue"))]) ~ get(time))$coefficients[1], by = id]
+        data[, expfit_A := lm(log(get(signalcolumn) - resultid[.GRP, get(paste0(signalcolumn, "_eqvalue"))]) ~ get(time))$coefficients[1], by = id]
       }
       else{ # If there is an excitation term
         # Extract the excitation coeff for each excitation
@@ -514,8 +510,8 @@ doremi_analyse_order1 <- function(userdata,
           # Excitation coefficient in resultid --------------------------------------
 
           resultid[, c(paste0(input[i],"_exccoeff")) :=
-                     (summary$coefficients[paste0(input[i],"_rolled"),"Estimate"] + random$id[.GRP,paste0(input[i],"_rolled")])*resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))], by = id]
-          data[, totalexc:= totalexc+(summary$coefficients[paste0(input[i],"_rolled"),"Estimate"] + random$id[.GRP,paste0(input[i],"_rolled")])*get(input[i]), by=id]
+                     (summary$coefficients[paste0(input[i], "_rolled"), "Estimate"] + random$id[.GRP,paste0(input[i], "_rolled")]) * resultid[.GRP, get(paste0(signalcolumn, "_dampingtime"))], by = id]
+          data[, totalexc := totalexc+(summary$coefficients[paste0(input[i], "_rolled"), "Estimate"] + random$id[.GRP,paste0(input[i], "_rolled")]) * get(input[i]), by = id]
         }
       }
 
@@ -523,12 +519,12 @@ doremi_analyse_order1 <- function(userdata,
       resultmean[, c(paste0(signalcolumn,"_fitmsg")) := summary$fitMsgs]
 
       # Write a warning if any of the damping times calculated was negative
-      if (any(is.na(resultid[, get(paste0(signalcolumn,"_dampingtime"))])) | any(resultid[, get(paste0(signalcolumn,"_dampingtime"))]<0)){
+      if (any(is.na(resultid[, get(paste0(signalcolumn,"_dampingtime"))])) | any(resultid[, get(paste0(signalcolumn,"_dampingtime"))] < 0)){
         warning("Some of the damping times calculated were negative and thus, the estimated signal is not generated for these.\n")
       }
       if (noinput){ #There is no excitation signal as input
-        data[,c(paste0(signalcolumn,"_estimated")) :=
-               if(!is.na(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))]) && resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))]>0 ){
+        data[, c(paste0(signalcolumn,"_estimated")) :=
+               if(!is.na(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))]) && resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))] > 0){
                  # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
                  #and if there is an excitation coefficient (excitation term was found in the inputs)
 
@@ -547,7 +543,7 @@ doremi_analyse_order1 <- function(userdata,
         #Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
 
         precision <- 100 #number of divisions in each time step
-        estimated <- data[, .(exc_min = rep(totalexc[1:(.N-1)], each = precision[1]), tmax = max(get(time)), intervals = diff(get(time))/precision), by = id]
+        estimated <- data[, list(exc_min = rep(totalexc[1:(.N-1)], each = precision[1]), tmax = max(get(time)), intervals = diff(get(time))/precision), by = id]
         estimated[, timecol := c(0 + cumsum(c(0, intervals[1:(length(intervals)-1)]))), by = id]
         #Shifting exc_min precision-1 values to the LEFT to obtain exc_max (the parameter "lead" means shift to the left whereas "lag" means shift to the right)
         estimated[, exc_max := shift(exc_min, n = precision - 1, fill = 0, type = "lead"), by = id]
@@ -563,7 +559,7 @@ doremi_analyse_order1 <- function(userdata,
 
         #Time vector and excitation vectors min and max
         deltat <- 0.01
-        estimated2 <- data[,.(timecol = seq(0, max(get(time)), deltat)), by = id]
+        estimated2 <- data[, list(timecol = seq(0, max(get(time)), deltat)), by = id]
         estimated2[, exc_min := data[, c(unlist(mapply(rep, totalexc[1:(length(totalexc)-1)], diff(get(time)) / deltat)), totalexc[length(totalexc)]), by = id]$V1]
         estimated2[, exc_max := data[, c(totalexc[1],rev(unlist(mapply(rep, rev(totalexc[2:.N]), rev(diff(get(time))) / deltat)))), by = id]$V1]
 
@@ -671,7 +667,7 @@ doremi_analyse_order1 <- function(userdata,
         #Expanded vectors according to precision
         #Generation of the expanded excitation vector according to precision. Minimum and maximum values
         precision <- 100 #number of divisions in each time step
-        estimated <- data[, .(exc_min = rep(totalexc[1:(.N-1)], each = precision[1]), tmax = max(timecol), intervals = diff(timecol) / precision), by = id]
+        estimated <- data[, list(exc_min = rep(totalexc[1:(.N-1)], each = precision[1]), tmax = max(timecol), intervals = diff(timecol) / precision), by = id]
         estimated[, timecol := c(0 + cumsum(c(0, intervals[1:(length(intervals)-1)]))), by = id]
 
         #Shifting exc_min precision-1 values to the LEFT to obtain exc_max (the parameter "lead" means shift to the left whereas "lag" means shift to the right)
@@ -804,7 +800,7 @@ simulation_generate_order1 <- function(nindividuals = 1,
   if (dampingtime<10) deltat=dampingtime/10
   else deltat=0.01
 
-  if((deltatf %% deltat) != 0){stop("Invalid deltatf, please modify.\n")}
+  if((deltatf < deltat) != 0){stop("Invalid deltatf, please modify.\n")}
 
   npoints <- tmax / deltat + 1
 
