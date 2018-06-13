@@ -7,7 +7,7 @@ Authors@R: c(
     person("Uribe", "Adriana", email = "adriana.uribe@unige.ch", role = "aut"),
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "aut"),
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "cre"))
-Description: This packge contains the equations that allow to predict trends in real data sets 
+Description: This package contains the equations that allow to predict trends in real data sets 
     that might behave as a solution to a first order linear constant coefficient differential equation.
     The model uses multi-level regression to find out the characteristic parameters of the equation (the coefficients).
     Based on these parameters and the analytical solution to this type of equation, the estimated signal is also generated.

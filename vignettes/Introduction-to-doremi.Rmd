@@ -490,6 +490,7 @@ The call to the analysis function to analyse this data would be as simple as:
 
 ```{r}
 resultc1 <- doremi_analyse_order1(userdata = cardio,
+                                id = "id",
                                 input = "load",
                                 time ="timecol",
                                 signalcolumn = "hr",
@@ -525,6 +526,7 @@ The call to the analysis function to analyse this data would be:
 
 ```{r}
 resultc2 <- doremi_analyse_order1(userdata = rotation,
+                                id = "id",
                                 time ="numtrials",
                                 signalcolumn = "meanRT",
                                 embedding = 5)

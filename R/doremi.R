@@ -351,6 +351,7 @@ excitation_function <- function(amplitude = 1,
 #'@importFrom stats embed
 #'@importFrom stats lm
 #'@importFrom zoo rollmean
+#'@importFrom zoo na.locf
 doremi_analyse_order1 <- function(userdata,
                                   id = NULL,
                                   input = NULL,
@@ -385,8 +386,8 @@ doremi_analyse_order1 <- function(userdata,
   }
 
   #Converting data if columns are of type "factor" or "string" instead of numeric
-  if (any(is.factor(sapply(data, class))) | any(is.character(sapply(data, class)))){
-    strtmp <- c(input, time, signalcolumn)
+  strtmp <- c(input, time, signalcolumn)
+  if (any((sapply(data[, c(input, time, signalcolumn)], is.factor))) | any((sapply(data[, c(input, time, signalcolumn)], is.character)))){
     data[, strtmp := lapply(.SD, function(x) {as.numeric(as.character(x))}), .SDcols = strtmp]
     warning("Some columns were found to be of the factor/string type and were converted to numeric.\n")
   }
@@ -593,7 +594,7 @@ doremi_analyse_order1 <- function(userdata,
     }
 
     # Output the results for the function
-    return(list(data = data[,!"strtmp"], resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated, estimated2 = estimated2))
+    return(list(data = data, resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated))
 
   }
 
@@ -669,6 +670,7 @@ doremi_analyse_order1 <- function(userdata,
                    resultmean[, get(paste0(signalcolumn, "_eqvalue"))]
                }else {NaN}, by = id]
         estimated <- NULL
+
       }else{ #There is an excitation
 
         # Generation of the third result table called \"estimated\"
