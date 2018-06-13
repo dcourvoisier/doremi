@@ -559,20 +559,35 @@ doremi_analyse_order1 <- function(userdata,
 
         #Time vector and excitation vectors min and max
         deltat <- 0.01
-        estimated2 <- data[, list(timecol = seq(0, max(get(time)), deltat)), by = id]
-        estimated2[, exc_min := data[, c(unlist(mapply(rep, totalexc[1:(length(totalexc)-1)], diff(get(time)) / deltat)), totalexc[length(totalexc)]), by = id]$V1]
-        estimated2[, exc_max := data[, c(totalexc[1],rev(unlist(mapply(rep, rev(totalexc[2:.N]), rev(diff(get(time))) / deltat)))), by = id]$V1]
+        #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
+        mintime <- data[, min(get(time), na.rm = T)]
+        maxtime <- data[, max(get(time), na.rm = T)]
+        estimated2 <- data[, list(timecol = seq(floor(mintime), ceiling(maxtime), deltat)), by = id]
 
-        #  exc_min = unlist(mapply(rep, totalexc[1:(.N-1)], diff(get(time)) / deltat)),
-        #  exc_max = rev(unlist(mapply(rep, rev(totalexc[1:(.N-1)]), diff(get(time)) / deltat)))),
-        # by = id]
+        #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
+        IDvec <- unique(data$id)
+        #final <- NULL
 
-        estimated2[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_min,timecol)$y+
-                     resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
-        estimated2[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_max,timecol)$y+
-                     resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
+        for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
+          #And it will be necessary to shift these indexes according to in which id we are
+          leftidx <- findInterval(data[id == IDvec[idx], get(time)], estimated2[id == IDvec[idx], timecol])
+          #tmpsignal contains the vlue of exctotal were the original times are found in the new time vector
+          #and NA in the rest of the positions
+          estimated2[nrow(estimated2[id < IDvec[idx]]) + leftidx, tmpsignal := data[id == IDvec[idx], totalexc]]
+       }
 
-        estimated<-estimated[,!c("tmax","intervals")]
+        #The na.locf function (last observation called forward) will repeat the last non NA value.
+        #We use it to repeat the values in the excitation function to the left and to the right
+        # estimated2[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = id]
+        # estimated2[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
+        #
+        # #Calculating the convolution
+        # estimated2[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_min,timecol)$y+
+        #              resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
+        # estimated2[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_max,timecol)$y+
+        #              resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
+
+        estimated <- estimated[,!c("tmax","intervals")]
         setcolorder(estimated, c("id", "timecol", "exc_min", "exc_max", "ymin", "ymax"))
       }
     }else{ # if the regression didn't work, set to NA all coeffs
@@ -583,7 +598,7 @@ doremi_analyse_order1 <- function(userdata,
     }
 
     # Output the results for the function
-    return(list(data = data, resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated))
+    return(list(data = data[,!"strtmp"], resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated))
 
   }
 

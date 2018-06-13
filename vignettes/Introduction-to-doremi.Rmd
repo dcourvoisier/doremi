@@ -7,6 +7,8 @@ vignette: >
   %\VignetteIndexEntry{Introduction to doremi}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{ggplot2}
+  %\VignetteDepends{data.table}
 ```{r}
 devtools::load_all("C:/Users/Alba/Documents/Unige/doremi")
 ```
@@ -14,6 +16,7 @@ devtools::load_all("C:/Users/Alba/Documents/Unige/doremi")
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  warnings = FALSE,
   comment = "#>"
 )
 ```
@@ -435,9 +438,11 @@ mydatab5 <- simulation_generate_order1(nindividuals = 4,
                                     internoise = 0.1, 
                                     intranoise = 0.2)
 #Keeping half of the rows selected randomly
-#mydatab5[sample(data.table::.N,20,replace = FALSE), by = id]
+mydatab5$data[, keep := sample(c(0,1), .N, replace = TRUE), by = id]
+mydatab5rd <- mydatab5$data[keep == 1]
+
 #Analysing the resulting signal
-resultb5 <- doremi_analyse_order1(userdata = mydatab5$data,
+resultb5 <- doremi_analyse_order1(userdata = mydatab5rd,
                                 input = "excitation",
                                 time ="timecol",
                                 signalcolumn = "dampedsignal",
@@ -450,7 +455,7 @@ Plotting sampling in signal with no noise:
 ggplot2::ggplot( data = mydatab5$rawdata ) +
   ggplot2::geom_point(ggplot2::aes(timecol,dampedsignalraw, colour = "Pseudo-continuous signal. No noise"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
-  ggplot2::geom_point(data = mydatab5$data, ggplot2::aes(timecol,dampedsignalraw, colour = "Random sampling"))+
+  ggplot2::geom_point(data = mydatab5rd, ggplot2::aes(timecol,dampedsignalraw, colour = "Random sampling"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (unit)",
            y = "Signal (unit)",
