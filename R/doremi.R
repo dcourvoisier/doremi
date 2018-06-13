@@ -547,8 +547,6 @@ doremi_analyse_order1 <- function(userdata,
         estimated[, timecol := c(0 + cumsum(c(0, intervals[1:(length(intervals)-1)]))), by = id]
         #Shifting exc_min precision-1 values to the LEFT to obtain exc_max (the parameter "lead" means shift to the left whereas "lag" means shift to the right)
         estimated[, exc_max := shift(exc_min, n = precision - 1, fill = 0, type = "lead"), by = id]
-        # estimated[, exc_min := rep(totalexc[1:(.N-1)], each = diff(get(time)) / min(diff(get(time)))), by = id]
-        # estimated[, exc_max := rev(rep(rev(totalexc[1:(.N-1)]), each = diff(get(time)) / min(diff(get(time))))), by = id]
 
         #Generation of the estimated signals
         estimated[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_min,timecol)$y+
@@ -558,15 +556,12 @@ doremi_analyse_order1 <- function(userdata,
                     resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
 
         #Time vector and excitation vectors min and max
-        deltat <- 0.01
+        deltat <- 0.1
         #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
-        mintime <- data[, min(get(time), na.rm = T)]
-        maxtime <- data[, max(get(time), na.rm = T)]
-        estimated2 <- data[, list(timecol = seq(floor(mintime), ceiling(maxtime), deltat)), by = id]
+        estimated2 <- data[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat)), by = id]
 
         #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
         IDvec <- unique(data$id)
-        #final <- NULL
 
         for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
           #And it will be necessary to shift these indexes according to in which id we are
@@ -578,16 +573,16 @@ doremi_analyse_order1 <- function(userdata,
 
         #The na.locf function (last observation called forward) will repeat the last non NA value.
         #We use it to repeat the values in the excitation function to the left and to the right
-        # estimated2[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = id]
-        # estimated2[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
-        #
-        # #Calculating the convolution
-        # estimated2[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_min,timecol)$y+
-        #              resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
-        # estimated2[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_max,timecol)$y+
-        #              resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
+        estimated2[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = id]
+        estimated2[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
 
-        estimated <- estimated[,!c("tmax","intervals")]
+        #Calculating the convolution
+        estimated2[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_min,timecol)$y+
+                     resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
+        estimated2[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(signalcolumn,"_dampingtime"))],exc_max,timecol)$y+
+                     resultid[.GRP, get(paste0(signalcolumn,"_eqvalue"))], by = id]
+
+        estimated <- estimated[, !c("tmax","intervals")]
         setcolorder(estimated, c("id", "timecol", "exc_min", "exc_max", "ymin", "ymax"))
       }
     }else{ # if the regression didn't work, set to NA all coeffs
@@ -598,7 +593,7 @@ doremi_analyse_order1 <- function(userdata,
     }
 
     # Output the results for the function
-    return(list(data = data[,!"strtmp"], resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated))
+    return(list(data = data[,!"strtmp"], resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated, estimated2 = estimated2))
 
   }
 
