@@ -46,12 +46,16 @@ plot.doremi = function (doremi_object,
     p <- ggplot(doremi_object$data[doremi_object$data$id %in% facets]) +
          facet_wrap(~id, scales = "free")
 
-    if (doremi_object$str_exc!=0){ #If there is an excitation term
-        for (i in seq(doremi_object$str_exc)){
-            p <- p + geom_line(aes(get(doremi_object$str_time), get(doremi_object$str_exc[i]),
-                                 colour = paste0("Excitation: ", doremi_object$str_exc[i])))}
+    if (doremi_object$str_exc != 0){ #If there is an excitation term
 
-        p <- p + geom_line(data = doremi_object$estimated[doremi_object$estimated$id %in% facets],
+      #Preparing a data frame in long format in order to use ggplot for all the excitations
+      dataplot <- melt(doremi_object$data, measure.vars = doremi_object$str_exc)
+
+      #Excitations
+      p <- p + geom_line(data = dataplot[dataplot$id %in% facets], aes(get(doremi_object$str_time), value, color = as.factor(variable)))
+
+      #Estimated values
+      p <- p + geom_line(data = doremi_object$estimated[doremi_object$estimated$id %in% facets],
                            aes(timecol, ymin, colour = paste0(doremi_object$str_signal, " estimated, min value"))) +
                  geom_line(data = doremi_object$estimated[doremi_object$estimated$id %in% facets],
                            aes(timecol, ymax, colour = paste0(doremi_object$str_signal, " estimated, max value")))
@@ -65,14 +69,16 @@ plot.doremi = function (doremi_object,
 
     p <- ggplot(doremi_object$data)
 
-    if (doremi_object$str_exc!=0){ #If there is an excitation term
+    if (doremi_object$str_exc != 0){ #If there is an excitation term
+      #Preparing a data frame in long format in order to use ggplot for all the excitations
+      dataplot <- melt(doremi_object$data, measure.vars = doremi_object$str_exc)
 
-      for (i in seq(doremi_object$str_exc)){
-        p <- p + geom_line(aes(get(doremi_object$str_time), get(doremi_object$str_exc[i]), colour = paste0("Excitation: ", doremi_object$str_exc[i])))}
+      #Excitations
+       p <- p + geom_line(data = dataplot, aes(get(doremi_object$str_time), value, color = as.factor(variable)))
 
-      p <- p + geom_line(aes(get(doremi_object$str_time), get(doremi_object$str_exc), colour = paste0("Excitation: ", doremi_object$str_exc))) +
-        geom_line(data = doremi_object$estimated, aes(timecol, ymin, colour = paste0(doremi_object$str_signal, " estimated, min value"))) +
-        geom_line(data = doremi_object$estimated, aes(timecol, ymax, colour = paste0(doremi_object$str_signal, " estimated, max value")))
+      #Estimated values
+       p <- p + geom_line(data = doremi_object$estimated, aes(timecol, ymin, colour = paste0(doremi_object$str_signal, " estimated, min value"))) +
+         geom_line(data = doremi_object$estimated, aes(timecol, ymax, colour = paste0(doremi_object$str_signal, " estimated, max value")))
 
     }else{ #If there is no excitation term
 
@@ -82,8 +88,12 @@ plot.doremi = function (doremi_object,
 
   }
 
-  p <- p + geom_point(aes(get(doremi_object$str_time), get(doremi_object$str_signal), colour = paste0("Signal: ", doremi_object$str_signal))) +
-  labs(x = doremi_object$str_time,
+  #Signal. Can be 0 if using the function predict
+  if (!is.null(doremi_object$str_signal)){
+    p <- p + geom_point(aes(get(doremi_object$str_time), get(doremi_object$str_signal), colour = paste0("Signal: ", doremi_object$str_signal)))
+  }
+
+  p <- p + labs(x = doremi_object$str_time,
        y = doremi_object$str_signal,
        colour = "") +
   ggtitle(paste0("DOREMI plot: ",deparse(substitute(doremi_object))))+
@@ -97,12 +107,10 @@ plot.doremi = function (doremi_object,
 #' \code{predict.doremi} S3 method for the predict function so that it can
 #' predict signal values in a DOREMI object when entering a new excitation
 #' @param doremi_object DOREMI object result of an analysis with the function doremi_analyse_order1
-#' @param exc_table data table containing three columns or more: id (optional), indicating the individual identifier,
+#' @param newdata data table containing three columns or more: id (optional), indicating the individual identifier,
 #' time, containing the time values and excitation, being one or several columns containing the different excitations
-#' to which the user desires to obtain an estimated signal
-#' @param time string containing the name of the time column in exc_table
-#' @param input string or vector of strings containing the name of the excitation column in exc_table
-#' @param id string containing the name of the id column in exc_table
+#' to which the user desires to obtain an estimated signal. As in the other methods for the predict function, the columns of newdata
+#' must have the same names as those of the original object, otherwise an error message is displayed
 #' @return Returns an list containing the values of time, the values of the excitation and the predicted
 #' values of the signal for that excitation
 #' @examples
@@ -112,37 +120,40 @@ plot.doremi = function (doremi_object,
 #' @importfrom data.table :=
 
 predict.doremi = function (doremi_object,
-                           exc_table,
-                           time = "time",
-                           input = "exc",
-                           id = "id"){
+                           newdata){
   deltat <- 0.1
-  if (!is.null(exc_table$id)){ # Multiple individuals
+  #Error management
+  if (any(is.na(match(names(newdata), names(doremi_object$data))))) {
+    stop("cannot evaluate groups for desired levels on 'newdata'")
+  }
+
+  newdata <- setDT(newdata)
+  if (!is.null(newdata$id)){ # Multiple individuals
 
       #Calculation of the total excitation (sum of all the excitation columns times their regression coefficients)
-      exc_table[, totalexc := 0]
-      for (i in 1:length(input)) #For loop to go through all the excitation columns
-      {
-        exc_table[, totalexc := totalexc + doremi_object$resultid[.GRP, get(input[i], "_exccoeff")]/
+      newdata[, totalexc := 0]
+      for (i in 1:length(doremi_object$str_exc)){ #For loop to go through all the excitation columns
+        newdata[, totalexc := totalexc + doremi_object$resultid[.GRP, get(paste0(doremi_object$str_exc[i], "_exccoeff"))]/
                     doremi_object$resultid[.GRP, get(paste0(doremi_object$str_signal, "_dampingtime"))] *
-                    get(input[i]), by = id]
+                    get(doremi_object$str_exc[i]), by = id]
       }
       # Generation of the third result table called \"estimated\"
       # Contains expanded time vector, minimum an maximum generated signals (for the two extreme scenarios of expanded excitation)
       #Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
       #Time vector and excitation vectors min and max
       #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
-      estimated <- exc_table[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat)), by = id]
+      estimated <- newdata[, list(timecol = seq(floor(min(get(doremi_object$str_time), na.rm = T)), ceiling(max(get(doremi_object$str_time), na.rm = T)), deltat)), by = id]
 
       #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
-      IDvec <- unique(exc_table$id)
+      IDvec <- unique(newdata$id)
 
       for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
         #And it will be necessary to shift these indexes according to in which id we are
-        leftidx <- findInterval(exc_table[id == IDvec[idx], get(time)], estimated[exc_table$id == IDvec[idx], timecol])
+        leftidx <- findInterval(newdata[id == IDvec[idx], get(doremi_object$str_time)], estimated[id == IDvec[idx], timecol])
         #tmpsignal contains the value of exctotal were the original times are found in the new time vector
         #and NA in the rest of the positions
-        estimated[nrow(estimated[exc_table$id < IDvec[idx]]) + leftidx, tmpsignal := exc_table[exc_table$id == IDvec[idx], totalexc]]
+        estimated[nrow(estimated[id < IDvec[idx]]) + leftidx, tmpsignal := newdata[id == IDvec[idx], totalexc]]
+
       }
 
       #The na.locf function (last observation called forward) will repeat the last non NA value.
@@ -151,30 +162,30 @@ predict.doremi = function (doremi_object,
       estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
 
       #Calculating the convolution
-      estimated[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(doremi_object$str_signal,"_dampingtime"))],exc_min,timecol)$y+
+      estimated[, ymin := doremi_generate_order1(doremi_object$resultid[.GRP, get(paste0(doremi_object$str_signal,"_dampingtime"))],exc_min,timecol)$y+
                   doremi_object$resultid[.GRP, get(paste0(doremi_object$str_signal,"_eqvalue"))], by = id]
-      estimated[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(doremi_object$str_signal,"_dampingtime"))],exc_max,timecol)$y+
+      estimated[, ymax := doremi_generate_order1(doremi_object$resultid[.GRP, get(paste0(doremi_object$str_signal,"_dampingtime"))],exc_max,timecol)$y+
                   doremi_object$resultid[.GRP, get(paste0(doremi_object$str_signal,"_eqvalue"))], by = id]
   }else{  # Single individual
 
     #Calculation of the total excitation (sum of all the excitation columns times their regression coefficients)
-    exc_table[, totalexc := 0]
-    for (i in 1:length(input)) #For loop to go through all the excitation columns
+    newdata[, totalexc := 0]
+    for (i in 1:length(doremi_object$str_exc)) #For loop to go through all the excitation columns
     {
-      exc_table[, totalexc := totalexc + doremi_object$resultmean[, get(input[i], "_exccoeff")]/
+      newdata[, totalexc := totalexc + doremi_object$resultmean[, get(paste0(doremi_object$str_exc[i], "_exccoeff"))]/
                                          doremi_object$resultmean[, get(paste0(doremi_object$str_signal, "_dampingtime"))] *
-                                         get(input[i])]
+                                         get(doremi_object$str_exc[i])]
     }
 
     # Expanded vectors according to detat chosen
     # Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
     # Time vector and excitation vectors min and max
     #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
-    estimated <- doremi_object$data[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat))]
-    leftidx <- findInterval(exc_table[, get(time)], estimated[, timecol])
+    estimated <- doremi_object$data[, list(timecol = seq(floor(min(get(doremi_object$str_time), na.rm = T)), ceiling(max(get(doremi_object$str_time), na.rm = T)), deltat))]
+    leftidx <- findInterval(newdata[, get(doremi_object$str_time)], estimated[, timecol])
     #tmpsignal contains the value of exctotal were the original times are found in the new time vector
     #and NA in the rest of the positions
-    estimated[leftidx, tmpsignal := exc_table[, totalexc]]
+    estimated[leftidx, tmpsignal := newdata[, totalexc]]
 
     #The na.locf function (last observation called forward) will repeat the last non NA value.
     #We use it to repeat the values in the excitation function to the left and to the right
@@ -191,16 +202,18 @@ predict.doremi = function (doremi_object,
   #Creating a DOREMI object to return so that it can be easily plotted afterwards
   #This object will be a copy of the original doremi_object set as input,
   #however the following attributes will be updated:
-  #data - will now be reduced to the inputs given to the function: exc_table and the added column totalexc
+  #data - will now be reduced to the inputs given to the function: newdata and the added column totalexc
   #estimated - will now contain the estimated signal min and max values for the excitation introduced as input
-  #str_time will be updated with name of time column in table exc_table
-  #str_exc will be updated with name of excitation columns in table exc_table
+  #str_time will be updated with name of time column in table newdata
+  #str_exc will be updated with name of excitation columns in table newdata
 
   res <- doremi_object
-  res$data <- exc_table
+  res$data <- newdata
   res$estimated <- estimated
-  res$str_time <- time
-  res$str_exc <- exc
+  res$str_time <- doremi_object$str_time
+  res$str_exc <- doremi_object$str_exc
+  res$str_signal <- NULL
+
 
   return(res)
 }

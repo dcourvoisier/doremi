@@ -376,7 +376,7 @@ doremi_analyse_order1 <- function(userdata,
   # It is difficult to verify if the signal is constant all along as it can be constant during the pulse
   if (is.null(input)){data[, inputcol := 0]
     input = "inputcol"
-    noinput<-TRUE #This flag will be needed later as if there is no input, coefficients for the excitation term will not be calculated in the regression
+    noinput <- TRUE #This flag will be needed later as if there is no input, coefficients for the excitation term will not be calculated in the regression
     warning("No excitation signal introduced as input. input was set to 0.\n")
   }
 
@@ -494,7 +494,7 @@ doremi_analyse_order1 <- function(userdata,
         #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
         #B is known, it is the intercept*thao, from the model fit with the derivative inside the analysis function
         #A is unknown. It can be found by fitting log(y-B)~ t
-        #We'll call the coefficients reulting from this new fit Ap and Bp
+        #We'll call the coefficients resulting from this new fit Ap and Bp
         #Ap=gamma
         #Bp=log(A)
 
@@ -585,7 +585,13 @@ doremi_analyse_order1 <- function(userdata,
     }
 
     # Output the results for the function
-    res = list(data = data, resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated, str_time = time, str_exc = ifelse(noinput,0,input), str_signal = signal)
+    #Excitation string
+    if (noinput){ # There is no excitation term
+      str_exc <- 0
+    }else{
+      str_exc <- input # There is one OR SEVERAL excitation columns
+    }
+    res = list(data = data, resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated, str_time = time, str_exc = str_exc, str_signal = signal)
 
   }
 
@@ -639,7 +645,7 @@ doremi_analyse_order1 <- function(userdata,
         #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
         #B is known, it is the intercept*thao, from the model fit with the derivative inside the analysis function
         #A is unknown. It can be found by fitting log(y-B)~ t
-        #We'll call the coefficients reulting from this new fit Ap and Bp
+        #We'll call the coefficients resulting from this new fit Ap and Bp
         #Ap=gamma
         #Bp=log(A)
 
@@ -701,7 +707,13 @@ doremi_analyse_order1 <- function(userdata,
     }
 
     # Output the results for the function
-    res = list(data = data, resultmean = resultmean, regression = summary, estimated = estimated, str_time = time, str_exc = ifelse(noinput,0,input), str_signal = signal)
+    #Excitation string
+    if (noinput){ # There is no excitation term
+      str_exc <- 0
+    }else{
+      str_exc <- input # There is one OR SEVERAL excitation columns
+    }
+    res = list(data = data, resultmean = resultmean, regression = summary, estimated = estimated, str_time = time, str_exc = str_exc, str_signal = signal)
 
   }
 class(res)= "doremi" #Class definition
