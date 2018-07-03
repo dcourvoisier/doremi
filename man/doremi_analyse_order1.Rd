@@ -5,7 +5,7 @@
 \title{DOREMI first order analysis function}
 \usage{
 doremi_analyse_order1(userdata, id = NULL, input = NULL, time = NULL,
-  signalcolumn, embedding = 2)
+  signal, embedding = 2)
 }
 \arguments{
 \item{userdata}{Is a data frame or data table containing at least two columns: one containing the identifier for each individual and the other one the
@@ -24,7 +24,7 @@ If this parameter is a vector, the function will consider an excitation column e
 \item{time}{Is a STRING containing the NAME of the column of userdata containing the time vector. If this parameter is not entered when calling the function,
 it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.}
 
-\item{signalcolumn}{Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.This parameter can't be left empty.}
+\item{signal}{Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.This parameter can't be left empty.}
 
 \item{embedding}{Is a positive integer containing the number of points to be used for the calculation of the derivatives. Its value by default is 2 as at
 least two points are needed for the calculation of the first derivative.}
@@ -106,7 +106,7 @@ myresult <- doremi_analyse_order1(userdata = mydata$data,
                            id = "id",
                            input = "excitation",
                            time = "timecol",
-                           signalcolumn = "dampedsignal",
+                           signal = "dampedsignal",
                            embedding = 5)
 }
 \seealso{

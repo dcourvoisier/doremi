@@ -386,13 +386,13 @@ doremi_analyse_order1 <- function(userdata,
   }
 
   #Converting data if columns are of type "factor" or "string" instead of numeric
-  if (any((sapply(data[, c(input, time, signal)], is.factor))) | any((sapply(data[, c(input, time, signal)], is.character)))){
+  if (any(sapply(c(input, time, signal),function(x){is.character(data[[x]])|is.factor(data[[x]])}))){
     data[, c(input, time, signal) := lapply(.SD, function(x) {as.numeric(as.character(x))}), .SDcols = c(input, time, signal)]
     warning("Some columns were found to be of the factor/string type and were converted to numeric.\n")
   }
   #If ID column is of type character, rename it to "idchar" and create an extra column "id" that is numeric
   #Regression works better with numeric id (comes from definition of lmer)
-  if (!is.null(id) && is.character(id)){
+  if (!is.null(id) && is.character(data[[id]])){
     setnames(data, old = id, new = "idchar")
     data[, id := rep(seq(unique(idchar)), data[, .N, by = idchar]$N)]
     id <- "id" #meaning id column has been changed
@@ -418,9 +418,9 @@ doremi_analyse_order1 <- function(userdata,
   #Paste is only used to generate new column names based on the orignal ones (concatenate strings)
   options(warn = -1) #Turns off warnings to avoid the calculate_gold function activating warnings every time it is called
 
-  data[, c(paste0(signal,"_rollmean")) := calculate_gold(get(signal),get(time),embedding)$dsignal[,1], by = id]
-  data[, c(paste0(signal,"_derivate1")) := calculate_gold(get(signal),get(time),embedding)$dsignal[,2], by = id]
-  data[, c(paste0(time,"_derivate")) := calculate_gold(get(signal),get(time),embedding)$dtime, by = id]
+  data[, c(paste0(signal, "_rollmean")) := calculate_gold(get(signal), get(time), embedding)$dsignal[, 1], by = id]
+  data[, c(paste0(signal, "_derivate1")) := calculate_gold(get(signal), get(time), embedding)$dsignal[, 2], by = id]
+  data[, c(paste0(time, "_derivate")) := calculate_gold(get(signal), get(time), embedding)$dtime, by = id]
 
 
   options(warn = 0) #Turns warnings back on
@@ -547,6 +547,20 @@ doremi_analyse_order1 <- function(userdata,
         # Contains expanded time vector, minimum an maximum generated signals (for the two extreme scenarios of expanded excitation)
         #Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
         #Time vector and excitation vectors min and max
+
+        # precision <- 10 #number of divisions in each time step
+        # estimated <- data[, list(exc_min = rep(totalexc[1:(.N-1)], each = precision[1]), tmax = max(get(time)), intervals = diff(get(time))/precision), by = id]
+        # estimated[, timecol := c(0 + cumsum(c(0, intervals[1:(length(intervals)-1)]))), by = id]
+        # #Shifting exc_min precision-1 values to the LEFT to obtain exc_max (the parameter "lead" means shift to the left whereas "lag" means shift to the right)
+        # estimated[, exc_max := shift(exc_min, n = precision - 1, fill = 0, type = "lead"), by = id]
+        #
+        # #Generation of the estimated signals
+        # estimated[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signal,"_dampingtime"))],exc_min,timecol)$y+
+        #             resultid[.GRP, get(paste0(signal,"_eqvalue"))], by = id]
+        #
+        # estimated[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(signal,"_dampingtime"))],exc_max,timecol)$y+
+        #             resultid[.GRP, get(paste0(signal,"_eqvalue"))], by = id]
+
         deltat <- 0.1
         #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
         estimated <- data[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat)), by = id]

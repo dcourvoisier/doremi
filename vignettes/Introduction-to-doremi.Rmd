@@ -191,7 +191,7 @@ resultb1 <- doremi_analyse_order1(userdata = mydataa2$data,
                                 id = "id",
                                 input ="excitation",
                                 time ="timecol",
-                                signalcolumn = "dampedsignal",
+                                signal = "dampedsignal",
                                 embedding = 5)
 ```
 
@@ -314,7 +314,7 @@ resultb2 <- doremi_analyse_order1(userdata = mydatab2,
                                 id = "id",
                                 input = c("excitation1", "excitation2", "excitation3"),
                                 time ="timecol",
-                                signalcolumn = "signal",
+                                signal = "signal",
                                 embedding = 5)
 
 #Looking for the calculation of the coefficients of the excitation
@@ -370,7 +370,7 @@ Note that decreasing exponentials can be esaily generated through the simulation
 resultb3 <- doremi_analyse_order1(userdata = mydatab3$data,
                                 id = "id",
                                 time = "timecol",
-                                signalcolumn = "dampedsignal",
+                                signal = "dampedsignal",
                                 embedding = 5)
 ```
 
@@ -406,7 +406,7 @@ Note that the _id_ parameter has been omitted when calling the function.
 resultb4 <- doremi_analyse_order1(userdata = mydatab4,
                                 input = "excitation",
                                 time ="timecol",
-                                signalcolumn = "signal",
+                                signal = "signal",
                                 embedding = 5)
 ```
 
@@ -445,7 +445,7 @@ mydatab5rd <- mydatab5$data[keep == 1]
 resultb5 <- doremi_analyse_order1(userdata = mydatab5rd,
                                 input = "excitation",
                                 time ="timecol",
-                                signalcolumn = "dampedsignal",
+                                signal = "dampedsignal",
                                 embedding = 5)
 ```
 
@@ -493,7 +493,7 @@ resultc1 <- doremi_analyse_order1(userdata = cardio,
                                 id = "id",
                                 input = "load",
                                 time ="timecol",
-                                signalcolumn = "hr",
+                                signal = "hr",
                                 embedding = 5)
 ```
 
@@ -528,7 +528,7 @@ The call to the analysis function to analyse this data would be:
 resultc2 <- doremi_analyse_order1(userdata = rotation,
                                 id = "id",
                                 time ="numtrials",
-                                signalcolumn = "meanRT",
+                                signal = "meanRT",
                                 embedding = 5)
 ```
 
