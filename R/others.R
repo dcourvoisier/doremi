@@ -59,10 +59,12 @@ plot.doremi = function (x, ...,
       p <- p + geom_line(data = dataplot[dataplot$id %in% facets], aes(get(x$str_time), value, color = as.factor(variable)))
 
       #Estimated values
+      if (is.null(x$estimated$id)) {stop("id column not found in table \"estimated\". Check call to the analysis function, the id column
+      should have been provided as input parameter.\n")}
       p <- p + geom_line(data = x$estimated[x$estimated$id %in% facets],
-                           aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
-                 geom_line(data = x$estimated[x$estimated$id %in% facets],
-                           aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
+                          aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
+               geom_line(data = x$estimated[x$estimated$id %in% facets],
+                          aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
 
     }else{ #If there is no excitation term
 
@@ -94,7 +96,7 @@ plot.doremi = function (x, ...,
 
   #Signal. Can be 0 if using the function predict
   if (!is.null(x$str_signal)){
-    p <- p + geom_line(aes(get(x$str_time), get(x$str_signal), colour = paste0("Signal: ", x$str_signal)))
+    p <- p + geom_point(aes(get(x$str_time), get(x$str_signal), colour = x$str_signal))
   }
 
   p <- p + labs(x = x$str_time,

@@ -8,8 +8,8 @@ excitation_function(amplitude = 1, nexc = 1, duration = 10, deltatf = 1,
   tmax = 100, minspacing = 10)
 }
 \arguments{
-\item{amplitude}{is a signed integer or vector of signed integers indicating the amplitude of the pulse. It must be greater than 0,
-otherwise an error is generated. It should also have as many elements as the number of pulses (nexc). If this is not the case and the
+\item{amplitude}{is a signed decimal or vector of signed decimals indicating the amplitude of the pulse. It must be greater than 0,
+otherwise an error is generated. If it is a vector, it should contain as many integers as the number of pulses (nexc). If this is not the case and the
 elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered (for instance, if the signal has 6 pulses and the amplitude vector has two elements, pulses 1,3 and 5 will
 have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).A warning will also
@@ -17,16 +17,16 @@ be generated.}
 
 \item{nexc}{is a signed integer indicating the number of pulses to be generated. It must be greater than 0, otherwise an error is generated.}
 
-\item{duration}{is a signed integer or vector of signed integers indicating the duration of the pulse in time units. It must be greater than 0,
+\item{duration}{is a signed decimal or vector of signed decimals indicating the duration of the pulse in time units. It must be greater than 0,
 otherwise an error is generated. As for the amplitude, it should also have as many elements as the number of pulses (nexc). If this is not the
 case and the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered. A warning will also be generated.}
 
-\item{deltatf}{is a signed decimal indicating the time step.}
+\item{deltatf}{is a signed decimal indicating the time step between two consecutive data points.}
 
-\item{tmax}{is a signed integer indicating the maximum time range of the excitation in time units. The time vector generated will go from 0 to tmax.}
+\item{tmax}{is a signed decimal indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
 
-\item{minspacing}{as pulses are generated randomnly, minspacing is a signed integer that indicates minimum spacing between pulses, thus avoiding
+\item{minspacing}{as pulses are generated randomnly, minspacing is a signed decimal that indicates minimum spacing between pulses, thus avoiding
 overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
 }
 \value{
@@ -35,7 +35,7 @@ E- vector containing the values of the excitation generated.
 t- vector containing the values of time generated.
 }
 \description{
-\code{excitation_function} returns a vector containing the values of a generated pulsed excitation signal with the pulses randomnly placed
+\code{excitation_function} generates a vector of randomly located squarred pulses
 for a given amplitude, duration and spacing between the pulses.
 }
 \details{

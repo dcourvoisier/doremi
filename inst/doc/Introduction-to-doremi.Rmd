@@ -254,7 +254,7 @@ Similarly to the _print_ function, _plot_ applied to a doremi object plots by de
 
 ```{r fig.width = 7, fig.height = 6}
 plot(resultb1, id = 3)
-plot(resultb1, id = c(1,4))
+plot(resultb1, id = c(1,5))
 ```
 
 And as it can be seen, the doremi plot generated contains the name of the doremi object variable in the title for future refernce, the legend with the variables represented and the labelling of the axis according to the variables introduced, all automatically.
@@ -400,7 +400,7 @@ resultb4 <- doremi_analyse_order1(userdata = mydatab4,
                                 embedding = 5)
 ```
 
-```{r fig.width = 6,fig.height = 4, fig.pos = 0.5}
+```{r fig.width = 5,fig.height = 4, fig.pos = 0.5}
 #Plotting 
 plot(resultb4)
 ```
@@ -426,7 +426,6 @@ mydatab5rd <- mydatab5$data[keep == 1]
 
 #Analysing the resulting signal
 resultb5 <- doremi_analyse_order1(userdata = mydatab5rd,
-                                id = "id",
                                 input = "excitation",
                                 time ="timecol",
                                 signal = "dampedsignal",
@@ -449,7 +448,8 @@ ggplot2::ggplot( data = mydatab5$rawdata ) +
 Plotting analysis results:
 
 ```{r  fig.width = 7, fig.height = 6}
-plot(resultb5)
+#plot(resultb5)
+resultb5$data
 ```
 
 # C - Applications
@@ -538,7 +538,7 @@ et2 <- e1$y+2.5*e2$y+4*e3$y
 y2 <- doremi_generate_order1(10,et2,timt1)$y
 
 #Create data table with the pair e1,y1
-mydata<-data.table::setDT(list(tim=timt1,exc=et1,y1=y1))
+mydata<-setDT(list(tim=timt1,exc=et1,y1=y1))
 
 #Analysis 
 resultd1 <- doremi_analyse_order1(mydata,
@@ -556,5 +556,5 @@ predresultd1<- predict (resultd1,
 
 #Compare with calculated signal y2
 q<-plot(predresultd1)
-q + ggplot2::geom_point(ggplot2::aes(predresultd1$data$tim, y2,colour = "y2"))
+q+geom_point(aes(predresultd1$data$tim, y2,colour = "y2"))
 ```

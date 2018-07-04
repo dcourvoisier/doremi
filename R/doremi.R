@@ -109,7 +109,7 @@ calculate_gold <-  function(signal,
     derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
     # Addition of NA so that the derivative rows are the same as those of signal
   } else{
-    stop("Embedding>=2 for the calculation of a first derivative and 3 for a second derivative.\n")
+    stop("Embedding should be >=2 for the calculation of a first derivative and 3 for a second derivative.\n")
   }
   time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
   # Addition of NA so that the time rows are the same as those of signal
@@ -250,8 +250,14 @@ doremi_analyse_order1 <- function(userdata,
   data <- setDT(data) # Convert input data to data.table.
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
   #Error management
+  #Verifying that id, input, time and signal strings correspond to names of columns in the table userdata
+  if(!is.null(id) && !(id %in% names(userdata))){stop("No column found in userdata with the parameter \"id\" specified.\n")}
+  if(!is.null(input) && !(input %in% names(userdata))){stop("No column found in userdata with the parameter \"input\" specified.\n")}
+  if(!is.null(time) && !(time %in% names(userdata))){stop("No column found in userdata with the parameter \"time\" specified.\n")}
+  if(!(signal %in% names(userdata))){stop("No column found in userdata with the parameter \"signal\" specified.\n")}
+
   #Verifying column names repeated in data table.
-  if(any(duplicated(colnames(data)))){stop("input datatable contains duplicated column names. Please correct these in order to launch the analysis function.\n")}
+  if(any(duplicated(colnames(data)))){stop("Input datatable contains duplicated column names. Please correct these in order to launch the analysis function.\n")}
 
   #If id,input,time,signal are not strings containing the name of columns in "data", stop the function
   if(!is.null(id) && !is.character(id)){stop("id should be a string containing the name of the column in data that contains the individual identifier.\n")}
@@ -639,7 +645,7 @@ doremi_generate_order1 <- function(dampingtime,
   #Error management
   #If inputvec is a scalar, the function warns the user that it should be a vector containing the values of the excitation signal
   if (length(inputvec) <= 1 | length(inputvec) != length(inputtim)) {
-    warning("Both the excitation (inputvec) and is time values (inputtim) should be vectors and have the same length.\n")
+    stop("Both the excitation (inputvec) and its time values (inputtim) should be vectors and have the same length.\n")
   }
   #if inputvec is a character or a matrix, the function stops
   if (is.matrix(inputvec) | is.character(inputvec)) stop("inputvec should be a vector.")
@@ -840,11 +846,7 @@ simulation_generate_order1 <- function(nindividuals = 1,
                                        internoise = 0,
                                        intranoise = 0){
   #Internal time step to generate pseudo-continuous function
-  if (dampingtime<10) deltat=dampingtime/10
-  else deltat=0.01
-
-  if((deltatf < deltat) != 0){stop("Invalid deltatf, please modify.\n")}
-
+  deltat = 0.1
   npoints <- tmax / deltat + 1
 
   # Generate simulation data for a given excitation and damping time
@@ -865,7 +867,7 @@ simulation_generate_order1 <- function(nindividuals = 1,
   #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
   if (any(dampingtimevec < 0)){
     dampingtimevec[dampingtimevec < 0] <- dampingtime
-    warning("Some values for dampingtime where negative when adding internoise. The original dampingtime value has been used instead for those cases")
+    warning("Some values for dampingtime where negative when adding internoise. The original dampingtime value has been used instead for those cases.\n")
   }
 
   #Creates the signals for each individual taking the damping time for that individual from dampingtimevec

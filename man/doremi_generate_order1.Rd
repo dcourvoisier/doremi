@@ -8,11 +8,18 @@ doremi_generate_order1(dampingtime, inputvec, inputtim)
 }
 \arguments{
 \item{dampingtime}{Signal damping time. It represents the characteristic response time of the solution of the differential equation.
-It should be a signed real (dampingtime > 0), otherwise a warning will be generated.}
+It should be a signed decimal (dampingtime > 0), otherwise a warning will be generated.}
 
 \item{inputvec}{Is a vector containing the values of the excitation signal.}
 
 \item{inputtim}{Is a vector containing the time values corresponding to the excitation signal.}
+}
+\value{
+Returns a list containing two elements:
+\itemize{
+  \item  y is a vector containing the values calculated from the convolution of the Green function and the excitation vector.
+  \item  t is a vector containing the corresponding time values
+}
 }
 \description{
 \code{doremi_generate_order1} returns a vector containing the convolution of the Green function
