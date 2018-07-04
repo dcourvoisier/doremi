@@ -4,12 +4,14 @@
 \alias{predict.doremi}
 \title{S3 method to predict signal values in a DOREMI object when entering a new excitation}
 \usage{
-\method{predict}{doremi}(doremi_object, newdata)
+\method{predict}{doremi}(object, ..., newdata)
 }
 \arguments{
-\item{doremi_object}{DOREMI object result of an analysis with the function doremi_analyse_order1}
+\item{object}{DOREMI object result of an analysis with the function doremi_analyse_order1}
 
-\item{newdata}{data table containing three columns or more: id (optional), indicating the individual identifier,
+\item{...}{Additionnal arguments inherited from generic predict method.}
+
+\item{newdata}{includes a data table containing three columns or more: id (optional), indicating the individual identifier,
 time, containing the time values and excitation, being one or several columns containing the different excitations
 to which the user desires to obtain an estimated signal. As in the other methods for the predict function, the columns of newdata
 must have the same names as those of the original object, otherwise an error message is displayed}
@@ -40,6 +42,6 @@ myresult <- doremi_analyse_order1(userdata = mydata$data,
                            signal = "dampedsignal",
                            embedding = 5)
 exc_table <- myresult$data
-predresult <- predict(myresult,exc_table)
+predresult <- predict(myresult, newdata = exc_table)
 plot(predresult)
 }

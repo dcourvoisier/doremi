@@ -4,10 +4,12 @@
 \alias{plot.doremi}
 \title{S3 method to plot DOREMI objects}
 \usage{
-\method{plot}{doremi}(doremi_object, id = 1:6)
+\method{plot}{doremi}(x, ..., id = 1:6)
 }
 \arguments{
-\item{doremi_object}{DOREMI object (contains several lists)}
+\item{x}{DOREMI object (contains several lists)}
+
+\item{...}{includes the additional arguments inherited from the generic plot method}
 
 \item{id}{Includes the identifiers of the individuals to be represented in the plot.
 id can be a scalar (the function will plot an individual) or a vector (it will plot the individuals with

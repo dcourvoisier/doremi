@@ -294,13 +294,13 @@ mydatab2 <- data.table::setDT(list(id = rep(c(1, 2), c(length(et1), length(et2))
                        excitation2= c(e2$y, e2$y),
                        excitation3 = c(e3$y, e3$y),
                        excitation = c(et1, et2), 
-                       signal = c(y1, y2)))
+                       signalcol = c(y1, y2)))
 ```
 
 ```{r fig.width = 7,fig.height = 4}
 #Plotting signals
 ggplot2::ggplot( data = mydatab2 ) +
-  ggplot2::geom_line(ggplot2::aes(timecol,signal, colour = "Signal-no noise"))+
+  ggplot2::geom_line(ggplot2::aes(timecol,signalcol, colour = "Signal-no noise"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (unit)",
@@ -314,7 +314,7 @@ resultb2 <- doremi_analyse_order1(userdata = mydatab2,
                                 id = "id",
                                 input = c("excitation1", "excitation2", "excitation3"),
                                 time ="timecol",
-                                signal = "signal",
+                                signal = "signalcol",
                                 embedding = 5)
 
 #Looking for the calculation of the coefficients of the excitation
@@ -331,7 +331,7 @@ $\epsilon_{1}=1.18$, $\epsilon_{2}=2.78$, $\epsilon_{3}=4.62$ for individual 2, 
 ```{r fig.width = 7,fig.height = 4}
 #Plotting signals
 ggplot2::ggplot( data = resultb2$data ) +
-  ggplot2::geom_line(ggplot2::aes(timecol,signal, colour = "Signal-no noise"))+
+  ggplot2::geom_line(ggplot2::aes(timecol,signalcol, colour = "Signal-no noise"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (unit)",
@@ -376,12 +376,12 @@ resultb3 <- doremi_analyse_order1(userdata = mydatab3$data,
 
 Note that the _input_ parameter has been omitted when calling the function.
 
-```{r  fig.width = 7,fig.height = 6}
+```{r  fig.width = 7, fig.height = 6}
 #Plotting
  ggplot2::ggplot( data = resultb3$data ) +
     ggplot2::geom_point(ggplot2::aes(timecol, dampedsignal,colour = "Signal"))+
-    ggplot2::geom_line(ggplot2::aes(timecol, dampedsignalraw,colour = "Signal without noise"))+    
-    ggplot2::geom_point(ggplot2::aes(timecol, dampedsignal_estimated,colour = "Signal estimated"))+
+    ggplot2::geom_line(ggplot2::aes(timecol, dampedsignalraw,colour = "Signal without noise")) + 
+    ggplot2::geom_point(data = resultb3$estimated, ggplot2::aes(timecol, dampedsignal_estimated,colour = "Signal estimated"))+
     ggplot2::facet_wrap(~id) + 
     ggplot2::labs(x = "Time (s)",
         y = "Signal (units)",
@@ -396,7 +396,7 @@ In this case, we can reuse the signals of the example 2 for a single individual
 #Creating the data table
 mydatab4 <- data.table::setDT(list(timecol = timt1,
                        excitation = et1, 
-                       signal = y1))
+                       signalcol = y1))
 ```
 
 Note that the _id_ parameter has been omitted when calling the function.
@@ -406,14 +406,14 @@ Note that the _id_ parameter has been omitted when calling the function.
 resultb4 <- doremi_analyse_order1(userdata = mydatab4,
                                 input = "excitation",
                                 time ="timecol",
-                                signal = "signal",
+                                signal = "signalcol",
                                 embedding = 5)
 ```
 
 ```{r fig.width = 5,fig.height = 4, fig.pos = 0.5}
 #Plotting 
 ggplot2::ggplot( data = resultb4$data ) +
-  ggplot2::geom_line(ggplot2::aes(timecol,signal, colour = "Signal-no noise"))+
+  ggplot2::geom_line(ggplot2::aes(timecol,signalcol, colour = "Signal-no noise"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
   ggplot2::labs(x = "Time (unit)",
            y = "Signal (unit)",
@@ -539,7 +539,7 @@ Plotting analysis results:
  ggplot2::ggtitle("Mental rotation study")+
  ggplot2::theme(legend.position="top", plot.title = ggplot2::element_text(hjust = 0.5))+
     ggplot2::geom_point(ggplot2::aes(numtrials, meanRT, colour = "Signal"))+    
-    ggplot2::geom_line(ggplot2::aes(numtrials, meanRT_estimated, colour = "Estimated signal"))+    
+    ggplot2::geom_line(data = resultc2$estimated, ggplot2::aes(numtrials, meanRT_estimated, colour = "Estimated signal"))+    
     ggplot2::facet_wrap(~id, scale = "free") + 
     ggplot2::labs(x = "Number of trials (dimensionless)",
         y = "Response time (ms)",

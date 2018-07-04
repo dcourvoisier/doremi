@@ -8,18 +8,19 @@ doremi_analyse_order1(userdata, id = NULL, input = NULL, time = NULL,
   signal, embedding = 2)
 }
 \arguments{
-\item{userdata}{Is a data frame or data table containing at least two columns: one containing the identifier for each individual and the other one the
-signal to be analysed.}
+\item{userdata}{Is a data frame or data table containing at least one column, that is the signal to be analysed.}
 
 \item{id}{Is a STRING containing the NAME of the column of userdata containing the idENTIFIER of the individual.
 If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead.}
 
 \item{input}{Is a STRING or a VECTOR OF STRINGS containing the NAME of userdata column/s containing the EXCITATION vector/s.
 If this parameter is not entered when calling the function,
-        the excitation is assumed to be constant/non existent. In this case, the multi-level regression is still carried out but no coefficient is calculated
-        for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal.
+the excitation is assumed to be constant/non existent. In this case, the multi-level regression is still carried out but no coefficient is calculated
+for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
+and build the estimated curve.
+
 If this parameter is a vector, the function will consider an excitation column each column of userdata whose name is contained in the input vector.
-        The function will then include all the excitations in the multilevel regression and calculate a coefficient for each one of these.}
+The function will then include all the excitations in the multilevel regression and calculate a coefficient for each one of these.}
 
 \item{time}{Is a STRING containing the NAME of the column of userdata containing the time vector. If this parameter is not entered when calling the function,
 it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.}
@@ -34,27 +35,31 @@ The function returns five objects:
 \enumerate{
  \item data- A data.frame including the input data (for comparison purposes) and other intermediate calculations used to prepare the variables for
   the fit, more specifically:
-    dampedsignal_rollmean - calculation of the moving average of the signal in embedding points.
-    dampedsignal_derivate1 - calculation of the first derivative of the signal according to the GOLD method in embedding points.
-    timecol_derivate - calculation of the moving average of the time vector in embedding points.
-    excitation_rollmean - calculation of the moving average of the excitation vector in embedding points.
+    dampedsignal_rollmean - calculation of the moving average of the signal over embedding points.
+
+    dampedsignal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
+
+    timecol_derivate - calculation of the moving average of the time vector over embedding points.
+
+    excitation_rollmean - calculation of the moving average of the excitation vector over embedding points.
  \item resultid- A data.frame including for each individual, listed by his/her id number, the damping time, the excitation coefficient and the
  equilibrium value (see variables presented above).
  \item resultmean- A data.frame including the average of the fixed effects of the three coefficients mentioned above for all the individiuals.
  \item regression- A list containing the summary of the multilevel regression (random and fixed parts, residuals, t values).
- \item estimated- A data.frame containing the estimated signal calculated as the convolution of the Green function and the excitation
+ \item estimated- A data.frame containing the estimated signal calculated as the convolution of the Green function with the
+ estimated damping time and the excitation
  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
  is thus completed taking the previous known value (to the "left" and thus generating the signal exc_min in the data.frame) or taking the next known value
- (to the "left" and thus generating the signal exc_max in the data.frame). With these two expanded excitation vectors, the two exreme cases of the
- estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
+ (to the "right" and thus generating the signal exc_max in the data.frame). With these two expanded excitation vectors, the two extreme cases of the
+ mean estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
  the multilevel regression) and each one of the excitation signals described, thus generating ymin and ymax respectively.
 }
 }
 \description{
-\code{doremi_analyse_order1}  the function aims to quantify how close is a study signal to the solution of the first order linear
+\code{doremi_analyse_order1}  the function performs a multilevel regression of a first order linear
 constant coefficient differential equation of the form: \deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
-Where y(t) is the individual's signal and E(t) is the excitation.
+Where y(t) is the individual's signal, \deqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
 In order to do this, the function uses multilevel regression and calculates the coefficients, fixed and random effecs and the estimated signal.
 }
 \details{
@@ -69,7 +74,7 @@ y and E are the signal and the excitation averaged on \eqn{N_{E}} points.
 From this equation, the coefficients provided as outputs of the function and that characterize the signal are calculated as follows:
 \itemize{
   \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
-  \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}}It is the proportionality between the excitation and the maximum value reached
+  \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
 by the variable experiencing this excitation.
   \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
 }
@@ -78,7 +83,7 @@ With the above estimated parameters, the estimated signal can be reconstructed f
 each individual by first performing the convolution of the excitation with the Green function , having a damping rate equal to the estimated
 and then offsetting the resulting signal with the equilibrium value.
 
-DOREMI can be used to analyse several situations in different domains, for instance:
+Below are several examples of data that can be analysed with DOREMI:
 \itemize{
   \item \strong{Medicine}
          Excitation: load in a resistive bicycle during an effort test

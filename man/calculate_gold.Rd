@@ -2,14 +2,14 @@
 % Please edit documentation in R/doremi.R
 \name{calculate_gold}
 \alias{calculate_gold}
-\title{Calculation of derivatives through using the Gold method}
+\title{Calculation of derivatives using the Gold method}
 \usage{
 calculate_gold(signal, time, embedding = 2)
 }
 \arguments{
-\item{signal}{is a vector containing the values of the function to be derivated.}
+\item{signal}{is a vector containing the data from which the derivative is estimated.}
 
-\item{time}{Is a vector containing time values.  It has the same length as signal.}
+\item{time}{is a vector containing the time values corresponding to the data contained in signal. Thus, they both have the same length.}
 
 \item{embedding}{is a signed integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 2 because at least
 two points are needed for the calculation of the first derivative and at least 3 for the calulation of the second derivative. If it is not the case, the
@@ -17,12 +17,17 @@ function displays an error message. If not specified, embedding=2 by default.}
 }
 \value{
 Returns a list containing three columns:
-dtime- contains the time values in which the derivative was calculated. That is, the roll mean of the input "time" vector in "embedding" points.
-dsignal- contains the calculated derivative of the "signal" vector according to the GOLD method, considering "embedding" points.
-embedding- contains the number of points used for the derivative calculation and time roll means, which is constant.
+dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
+
+dsignal- is a data.frame containing three columns and the same number of rows as the signal.
+The first column is the moving average of the signal over embedding points, the second is the first derivative,
+and the third is the second derivative.
+
+embedding- contains the number of points used for the derivative calculation, which is constant.
 }
 \description{
-\code{Calculate_gold} calculates the derivatives of a function according to the Gold method described in \url{https://doi.org/10.1080/00273171.2010.498294}
+\code{Calculate_gold} estimates the derivatives of a dataset according to the Generalized Orthogonal Local Derivative (GOLD)
+method described in \url{https://doi.org/10.1080/00273171.2010.498294}
 including management of variable time steps.
 }
 \examples{

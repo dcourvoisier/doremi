@@ -7,10 +7,14 @@ globalVariables(c("value","variable"))
 
 # Call to classes and methods ---------------------------------------------
 # Classes documented directly in the analysis function (object "doremi")
+# plot doremi generic method
+#doremi <- function(x, ..., id) UseMethod("doremi")
+
 #' S3 method to plot DOREMI objects
 #'
 #' \code{plot.doremi} S3 method for the plot function so that it can represent DOREMI objects
 #' @param x DOREMI object (contains several lists)
+#' @param ... includes the additional arguments inherited from the generic plot method
 #' @param id Includes the identifiers of the individuals to be represented in the plot.
 #' id can be a scalar (the function will plot an individual) or a vector (it will plot the individuals with
 #' the numeric id contained in the vector)
@@ -39,7 +43,7 @@ globalVariables(c("value","variable"))
 #' @export
 #' @import ggplot2
 #' @importFrom data.table melt
-plot.doremi = function (x,
+plot.doremi = function (x, ...,
                      id = 1:6){
   if (!is.null(x$data$id) && length(unique(x$data$id))>1){ # Multiple individuals
     facets <- as.character(id)
@@ -107,7 +111,8 @@ plot.doremi = function (x,
 #' \code{predict.doremi} S3 method for the predict function so that it can
 #' predict signal values in a DOREMI object when entering a new excitation
 #' @param object DOREMI object result of an analysis with the function doremi_analyse_order1
-#' @param newdata data table containing three columns or more: id (optional), indicating the individual identifier,
+#' @param ... Additionnal arguments inherited from generic predict method.
+#' @param newdata includes a data table containing three columns or more: id (optional), indicating the individual identifier,
 #' time, containing the time values and excitation, being one or several columns containing the different excitations
 #' to which the user desires to obtain an estimated signal. As in the other methods for the predict function, the columns of newdata
 #' must have the same names as those of the original object, otherwise an error message is displayed
@@ -131,11 +136,10 @@ plot.doremi = function (x,
 #'                            signal = "dampedsignal",
 #'                            embedding = 5)
 #' exc_table <- myresult$data
-#' predresult <- predict(myresult,exc_table)
+#' predresult <- predict(myresult, newdata = exc_table)
 #' plot(predresult)
 #' @export
-predict.doremi = function (object,
-                           newdata){
+predict.doremi = function (object, ..., newdata){
   deltat <- 0.1
   #Error management
   if (any(is.na(match(names(newdata), names(object$data))))) {
