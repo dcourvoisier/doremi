@@ -4,8 +4,8 @@
 \alias{excitation_function}
 \title{Excitation signal generation}
 \usage{
-excitation_function(amplitude = 1, nexc = 1, duration = 10, deltatf = 1,
-  tmax = 100, minspacing = 10)
+excitation_function(amplitude = 1, nexc = 1, duration = 2,
+  deltatf = 0.1, tmax = 10, minspacing = 1)
 }
 \arguments{
 \item{amplitude}{is a signed decimal or vector of signed decimals indicating the amplitude of the pulse. It must be greater than 0,
