@@ -286,15 +286,11 @@ doremi_analyse_order1 <- function(userdata,
   }
   #If ID column is of type character, rename it to "idchar" and create an extra column "id" that is numeric
   #Regression works better with numeric id (comes from definition of lmer)
+  oldid <- id #store input in variable to set the str_id attribute at the end of the function with this value
+
   if (!is.null(id) && is.character(data[[id]])){
-    setnames(data, old = id, new = "idchar")
-    data[, id := rep(seq(unique(idchar)), data[, .N, by = idchar]$N)]
-    id <- "id" #meaning id column has been changed
-  }
-  #Rename column containing id to "id" because further functions use this identifier to work. Also display warning message saying that column has been renamed.
-  if (!is.null(id) && id!="id"){
-    #Setting some of the column names (necessary for data treatment)
-    setnames(data, old = id, new = "id")
+    data[, paste0(id,"_tmp") := rep(seq(unique(get(id))), data[, .N, by = id]$N)]
+    id <- paste0(id,"_tmp") #updating id column name to this new column to do the fit with lme4
   }
 
   if (embedding == 2){warning("Only first derivative can be calculated with an embedding of 2.\n")}
@@ -331,7 +327,7 @@ doremi_analyse_order1 <- function(userdata,
   #Result data frames
   #The first table contains the input data
   #The second table contains the mean results for gamma and thao for each individual
-  resultid <- setDT(list( id = unique(data$id) ))
+  resultid <- setDT(list( id = unique(data[[id]]) ))
   #The third table contains the mean values for gamma and thao for all the individuals (single line)
   #Generate mean results with convergence criterions
   resultmean <- setDT(list(id = "All"))
@@ -345,19 +341,19 @@ doremi_analyse_order1 <- function(userdata,
     setkey(resultid, id) #sorts the data table by id
 
     if (noinput){ # if there is no excitation signal
-      model <- tryCatch({lmer(paste0(signal,"_derivate1 ~ ", signal, "_rollmean + (1 + ", signal, "_rollmean |id)"),
+      model <- tryCatch({lmer(paste0(signal,"_derivate1 ~ ", signal, "_rollmean + (1 + ", signal, "_rollmean |",id,")"),
                               data = data, REML=TRUE,
                               control = lmerControl(calc.derivs = FALSE,optimizer = "nloptwrap"))}, error = function(e) e)
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0(signal, "_derivate1 ~ ", signal, "_rollmean + (1 + ", paste(input, "rollmean ", collapse = "+", sep = "_")," + ",
-                                     signal, "_rollmean |id) + ", paste(input, "rollmean ", collapse = "+",sep = "_")),
+                                     signal, "_rollmean |",id,") + ", paste(input, "rollmean ", collapse = "+",sep = "_")),
                               data = data, REML=TRUE,
                               control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
 
     }
     if (!inherits(model,"error")){ # if the regression worked
       summary <- summary(model) # Summary of the regression
-      random <- ranef(model) # Variation of the estimate coefficient over the individuals
+      random <- ranef(model)[[id]] # Variation of the estimate coefficient over the individuals
       regression <- list(summary, random) # list to output both results: summary, and the table from ranef
 
       # calculate the damping time for all signal columns
@@ -373,12 +369,11 @@ doremi_analyse_order1 <- function(userdata,
 
       # Damping time in resultid ------------------------------------------------
 
-
-      resultid[, c(paste0(signal,"_dampingtime")) := -1L/(summary$coefficients[paste0(signal,"_rollmean"),"Estimate"] + random$id[.GRP,paste0(signal,"_rollmean")]), by = id]
+      resultid[, c(paste0(signal, "_dampingtime")) := -1L/(summary$coefficients[paste0(signal, "_rollmean"), "Estimate"] + random[.GRP,paste0(signal, "_rollmean")]), by = id]
 
       # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
       # Offset in resultid ------------------------------------------------------
-      resultid[, c(paste0(signal,"_eqvalue")) := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"])*resultid[.GRP, get(paste0(signal, "_dampingtime"))], by = id]
+      resultid[, c(paste0(signal,"_eqvalue")) := (summary$coefficients["(Intercept)", "Estimate"] + random[.GRP, "(Intercept)"])*resultid[.GRP, get(paste0(signal, "_dampingtime"))], by = id]
 
       # Generation of the fitted signal for all id using remi generate FOR SEVERAL INDIVidUALS
 
@@ -407,8 +402,8 @@ doremi_analyse_order1 <- function(userdata,
           # Excitation coefficient in resultid --------------------------------------
 
           resultid[, c(paste0(input[i],"_exccoeff")) :=
-                     (summary$coefficients[paste0(input[i], "_rollmean"), "Estimate"] + random$id[.GRP,paste0(input[i], "_rollmean")]) * resultid[.GRP, get(paste0(signal, "_dampingtime"))], by = id]
-          data[, totalexc := totalexc+(summary$coefficients[paste0(input[i], "_rollmean"), "Estimate"] + random$id[.GRP,paste0(input[i], "_rollmean")]) * get(input[i]), by = id]
+                     (summary$coefficients[paste0(input[i], "_rollmean"), "Estimate"] + random[.GRP,paste0(input[i], "_rollmean")]) * resultid[.GRP, get(paste0(signal, "_dampingtime"))], by = id]
+          data[, totalexc := totalexc+(summary$coefficients[paste0(input[i], "_rollmean"), "Estimate"] + random[.GRP,paste0(input[i], "_rollmean")]) * get(input[i]), by = id]
         }
       }
 
@@ -433,7 +428,7 @@ doremi_analyse_order1 <- function(userdata,
                }else{NaN}, by = id]
 
         #Adding calculated columns to table "estimated" and removing them from table "data"
-        estimated <- data[, c(id, time, paste0(signal,"_estimated")), with = FALSE]
+        estimated <- data[, c(oldid, time, paste0(signal,"_estimated")), with = FALSE]
         data <- data[, c("expfit_A", paste0(signal,"_estimated")) := NULL]
 
       }else{
@@ -444,32 +439,33 @@ doremi_analyse_order1 <- function(userdata,
 
         deltat <- 0.1
         #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
-        estimated <- data[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat)), by = id]
+
+        estimated <- data[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat)), by = oldid]
 
         #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
-        IDvec <- unique(data$id)
+        IDvec <- unique(data[[oldid]])
 
         for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
           #And it will be necessary to shift these indexes according to in which id we are
-          leftidx <- findInterval(data[id == IDvec[idx], get(time)], estimated[id == IDvec[idx], timecol])
+          leftidx <- findInterval(data[get(oldid) == IDvec[idx], get(time)], estimated[get(oldid) == IDvec[idx], timecol])
           #tmpsignal contains the value of exctotal were the original times are found in the new time vector
           #and NA in the rest of the positions
-          estimated[nrow(estimated[id < IDvec[idx]]) + leftidx, tmpsignal := data[id == IDvec[idx], totalexc]]
+          estimated[nrow(estimated[get(oldid) < IDvec[idx]]) + leftidx, tmpsignal := data[get(oldid) == IDvec[idx], totalexc]]
         }
 
         #The na.locf function (last observation called forward) will repeat the last non NA value.
         #We use it to repeat the values in the excitation function to the left and to the right
-        estimated[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = id]
-        estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
+        estimated[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = oldid]
+        estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = oldid]
         estimated <- estimated[!is.na(exc_min) & !is.na(exc_max)]
         #Removing tmpsignal
         estimated[, "tmpsignal" := NULL]
 
         #Calculating the convolution
         estimated[, ymin := doremi_generate_order1(resultid[.GRP, get(paste0(signal,"_dampingtime"))],exc_min,timecol)$y+
-                     resultid[.GRP, get(paste0(signal,"_eqvalue"))], by = id]
+                     resultid[.GRP, get(paste0(signal,"_eqvalue"))], by = oldid]
         estimated[, ymax := doremi_generate_order1(resultid[.GRP, get(paste0(signal,"_dampingtime"))],exc_max,timecol)$y+
-                     resultid[.GRP, get(paste0(signal,"_eqvalue"))], by = id]
+                     resultid[.GRP, get(paste0(signal,"_eqvalue"))], by = oldid]
 
       }
     }else{ # if the regression didn't work, set to NA all coeffs
@@ -486,7 +482,7 @@ doremi_analyse_order1 <- function(userdata,
     }else{
       str_exc <- input # There is one OR SEVERAL excitation columns
     }
-    res = list(data = data, resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated, str_time = time, str_exc = str_exc, str_signal = signal)
+    res = list(data = data, resultid = resultid, resultmean = resultmean, regression = regression, estimated = estimated, str_time = time, str_exc = str_exc, str_signal = signal, str_id = oldid)
 
   }
 
@@ -609,7 +605,7 @@ doremi_analyse_order1 <- function(userdata,
     }else{
       str_exc <- input # There is one OR SEVERAL excitation columns
     }
-    res = list(data = data, resultmean = resultmean, regression = summary, estimated = estimated, str_time = time, str_exc = str_exc, str_signal = signal)
+    res = list(data = data, resultmean = resultmean, regression = summary, estimated = estimated, str_time = time, str_exc = str_exc, str_signal = signal, str_id = oldid)
 
   }
 class(res)= "doremi" #Class definition

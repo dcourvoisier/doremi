@@ -44,51 +44,58 @@ globalVariables(c("value","variable"))
 #' @import ggplot2
 #' @importFrom data.table melt
 plot.doremi = function (x, ...,
-                     id = 1:6){
-  if (!is.null(x$data$id) && length(unique(x$data$id))>1){ # Multiple individuals
-    facets <- as.character(id)
-    p <- ggplot(x$data[x$data$id %in% facets]) +
-         facet_wrap(~id, scales = "free")
+                     id = NULL){
+  xd <- x$data # data frame that contains the data from the doremi result object
+  xe <- x$estimated # data frame containing the signal estimated values from the doremi result object
+
+  if (!is.null(x$str_id) && length(unique(xd[[x$str_id]])) > 1){ # Multiple individuals
+    if (is.null(id)){#if user doesn't specify id, plot prints the first six individuals
+      facets <- head(unique(xd[[x$str_id]]), 6)
+    }else{
+      facets <- as.character(id)
+    }
+    p <- ggplot(xd[get(x$str_id) %in% facets]) +
+         facet_wrap(~get(x$str_id), scales = "free")
 
     if (x$str_exc != 0){ #If there is an excitation term
 
       #Preparing a data frame in long format in order to use ggplot for all the excitations
-      dataplot <- melt(x$data, measure.vars = x$str_exc)
+      dataplot <- melt(xd, measure.vars = x$str_exc)
 
       #Excitations
-      p <- p + geom_line(data = dataplot[dataplot$id %in% facets], aes(get(x$str_time), value, color = as.factor(variable)))
+      p <- p + geom_line(data = dataplot[get(x$str_id) %in% facets], aes(get(x$str_time), value, color = as.factor(variable)))
 
       #Estimated values
-      if (is.null(x$estimated$id)) {stop("id column not found in table \"estimated\". Check call to the analysis function, the id column
+      if (is.null(xe[[x$str_id]])) {stop("id column not found in table \"estimated\". Check call to the analysis function, the id column
       should have been provided as input parameter.\n")}
-      p <- p + geom_line(data = x$estimated[x$estimated$id %in% facets],
+      p <- p + geom_line(data = xe[get(x$str_id) %in% facets],
                           aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
-               geom_line(data = x$estimated[x$estimated$id %in% facets],
+               geom_line(data = xe[get(x$str_id) %in% facets],
                           aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
 
     }else{ #If there is no excitation term
 
-      p <- p + geom_line(data = x$estimated[x$estimated$id %in% facets], aes(get(x$str_time), get(paste0(x$str_signal, "_estimated")), colour = paste0(x$str_signal, " estimated")))
+      p <- p + geom_line(data = xe[get(x$str_id) %in% facets], aes(get(x$str_time), get(paste0(x$str_signal, "_estimated")), colour = paste0(x$str_signal, " estimated")))
     }
 
   }else{  # Single individual. Doremi object doesn't have id column
 
-    p <- ggplot(x$data)
+    p <- ggplot(xd)
 
     if (x$str_exc != 0){ #If there is an excitation term
       #Preparing a data frame in long format in order to use ggplot for all the excitations
-      dataplot <- melt(x$data, measure.vars = x$str_exc)
+      dataplot <- melt(xd, measure.vars = x$str_exc)
 
       #Excitations
        p <- p + geom_line(data = dataplot, aes(get(x$str_time), value, color = as.factor(variable)))
 
       #Estimated values
-       p <- p + geom_line(data = x$estimated, aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
-         geom_line(data = x$estimated, aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
+       p <- p + geom_line(data = xe, aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
+         geom_line(data = xe, aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
 
     }else{ #If there is no excitation term
 
-      p <- p + geom_line(data = x$estimated, aes(get(x$str_time), get(paste0(x$str_signal, "_estimated")), colour = paste0(x$str_signal, " estimated")))
+      p <- p + geom_line(data = xe, aes(get(x$str_time), get(paste0(x$str_signal, "_estimated")), colour = paste0(x$str_signal, " estimated")))
 
     }
 
