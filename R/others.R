@@ -10,6 +10,94 @@ globalVariables(c("value","variable"))
 # plot doremi generic method
 #doremi <- function(x, ..., id) UseMethod("doremi")
 
+#' S3 method to print DOREMI objects
+#'
+#' \code{print.doremi} S3 method for the print function so that it can represent DOREMI objects
+#' @param x DOREMI object (contains several lists)
+#' @param ... includes the additional arguments inherited from the generic print method
+#' @return Returns the main parameters of the DOREMI object: the mean values of the three coefficients of the differential equation
+#' @examples
+#' mydata <- simulation_generate_order1(nind = 5,
+#'                            dampingtime = 10,
+#'                            amplitude = c(5,10),
+#'                            nexc = 2,
+#'                            duration = 20,
+#'                            deltatf = 2,
+#'                            tmax = 200,
+#'                            minspacing = 0,
+#'                            internoise = 0.2,
+#'                            intranoise = 0.1)
+#' myresult <- doremi_analyse_order1(data = mydata,
+#'                            id = "id",
+#'                            input = "excitation",
+#'                            time = "timecol",
+#'                            signal = "dampedsignal",
+#'                            embedding = 5)
+#' myresult
+#' @export
+print.doremi = function (x, ...){
+  print(x$resultmean)
+}
+
+#' S3 method to print DOREMI data objects
+#'
+#' \code{print.doremidata} S3 method for the print function so that it can show DOREMI data objects
+#' @param x DOREMI object (contains several lists)
+#' @param ... includes the additional arguments inherited from the generic print method
+#' @return Returns the main parameters of the DOREMI data object
+#' @examples
+#' mydata <- simulation_generate_order1(nind = 5,
+#'                            dampingtime = 10,
+#'                            amplitude = c(5,10),
+#'                            nexc = 2,
+#'                            duration = 20,
+#'                            deltatf = 2,
+#'                            tmax = 200,
+#'                            minspacing = 0,
+#'                            internoise = 0.2,
+#'                            intranoise = 0.1)
+#' mydata
+#' @export
+print.doremidata = function (x, ...){
+  print(x$data)
+}
+
+#' S3 method for DOREMI object summary
+#'
+#' \code{summary.doremi} S3 method for the summary function so that it can represent DOREMI objects
+#' @param object DOREMI object (contains several lists)
+#' @param ... includes the additional arguments inherited from the generic summary method
+#' @return Returns a summary with all the lists of the DOREMI object
+#' @examples
+#' mydata <- simulation_generate_order1(nind = 5,
+#'                            dampingtime = 10,
+#'                            amplitude = c(5,10),
+#'                            nexc = 2,
+#'                            duration = 20,
+#'                            deltatf = 2,
+#'                            tmax = 200,
+#'                            minspacing = 0,
+#'                            internoise = 0.2,
+#'                            intranoise = 0.1)
+#' myresult <- doremi_analyse_order1(data = mydata,
+#'                            id = "id",
+#'                            input = "excitation",
+#'                            time = "timecol",
+#'                            signal = "dampedsignal",
+#'                            embedding = 5)
+#' summary(myresult)
+#' @export
+summary.doremi = function (object, ...){
+   cat("Derivative and mean calculation ($data):\n")
+   print(object$data)
+   cat("\n Mixed-effects regression results ($regression):\n")
+   print(object$regression)
+   cat("\n Mean coefficients of the differential equation ($resultmean):\n")
+   print(object$resultmean)
+   cat("\n Coefficients per individual ($resultid):\n")
+   print(object$resultid)
+}
+
 #' S3 method to plot DOREMI objects
 #'
 #' \code{plot.doremi} S3 method for the plot function so that it can represent DOREMI objects
@@ -152,18 +240,20 @@ predict.doremi = function (object, ..., newdata){
   deltat <- 0.1
   #Error management
   if (any(is.na(match(names(newdata), names(object$data))))) {
-    stop("cannot evaluate groups for desired levels on 'newdata'")
+    stop("Cannot evaluate groups for desired levels on 'newdata'")
   }
 
-  newdata <- setDT(newdata)
-  if (!is.null(newdata$id)){ # Multiple individuals
+  newdata <- setDT(newdata) #COnvert data to data table
+  id <- object$str_id #Recover id name from the object str_id attribute
+
+  if (!is.null(id)){ # Multiple individuals
 
       #Calculation of the total excitation (sum of all the excitation columns times their regression coefficients)
       newdata[, totalexc := 0]
       for (i in 1:length(object$str_exc)){ #For loop to go through all the excitation columns
         newdata[, totalexc := totalexc + object$resultid[.GRP, get(paste0(object$str_exc[i], "_exccoeff"))]/
                     object$resultid[.GRP, get(paste0(object$str_signal, "_dampingtime"))] *
-                    get(object$str_exc[i]), by = id]
+                    get(object$str_exc[i]), by = get(object$str_id)]
       }
       # Generation of the third result table called \"estimated\"
       # Contains expanded time vector, minimum an maximum generated signals (for the two extreme scenarios of expanded excitation)
@@ -173,17 +263,18 @@ predict.doremi = function (object, ..., newdata){
       estimated <- newdata[, list(timecol = seq(floor(min(get(object$str_time), na.rm = T)), ceiling(max(get(object$str_time), na.rm = T)), deltat)), by = id]
 
       #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
-      IDvec <- unique(newdata$id)
+
+      IDvec <- unique(newdata[[id]])
 
       for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
         #And it will be necessary to shift these indexes according to in which id we are
-        leftidx <- findInterval(newdata[id == IDvec[idx], get(object$str_time)], estimated[id == IDvec[idx], timecol])
+        leftidx <- findInterval(newdata[get(object$str_id) == IDvec[idx], get(object$str_time)], estimated[get(object$str_id) == IDvec[idx], timecol])
         #tmpsignal contains the value of exctotal were the original times are found in the new time vector
         #and NA in the rest of the positions
-        estimated[nrow(estimated[id < IDvec[idx]]) + leftidx, tmpsignal := newdata[id == IDvec[idx], totalexc]]
+        estimated[nrow(estimated[get(object$str_id) < IDvec[idx]]) + leftidx, tmpsignal := newdata[get(object$str_id) == IDvec[idx], totalexc]]
 
       }
-
+      print(estimated)
       #The na.locf function (last observation called forward) will repeat the last non NA value.
       #We use it to repeat the values in the excitation function to the left and to the right
       estimated[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = id]
@@ -241,7 +332,9 @@ predict.doremi = function (object, ..., newdata){
   res$str_time <- object$str_time
   res$str_exc <- object$str_exc
   res$str_signal <- NULL
+  res$str_id <- id
 
 
   return(res)
 }
+

@@ -16,18 +16,17 @@ devtools::load_all("C:/Users/Alba/Documents/Unige/doremi")
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  warnings = FALSE,
+  warning = FALSE,
   comment = "#>"
 )
 ```
 
-The main purpose of the doremi model included in this package is to be able to predict trends in real data sets. It calculates how close an input signal is to the
-solution of a first order differential equation with constant coefficients by doing a multi-level regression fit.  
+The main purpose of the dynamics of return to equilibrium during multiple inputs (doremi) model included in this package is to be able to fit trends of homeostasis and return to equilibrium in noisy data. doremi estimates coefficients for the solution of a first order differential equation using linear mixed-effects (multilevel) models. 
 The differential equation considered is the following:
 
 $\dot{y}(t) + \gamma y(t) = \epsilon E(t) + eqvalue$ (1)
 
-where:
+Where the variables:
 
 * y(t) is the signal to be analyzed
 
@@ -38,24 +37,58 @@ where:
 And regarding the coefficients:
 
 * $\gamma$ is the damping rate, the inverse of which is the damping time. The damping rate indicates the relative variation of the signal with respect to time when the excitation term is 0.
-The damping time is the characteristic response time of the solution to equation (1), and corresponds to the time needed to reach 37\% of the maximum value when there is no excitation (or 63\% of the maximum value for a constant excitation).
-* $\epsilon$ is the excitation coefficient, also called "gain" in control theory. It indicates the relationship between the output (signal) and the input (excitation) when the latter is a "step" function. In the context of the doremi package, it will indicate at which value will the signal saturate when the excitation is a pulse of a given amplitude.
-```{r}
-```
-* _eqvalue_ is the equilibrium value, that is, the value the system reaches when t tends to infinity.
+The damping time is the characteristic response time of the solution to equation (1), After an excitation, when the signal returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value.
 
-In order to find these coefficients, the model performs the following multilevel regression derived from equation (1), as presented by [(Mongin et al.,2018)](https://doi.org/10.1080/00273171.2010.498294):
+```{r fig.width = 7, fig.height = 6, include = FALSE}
+exc <- rep(c(0,1,0),c(10,30,50))
+signal<- generate.remi(10, exc, seq(1:90))
+temp <- paste("theta")
+
+ggplot2::ggplot(data = data.table::setDT(signal)) +
+ggplot2::ggtitle( "Definition of damping time")+
+  ggplot2::geom_point(ggplot2::aes(t,y, colour = "Signal"))+
+  ggplot2::geom_line(ggplot2::aes(t,exc, colour = "Excitation"))+
+  ggplot2::geom_hline(yintercept=0.63*max(signal$y), linetype="dashed", colour = "gray")+
+  ggplot2::geom_hline(yintercept=0.37*max(signal$y), linetype="dashed", colour = "gray")+
+  ggplot2::geom_vline(xintercept=signal$t[signal$y==max(signal$y)], linetype="dashed", colour = "gray")+
+  ggplot2::geom_vline(xintercept=50, linetype="dashed", colour = "gray")+
+  ggplot2::geom_vline(xintercept=19, linetype="dashed", colour = "gray")+
+  ggplot2::geom_vline(xintercept=10, linetype="dashed", colour = "gray")+
+  ggplot2::annotate("segment", x = 10, xend = 19, y = -0.5, yend = -0.5, colour = "dark green", size = 1)+
+  ggplot2::annotate("text", x = 15, y = -1, label = "tau", parse = TRUE, colour = "dark green")+
+  
+  ggplot2::annotate("segment", x = 40, xend = 50, y = -0.5, yend = -0.5, colour = "dark green", size = 1)+
+  ggplot2::annotate("text", x = 45, y = -1, label = "tau", parse = TRUE, colour = "dark green")+
+
+  ggplot2::annotate("text", x = 75, y = 6.6, label = "63% diff. max and eq. value", colour = "gray")+
+  ggplot2::annotate("text", x = 75, y = 4, label = "37% diff. max and eq. value", colour = "gray")+
+  
+  ggplot2::labs(x = "Time (arb. unit)",
+           y = "Signal (arb. unit)",
+           colour = "Legend")+
+  ggplot2::theme(legend.position = "top",plot.title = element_text(hjust = 0.5))
+```
+
+* $\epsilon$ is the excitation coefficient, also called "gain" in control theory. It indicates the relationship between the signal and the input (also called excitation).
+
+* _eqvalue_ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
+
+In order to find these coefficients, the model performs the following linear mixed-effect regression derived from equation (1), as presented by [(Mongin et al.,2018)](https://doi.org/10.1080/00273171.2010.498294):
 
 $\dot{y}_{ij} \sim b_{0}+b_{0i}+b_{1}y_{ij}+b_{2}E_{ij}+u_{1j}y_{ij}+u_{2j}E_{ij}+e_{ij}$ (2)
 
 where:
 * i accounts for the time
+
 * j accounts for the different individuals
+
 * $\dot{y}_{ij}$ is the derivative calculated on $N_{E}$ points through the Gold method [(Deboeck,2010)](https://doi.org/10.1080/00273171.2010.498294) to avoid the appearance of correlated errors in the estimation
+
 * y and E are the signal and the excitation averaged on $N_{E}$ points
+
 * $e_{ij}$ is the error term
 
-Note that random slopes have been considered for the intercept $b_{0} +b_{0i}$, signal $b_{1} +u_{1j}$ and excitation terms $b_{2} +u_{2j}$.
+Note that random effects are estimated for the intercept $b_{0} +b_{0i}$, signal $b_{1} +u_{1j}$ and excitation terms $b_{2} +u_{2j}$, , so that individuals can vary on their initial level, their evolution over time and their reaction to an excitation.
 
 The coefficients aforementioned can be thus calculated as:
 
@@ -71,79 +104,82 @@ With the above estimated parameters, the estimated signal can be reconstructed f
 
 $y(t) = \frac{\epsilon}{\tau}\int E(t')G(t-t')dt'+ eqvalue$ (3)
 
-Where y(0) = eqvalue and G(t) is the Green function, that is, the function that satisfies the differential equation when the excitation term is a Dirak delta function. In our case, it s a decreasing exponential of the form:
+Where y(0) = eqvalue and G(t) is the Green function, that is, the function that satisfies the differential equation when the excitation term is a Dirak delta function. In our case, it is a decreasing exponential of the form:
 $$G(t) = exp(\frac{-t}{\tau})$$ 
 
-According to this, in order to build the estimated signal, the model first performs the convolution of the excitation with the Green function, having a damping rate equal to the estimated and then offsetting the resulting signal with the equilibrium value.
-
-In order to solve the analytical problem exposed, in the package the user will find three types of functions:
+The estimated signal is then built by first performing the convolution of the excitation with the Green function -using the estimated damping rate- and then offsetting the resulting signal with the equilibrium value.
+The package contains three types of functions:
 
 ### Simulation functions
-These are functions that allow the user to create data that are solution of equation (1). The simulation functions presented in the file are:
+These are functions that allow the user to create data corresponding to a first order differential equation (ie. solution of equation (1)). The simulation functions presented in the file are:
 
 
-* **doremi_generate_order1:** Creates the solution of equation (1) for a given damping time and excitation vector.
+* **generate.remi:** Creates the solution of equation (1) for a given damping time and excitation vector.
 
 
-* **simulation_generate_order1:** creates a set of signals that are solution of equation (1) for a random simulated excitation. Number of points, damping time, intra-individual noise and inter-individual noise can be controlled.
+* **simulate.remi:** creates a set of signals that are solution of equation (1) for a random simulated excitation. Number of points, damping time, intra-individual noise and inter-individual noise can be controlled.
 
 ### Analysis functions
 The analysis function presented in the file is:
 
 
-* **doremi_analyse_order1:** the function performs the presented multilevel regression (2) and provides the calculated derivatives, the differential equation coefficients per individual and averaged, the fixed and random coefficients coming from the fit and the estimated signals, according to (3).
+* **remi:** the function performs the presented mixed-effects regression (2) and provides the calculated derivatives, the differential equation coefficients per individual and averaged, the fixed and random coefficients coming from the fit and the estimated signals, according to (3).
 
 ### Auxiliary functions
-These functions are used by the simulation and/or analysis functions but they can also be used independently. They carry out some mathematical operation with data. The auxiliary functions presented in the file are:
+These functions are used by the simulation and/or analysis functions but they can also be used independently:
 
-* **excitation_function:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only).
+* **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only).
 
-* **calculate_gold:** calculates the derivative of a group of data points by using the Gold method [(Deboeck, 2010)](https://doi.org/10.1080/00273171.2010.498294) (used in the analysis function only).
+* **calculate.gold:** calculates the derivative of a group of data points by using the Gold method [(Deboeck, 2010)](https://doi.org/10.1080/00273171.2010.498294) (used in the analysis function only).
 
 # A - Simulating data 
 
-In this section examples of data simulation will be presented.
+In this section, we present increasingly complex examples of data simulation.
 
 ## Example 1 - Generating signals with no noise
 
-Generating simulation data for 4 individuals, with a damping time of 10 for an excitation vector formed by 3 excitations of amplitude 1 and duration 10 s distributed randomnly and with a sample of 200 points, with a minimum spacing between pulses of 20 s and with no noise.  That is, the signal follows exactly the theoretical solution of the differential equation and there is no variation of the damping time, the excitation coefficient and the equilibrium value across individuals:
+Generating data for 4 individuals, with a damping time of 10s for an excitation vector formed by 3 excitations of amplitude 1 and duration 10s distributed randomly in a time period of 100s, with a minimum spacing between pulses of 20 s and with no noise. That is, the signal follows exactly the differential equation (no intraindividual noise) with no variation of the damping time, the excitation coefficient and the equilibrium value across individuals (no interindividual noise):
 
 ```{r}
-mydataa1 <- simulation_generate_order1(nindividuals = 4, 
-                                    dampingtime = 10, 
-                                    amplitude = 1, 
-                                    nexc = 3, 
-                                    duration = 10, 
-                                    deltatf = 0.5,
-                                    tmax = 100,
-                                    minspacing = 20,
-                                    internoise = 0, 
-                                    intranoise = 0)
+mydataa1 <- simulate.remi(nind = 4, 
+                          dampingtime = 10, 
+                          amplitude = 1, 
+                          nexc = 3, 
+                          duration = 10, 
+                          deltatf = 0.5,
+                          tmax = 100,
+                          minspacing = 20,
+                          internoise = 0, 
+                          intranoise = 0)
 ```
 
-If the following command is added, it will be possible to visualize the structure of _mydata_ (the command "head" allows to visualize the first lines of the table, entering "mydata" directly will allow you to see the first and last lines).
+The function returns the data as an output value, which can be visualized using the [str] or [head] functions. Entering “mydataa1” directly will allow you to visualize the first and last lines.
 
 ```{r}
-head(mydataa1)
+mydataa1
 ```
 
 Where:
 * id is the identifier of the individual
+
 * excitation is the excitation signal
+
 * dampedsignalraw is the signal without noise
-* dampedsignal is the signal with noise 
+
+* dampedsignal is the signal with noise (in this case, the values of this column are the same as those of the dampedsignalraw column and in the plot, you will see that both lines are overlapped). 
+
 * timecol is the time column generated.
 
 Plotting data:
 
 ```{r fig.width = 7,fig.height = 6}
 ggplot2::ggplot( data = mydataa1$data ) +
-  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignalraw, colour = "Signal-no noise"))+
-  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignal, colour = "Signal with 0% intra-noise"))+
+  ggplot2::geom_line(ggplot2::aes(timecol,dampedsignalraw, colour = "dampedsignalraw"))+
+  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignal, colour = "dampedsignal"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
-  ggplot2::labs(x = "Time (unit)",
-           y = "Signal (unit)",
+  ggplot2::labs(x = "Time (s)",
+           y = "Signal (arb. unit)",
            colour = "")
 ```
 
@@ -152,155 +188,175 @@ The call to the function remains almost the same, this time adding a 20% intra-i
 
 ```{r}
 # Generation of signals with intra and inter-noise
-mydataa2 <- simulation_generate_order1(nindividuals = 4, 
-                                    dampingtime = 10, 
-                                    amplitude = 1, 
-                                    nexc = 3, 
-                                    duration = 10, 
-                                    deltatf = 0.5,
-                                    tmax = 100,
-                                    minspacing = 20,
-                                    internoise = 0.4, 
-                                    intranoise = 0.2)
+mydataa2 <- simulate.remi(nind = 4, 
+                          dampingtime = 10, 
+                          amplitude = 1, 
+                          nexc = 3, 
+                          duration = 10, 
+                          deltatf = 0.5,
+                          tmax = 100,
+                          minspacing = 20,
+                          internoise = 0.4, 
+                          intranoise = 0.2)
 ```
 
-Note that if the parameter "sampling" is not introduced, the function considers it is "equal", as it is the value set by default.
-Plotting data:
-
 ```{r fig.width = 7,fig.height = 6}
+# Plotting the data
 ggplot2::ggplot( data = mydataa2$data ) +
-  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignalraw, colour = "Signal-no noise"))+
+  ggplot2::geom_line(ggplot2::aes(timecol,dampedsignalraw, colour = "Signal-no noise"))+
   ggplot2::geom_point(ggplot2::aes(timecol,dampedsignal, colour = "Signal with 20% intra-noise"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
-  ggplot2::labs(x = "Time (unit)",
-           y = "Signal (unit)",
+  ggplot2::labs(x = "Time (s)",
+           y = "Signal (arb. unit)",
            colour = "")
 ```
 
-# B - Analysing data
+# B - Analyzing data
 
-Next, the signals with noise presented above will be analyzed in order to verify that the damping coefficient was the one introduced in the simulation function and that the estimated signal generated matches the simulated one.
+Analyzing the signals with noise generated above, we can verify that the damping coefficient was the one introduced in the simulation function and that the estimated signals generated match the simulated one.
 
-## Example 1 - Standard analysis
+## Example 1 - Analyzing data with several individuals and some inter and intra-individual noise
 
-The signals generated in the example 2 of the simulation will be analysed:
+Analyzing the data generated in example 2 above, the user must specify the name of the columns containing the id of the participants, the excitation, and the signal. In addition, the user must also indicate the embedding number. The embedding number is the number of data points used to compute the first derivative using the Gold method (see manual for more details).
 
 ```{r}
-resultb1 <- doremi_analyse_order1(userdata = mydataa2$data,
-                                id = "id",
-                                input ="excitation",
-                                time ="timecol",
-                                signal = "dampedsignal",
-                                embedding = 5)
+resultb1 <- remi(data = mydataa2,
+                 id = "id",
+                 input ="excitation",
+                 time ="timecol",
+                 signal = "dampedsignal",
+                 embedding = 5)
 ```
 
-Now let's take a look to the different parts of the result. The analysis function supplies an object that contins several lists. This object has been given the attribute or class "doremi" in order to be able to create S3 methods for it as we will see further below.
+Now let’s take a look at the result. When calling the variable, the mean three coefficients of the differential equation found are displayed:
   
-As it was mentioned before, the first table of the doremi object generated contains the original data with some columns added. These columns contain intermediate variables used for the preparation of the regression:
+```{r}
+resultb1 
+```
+  
+This is a simplified view of the results. The analysis function supplies an object of class “doremi” that contains in fact several lists. It is possible to explore the full result values by using the function "summary" for doremi objects (see the section on methods created for doremi objects at the end of this vignete).
+
+```{r}
+summary(resultb1) 
+```
+
+The first object of the output contains the original data with some columns added. These columns contain intermediate variables necessary for the mixed effect regression:
 
 ```{r}
 head(resultb1$data)
 ```
 
 Where:
-* dampedsignal_rollmean contains the roll mean (moving average) values of the input signal in embedding points. As it can be seen, the first line contains an NA because the convolution takes the points to the left and thus the first roll means can't be calculated as there are no points to the left of these.
+  
+* dampedsignal_rollmean contains the roll mean (moving average) values of the input signal in embedding points. 
 
-* dampedsignal_derivate1 contains the first derivate of Dampedsignal, calculated by using the calculate_gold function. The first line contains an NA for the same reason as the previous column.
+* dampedsignal_derivate1 contains the first derivate of dampedsignal, calculated by using the calculate.gold function. 
 
 * timecol_derivate contains the values of time in which the derivative has been evaluated.
 
 * excitation_rolled contains the roll mean of the excitation signal in embedding points.
 
-* dampedsgnal_estimated contains the values of the estimated signal generated by using the doremi_generate_order1 function and using the coefficients calculated for each individual (see next table).
+* dampedsgnal_estimated contains the values of the estimated signal generated by using the generate.remi function and using the coefficients calculated for each individual.
 
+If we want to visualize the summary of the mixed-effect regression:
+  
 ```{r}
-resultb1$resultID
+resultb1$regression
 ```
 
-Where for each individual we have:
+Where we have the random and fixed effects and the residuals calculated by the function lmer or lm depending on if the sample had several or one individuals respectively. 
 
-* excitation_exccoeff which is the coefficient of the excitation term. 
+Beware that the standard errors coming for this regression are not entirely correct as the calculation of derivatives "smoothes" the fit and underestimates them. Please see [(Mongin et al.,2018)](https://doi.org/10.1080/00273171.2010.498294) for more details.
 
-* dampedsignal_dampingtime which is the inverse of the damping coefficient. 
 
-* dampedsignal_eqvalue which is the equilibrium value.
-
-Finally, the third table contains the average of these coefficients for all the individuals:
+The following table contains the average of these coefficients for all the individuals (result displayed by default when calling a doremi variable, as mentioned before):
 
 ```{r}
 resultb1$resultmean
 ```
 
-And, if we want to see in detail the results of the regression, the following command applies:
-
+And for each individual we have:
+  
 ```{r}
-resultb1$regression
+resultb1$resultid
 ```
 
-Where we have a summary of the random and fixed effects and the residuals calculated by the function lmer. Finally, the reconstructed signal values can be visualized with:
+Where:
 
-```{r}
-resultb1$estimated
-```
-    
-If we graphically wish to verify how the estimated signal fits the initial signal, we can call the generic function "plot", as an S3 method has been added to it in order to handle doremi objects:
+* exccoeff is the coefficient of the excitation term. 
+
+* dampingtime is the inverse of the damping coefficient. 
+
+* eqvalue is the equilibrium value.
+
+These values for exccoeff and eqvalue, as well as their homologues in the $resultmean table, have been calculated by extracting the coefficients from the regression and then multiplying them by the damping time.
+
+If we graphically wish to verify how the estimated signal fits the initial signal, we can call the function "plot", that has been adapted to handle doremi objects:
 
 ```{r fig.width = 7, fig.height = 6}
 plot(resultb1)
 ```
 
-Similarly to the _print_ function, _plot_ applied to a doremi object plots by default the first six individuals contained in the result. If we wish to visualize a single individual or a specific set of individuals, we can specify them by changing the "id" input parameter of the function:
+The values used to build the estimated signals are in [resultb1$restimated].
+
+Similarly to the [print] function, [plot] applied to a doremi object plots by default the first six individuals contained in the result. If we wish to visualize a single individual or a specific set of individuals, we can specify them by changing the "id" input parameter of the function:
 
 ```{r fig.width = 7, fig.height = 6}
 plot(resultb1, id = 3)
 plot(resultb1, id = c(1,4))
 ```
 
-And as it can be seen, the doremi plot generated contains the name of the doremi object variable in the title for future refernce, the legend with the variables represented and the labelling of the axis according to the variables introduced, all automatically.
+## Example 2 -Analyzing data when the signal is subject to several excitations and no noise
 
-## Example 2 -Datasets with several excitation signals
+In this example, the signal for each individual is set to depend of a linear combination of three excitation signals: 
 
-In this example, the signal for each individual will be built "manually" from a linear combination of three excitation signals. It will be then demonstrated that the analysis function finds the coefficients of the linear combination:
-$e(t)=e_{1}(t)+3e_{2}(t)+5e_{3}(t)$
+$e(t)=a*e_{1}(t)+b*e_{2}(t)+c*e_{3}(t)$
 
 ```{r}
 #Simulating data with these hypothesis
 #Generating the three excitation signals:
-e1 <- excitation_function ( amplitude = 10, 
-                            nexc = 1, 
-                            duration = 10, 
-                            deltatf = 1, 
+e1 <- generate.excitation (amplitude = 10, 
+                           nexc = 1, 
+                           duration = 10, 
+                           deltatf = 1, 
+                           tmax = 100,
+                           minspacing = 20)
+e2 <- generate.excitation (amplitude = 10, 
+                           nexc = 1, 
+                           duration = 10, 
+                           deltatf = 1, 
+                           tmax = 100,
+                           minspacing = 20)
+e3 <- generate.excitation (amplitude = 10, 
+                           nexc = 1, 
+                           duration = 10, 
+                           deltatf = 1, 
                             tmax = 100,
-                            minspacing = 20)
-e2 <- excitation_function ( amplitude = 10, 
-                            nexc = 1, 
-                            duration = 10, 
-                            deltatf = 1, 
-                            tmax = 100,
-                            minspacing = 20)
-e3 <- excitation_function ( amplitude = 10, 
-                            nexc = 1, 
-                            duration = 10, 
-                            deltatf = 1, 
-                            tmax = 100,
-                            minspacing = 20)
-et1 <- e1$y+3*e2$y+5*e3$y
+                           minspacing = 20)
+# Arbitrarily choosing a = 1, b = 2 and c = 5 for the first individual
+et1 <- e1$exc + 3 * e2$exc + 5 * e3$exc
 timt1 <- e3$t  #we can use any of the three time vectors as they are identical for the three excitations
-y1 <- doremi_generate_order1(10,et1,timt1)$y
+y1 <- generate.remi(dampingtime = 10,
+                    inputvec = et1,
+                    inputtim = timt1)$y 
+#as we are using the $y argument ot the object generated
 
-#Signals for the second individual
-et2 <- e1$y+2.5*e2$y+4*e3$y
-y2 <- doremi_generate_order1(10,et2,timt1)$y
+#Signals for the second individual;
+# Arbitrarily choosing a = 1, b = 2.5 and c = 4 for the second individual
+et2 <- e1$exc + 2.5 * e2$exc + 4 * e3$exc
+y2 <- generate.remi(dampingtime = 10,
+                    inputvec = et2,
+                    inputtim = timt1)$y 
 
 #Generating table with signals
-mydatab2 <- data.table::setDT(list(id = rep(c(1, 2), c(length(et1), length(et2))), 
-                       timecol = c(timt1, timt1),
-                       excitation1 = c(e1$y, e1$y),
-                       excitation2= c(e2$y, e2$y),
-                       excitation3 = c(e3$y, e3$y),
-                       excitation = c(et1, et2), 
-                       signalcol = c(y1, y2)))
+mydatab2 <- list(id = rep(c(1, 2), c(length(et1), length(et2))), 
+                 timecol = c(timt1, timt1),
+                 excitation1 = c(e1$exc, e1$exc),
+                 excitation2= c(e2$exc, e2$exc),
+                 excitation3 = c(e3$exc, e3$exc),
+                 excitation = c(et1, et2), 
+                 signalcol = c(y1, y2))
 ```
 
 ```{r fig.width = 7,fig.height = 4}
@@ -309,19 +365,19 @@ ggplot2::ggplot( data = mydatab2 ) +
   ggplot2::geom_line(ggplot2::aes(timecol,signalcol, colour = "Signal-no noise"))+
   ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
-  ggplot2::labs(x = "Time (unit)",
-           y = "Signal (unit)",
+  ggplot2::labs(x = "Time (s)",
+           y = "Signal (arb. unit)",
            colour = "")
 ```
 
 ```{r}
-#Analysing signals
-resultb2 <- doremi_analyse_order1(userdata = mydatab2,
-                                id = "id",
-                                input = c("excitation1", "excitation2", "excitation3"),
-                                time ="timecol",
-                                signal = "signalcol",
-                                embedding = 5)
+#Analyzing signals
+resultb2 <- remi(data = mydatab2,
+                 id = "id",
+                 input = c("excitation1", "excitation2", "excitation3"),
+                 time ="timecol",
+                 signal = "signalcol",
+                 embedding = 5)
 
 #Looking for the calculation of the coefficients of the excitation
 resultb2$resultid
@@ -329,46 +385,43 @@ resultb2$resultid
 
 And, keeping into account the form of the analytical solution:
 $$y(t) = \frac{\epsilon}{\tau}\int E(t')G(t-t')dt'+ eqvalue$$
-One can find the excitation coefficients dividing the excitation coefficients of the table by the damping time:
+One can find the excitation coefficients introduced either by extracting them from the summary of the regression or by taking the values from the $resultid table and dividing them by the damping time as explained before:
 
 $\epsilon_{1}=1.18$, $\epsilon_{2}=3.36$, $\epsilon_{3}=5.76$ for individual 1 and
-$\epsilon_{1}=1.18$, $\epsilon_{2}=2.78$, $\epsilon_{3}=4.62$ for individual 2, which are a good approximation of the coefficients set maually at the beginning of the example.
+$\epsilon_{1}=1.18$, $\epsilon_{2}=2.78$, $\epsilon_{3}=4.62$ for individual 2, which are a good approximation of the coefficients set at the beginning of the example, using this small sample of 2 individuals.
 
 ```{r fig.width = 7,fig.height = 4}
 #Plotting signals
 plot(resultb2)
 ```
 
-## Example 3 -Datasets with an unknown or constant excitation signal
+## Example 3 - Analyzing data when the excitation is unknown, with some inter- and intraindividual noise
 
-Similarly as in example 2, we will generate data "manually" so that the analysis signal can fit it with a decreasing exponential (which is what the function does when the excitation is contant/there is no excitation).
+Similarly to the example 2, we will generate data so that the analysis can fit a decreasing exponential, as is the case when there is no excitation, but also when the excitation is unknown, or the excitation is constant over time.  
 
 ```{r}
 #Simulating data with these hypothesis
-mydatab3 <- simulation_generate_order1(nindividuals = 6, 
-                                      dampingtime = 10, 
-                                      amplitude = -1,
-                                      nexc = 1, 
-                                      duration = 50, 
-                                      deltatf = 1,
-                                      tmax = 50,
-                                      minspacing = 0, 
-                                      internoise = 0.4, 
-                                      intranoise = 0.2)
-mydatab3$data[, dampedsignal := dampedsignal + 80]
-mydatab3$data[, dampedsignalraw := dampedsignalraw + 80] #To ensure that there are no negative values when fitting the log
-
+mydatab3 <- simulate.remi(nind = 6, 
+                          dampingtime = 10, 
+                          amplitude = -1,
+                          nexc = 1, 
+                          duration = 50, 
+                          deltatf = 1,
+                          tmax = 50,
+                          minspacing = 0, 
+                          internoise = 0.4, 
+                          intranoise = 0.2)
 ```
 
-Note that decreasing exponentials can be esaily generated through the simulation function by setting a negative amplitude of the excitation pulse and "extending" the pulse through all the time period.An offset of 80 units has also been added to avoid negative values being generated during the fit.
+Note that decreasing exponentials can be esaily generated through the simulation function by setting a negative amplitude of the excitation pulse and "extending" the pulse through all the time period.
 
 ```{r}
 #Analysing
-resultb3 <- doremi_analyse_order1(userdata = mydatab3$data,
-                                id = "id",
-                                time = "timecol",
-                                signal = "dampedsignal",
-                                embedding = 5)
+resultb3 <- remi(data = mydatab3,
+                 id = "id",
+                 time = "timecol",
+                 signal = "dampedsignal",
+                 embedding = 5)
 ```
 
 Note that the _input_ parameter has been omitted when calling the function.
@@ -378,26 +431,26 @@ Note that the _input_ parameter has been omitted when calling the function.
 plot(resultb3)
 ```
 
-## Example 4 -Datasets with a single individual
+## Example 4 - Analyzing data from a single individual
 
 In this case, we can reuse the signals of the example 2 for a single individual
 
 ```{r}
 #Creating the data table
-mydatab4 <- data.table::setDT(list(timecol = timt1,
-                       excitation = et1, 
-                       signalcol = y1))
+mydatab4 <- list(timecol = timt1,
+                 excitation = et1, 
+                 signalcol = y1)
 ```
 
 Note that the _id_ parameter has been omitted when calling the function.
 
 ```{r}
-#Analysing
-resultb4 <- doremi_analyse_order1(userdata = mydatab4,
-                                input = "excitation",
-                                time ="timecol",
-                                signal = "signalcol",
-                                embedding = 5)
+#Analyzing
+resultb4 <- remi(data = mydatab4,
+                 input = "excitation",
+                 time ="timecol",
+                 signal = "signalcol",
+                 embedding = 5)
 ```
 
 ```{r fig.width = 6,fig.height = 4, fig.pos = 0.5}
@@ -405,32 +458,33 @@ resultb4 <- doremi_analyse_order1(userdata = mydatab4,
 plot(resultb4)
 ```
 
-## Example 5 - Signals with missing data
+## Example 5 - Analyzing data when there is some missing points in the signal
 
-In this case, we will simulate signals with missing measurements and then see how the analysis function still manages to find a good fit:
+When simulating signals with missing measurements, we examine how the analysis function still manages to retrieve an accurate fit:
 
 ```{r}
-mydatab5 <- simulation_generate_order1(nindividuals = 4, 
-                                    dampingtime = 10, 
-                                    amplitude = 1, 
-                                    nexc = 3, 
-                                    duration = 10, 
-                                    deltatf = 0.5,
-                                    tmax = 100,
-                                    minspacing = 20,
-                                    internoise = 0.1, 
-                                    intranoise = 0.2)
+mydatab5 <- simulate.remi(nind = 4, 
+                          dampingtime = 10, 
+                          amplitude = 1, 
+                          nexc = 3, 
+                          duration = 10, 
+                          deltatf = 0.5,
+                          tmax = 100,
+                          minspacing = 20,
+                          internoise = 0.1, 
+                          intranoise = 0.2)
+
 #Keeping half of the rows selected randomly
 mydatab5$data[, keep := sample(c(0,1), .N, replace = TRUE), by = id]
 mydatab5rd <- mydatab5$data[keep == 1]
 
 #Analysing the resulting signal
-resultb5 <- doremi_analyse_order1(userdata = mydatab5rd,
-                                id = "id",
-                                input = "excitation",
-                                time ="timecol",
-                                signal = "dampedsignal",
-                                embedding = 5)
+resultb5 <- remi(data = mydatab5rd,
+                 id = "id",
+                 input = "excitation",
+                 time ="timecol",
+                 signal = "dampedsignal",
+                 embedding = 5)
 ```
 
 Plotting sampling in signal with no noise:
@@ -464,7 +518,7 @@ According to this, the "cardio" data includes for each individual, the time sinc
 The call to the analysis function to analyse this data would be as simple as:
 
 ```{r}
-resultc1 <- doremi_analyse_order1(userdata = cardio,
+resultc1 <- remi(data = cardio,
                                 id = "id",
                                 input = "load",
                                 time ="timecol",
@@ -489,7 +543,7 @@ The data corresponds to 17 randomly chosen individuals that carried out several 
 The call to the analysis function to analyse this data would be:
 
 ```{r}
-resultc2 <- doremi_analyse_order1(userdata = rotation,
+resultc2 <- remi(data = rotation,
                                 id = "id",
                                 time ="numtrials",
                                 signal = "meanRT",
@@ -511,48 +565,23 @@ In this section we will take the first of those excitations and the first of tho
   
 ```{r   fig.width = 5,fig.height = 4, fig.pos = 0.5}
 #Input data
-e1 <- excitation_function ( amplitude = 10,
-                            nexc = 1,
-                            duration = 10,
-                            deltatf = 1,
-                            tmax = 100,
-                            minspacing = 20)
-e2 <- excitation_function ( amplitude = 10,
-                            nexc = 1,
-                            duration = 10,
-                            deltatf = 1,
-                            tmax = 100,
-                            minspacing = 20)
-e3 <- excitation_function ( amplitude = 10,
-                            nexc = 1,
-                            duration = 10,
-                            deltatf = 1,
-                            tmax = 100,
-                            minspacing = 20)
-et1 <- e1$y+3*e2$y+5*e3$y
-timt1 <- e3$t  #we can use any of the three time vectors as they are identical for the three excitations
-y1 <- doremi_generate_order1(10,et1,timt1)$y
-
-#Signals for the second individual
-et2 <- e1$y+2.5*e2$y+4*e3$y
-y2 <- doremi_generate_order1(10,et2,timt1)$y
-
-#Create data table with the pair e1,y1
-mydata<-data.table::setDT(list(tim=timt1,exc=et1,y1=y1))
+#Taking et1,et2,y1 and y2 from example b2
+#Create data frame with the pair e1,y1
+mydata<-list(tim=timt1,exc=et1,y1=y1)
 
 #Analysis 
-resultd1 <- doremi_analyse_order1(mydata,
-                                 input = "exc",
-                                 time = "tim",
-                                 signal = "y1",
-                                 embedding = 5)
+resultd1 <- remi(data = mydata,
+                           input = "exc",
+                           time = "tim",
+                           signal = "y1",
+                           embedding = 5)
                                  
 #Create data table with et2 that will be supplied as new excitation for the predict function
-myexc_table <- mydata[, exc:=et2]
+mydata$exc <- et2
 
 #Calling the predict function
 predresultd1<- predict (resultd1,
-                       newdata = myexc_table)
+                       newdata = mydata)
 
 #Compare with calculated signal y2
 q<-plot(predresultd1)
