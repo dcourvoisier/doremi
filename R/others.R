@@ -17,7 +17,7 @@ globalVariables(c("value","variable"))
 #' @param ... includes the additional arguments inherited from the generic print method
 #' @return Returns the main parameters of the DOREMI object: the mean values of the three coefficients of the differential equation
 #' @examples
-#' mydata <- simulation_generate_order1(nind = 5,
+#' mydata <- simulate.remi(nind = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -27,7 +27,7 @@ globalVariables(c("value","variable"))
 #'                            minspacing = 0,
 #'                            internoise = 0.2,
 #'                            intranoise = 0.1)
-#' myresult <- doremi_analyse_order1(data = mydata,
+#' myresult <- remi(data = mydata,
 #'                            id = "id",
 #'                            input = "excitation",
 #'                            time = "timecol",
@@ -46,7 +46,7 @@ print.doremi = function (x, ...){
 #' @param ... includes the additional arguments inherited from the generic print method
 #' @return Returns the main parameters of the DOREMI data object
 #' @examples
-#' mydata <- simulation_generate_order1(nind = 5,
+#' mydata <- simulate.remi(nind = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -69,7 +69,7 @@ print.doremidata = function (x, ...){
 #' @param ... includes the additional arguments inherited from the generic summary method
 #' @return Returns a summary with all the lists of the DOREMI object
 #' @examples
-#' mydata <- simulation_generate_order1(nind = 5,
+#' mydata <- simulate.remi(nind = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -79,7 +79,7 @@ print.doremidata = function (x, ...){
 #'                            minspacing = 0,
 #'                            internoise = 0.2,
 #'                            intranoise = 0.1)
-#' myresult <- doremi_analyse_order1(data = mydata,
+#' myresult <- remi(data = mydata,
 #'                            id = "id",
 #'                            input = "excitation",
 #'                            time = "timecol",
@@ -109,7 +109,7 @@ summary.doremi = function (object, ...){
 #' By default, it will print the six first individuals.
 #' @return Returns a plot with legend and title that includes the name of the DOREMI object
 #' @examples
-#' mydata <- simulation_generate_order1(nindividuals = 5,
+#' mydata <- simulate.remi(nindividuals = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -119,7 +119,7 @@ summary.doremi = function (object, ...){
 #'                            minspacing = 0,
 #'                            internoise = 0.2,
 #'                            intranoise = 0.1)
-#' myresult <- doremi_analyse_order1(userdata = mydata$data,
+#' myresult <- remi(userdata = mydata$data,
 #'                            id = "id",
 #'                            input = "excitation",
 #'                            time = "timecol",
@@ -131,6 +131,7 @@ summary.doremi = function (object, ...){
 #' @export
 #' @import ggplot2
 #' @importFrom data.table melt
+#' @importFrom data.table first
 plot.doremi = function (x, ...,
                      id = NULL){
   xd <- x$data # data frame that contains the data from the doremi result object
@@ -145,7 +146,7 @@ plot.doremi = function (x, ...,
     p <- ggplot(xd[get(x$str_id) %in% facets]) +
          facet_wrap(~get(x$str_id), scales = "free")
 
-    if (x$str_exc != 0){ #If there is an excitation term
+    if (first(x$str_exc != 0)){ #If there is an excitation term
 
       #Preparing a data frame in long format in order to use ggplot for all the excitations
       dataplot <- melt(xd, measure.vars = x$str_exc)
@@ -189,7 +190,7 @@ plot.doremi = function (x, ...,
 
   }
 
-  #Signal. Can be 0 if using the function predict
+  #Signal Can be 0 if using the function predict
   if (!is.null(x$str_signal)){
     p <- p + geom_point(aes(get(x$str_time), get(x$str_signal), colour = x$str_signal))
   }
@@ -207,7 +208,7 @@ plot.doremi = function (x, ...,
 #'
 #' \code{predict.doremi} S3 method for the predict function so that it can
 #' predict signal values in a DOREMI object when entering a new excitation
-#' @param object DOREMI object result of an analysis with the function doremi_analyse_order1
+#' @param object DOREMI object result of an analysis with the function remi
 #' @param ... Additionnal arguments inherited from generic predict method.
 #' @param newdata includes a data table containing three columns or more: id (optional), indicating the individual identifier,
 #' time, containing the time values and excitation, being one or several columns containing the different excitations
@@ -216,7 +217,7 @@ plot.doremi = function (x, ...,
 #' @return Returns an list containing the values of time, the values of the excitation and the predicted
 #' values of the signal for that excitation
 #' @examples
-#' mydata <- simulation_generate_order1(nindividuals = 5,
+#' mydata <- simulate.remi(nindividuals = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -226,7 +227,7 @@ plot.doremi = function (x, ...,
 #'                            minspacing = 0,
 #'                            internoise = 0.2,
 #'                            intranoise = 0.1)
-#' myresult <- doremi_analyse_order1(userdata = mydata$data,
+#' myresult <- remi(userdata = mydata$data,
 #'                            id = "id",
 #'                            input = "excitation",
 #'                            time = "timecol",
@@ -281,9 +282,9 @@ predict.doremi = function (object, ..., newdata){
       estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
 
       #Calculating the convolution
-      estimated[, ymin := doremi_generate_order1(object$resultid[.GRP, get(paste0(object$str_signal,"_dampingtime"))],exc_min,timecol)$y+
+      estimated[, ymin := generate.remi(object$resultid[.GRP, get(paste0(object$str_signal,"_dampingtime"))],exc_min,timecol)$y+
                   object$resultid[.GRP, get(paste0(object$str_signal,"_eqvalue"))], by = id]
-      estimated[, ymax := doremi_generate_order1(object$resultid[.GRP, get(paste0(object$str_signal,"_dampingtime"))],exc_max,timecol)$y+
+      estimated[, ymax := generate.remi(object$resultid[.GRP, get(paste0(object$str_signal,"_dampingtime"))],exc_max,timecol)$y+
                   object$resultid[.GRP, get(paste0(object$str_signal,"_eqvalue"))], by = id]
   }else{  # Single individual
 
@@ -312,9 +313,9 @@ predict.doremi = function (object, ..., newdata){
     estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T)]
 
     #Calculating the convolution
-    estimated[, ymin := doremi_generate_order1(object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))],exc_min,timecol)$y+
+    estimated[, ymin := generate.remi(object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))],exc_min,timecol)$y+
                 object$resultmean[, get(paste0(object$str_signal,"_eqvalue"))]]
-    estimated[, ymax := doremi_generate_order1(object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))],exc_max,timecol)$y+
+    estimated[, ymax := generate.remi(object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))],exc_max,timecol)$y+
                 object$resultmean[, get(paste0(object$str_signal,"_eqvalue"))]]
 
   }

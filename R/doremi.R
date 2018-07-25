@@ -101,7 +101,7 @@ calculate.gold <-  function(signal,
     # Addition of NA so that the derivative rows are the same as those of timeserie
 
   } else if (embedding == 2){
-    warning("Only first derivative can be calculated with an embedding of 2.\n")
+    #warning("Only first derivative can be calculated with an embedding of 2.\n")
     derivative <- cbind(rollmean(signal, embedding), diff(signal) / diff(time))
     #Appends the two columns: 1. mean time values and 2. The span calculated as
     #the difference of two signal values (going forward) divided by the time
@@ -109,7 +109,7 @@ calculate.gold <-  function(signal,
     derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
     # Addition of NA so that the derivative rows are the same as those of signal
   } else{
-    stop("Embedding should be >=2 for the calculation of a first derivative and 3 for a second derivative.\n")
+    stop("Embedding should be >=2 for the calculation of derivatives.\n")
   }
   time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
   # Addition of NA so that the time rows are the same as those of signal
@@ -119,10 +119,10 @@ calculate.gold <-  function(signal,
                        "embedding" = embedding)
   return(returnobject)
 }
-# excitation.function -----------------------------------------------------
+# generate.excitation -----------------------------------------------------
 #' Excitation signal generation
 #'
-#' \code{excitation.function} generates a vector of randomly located squarred pulses
+#' \code{generate.excitation} generates a vector of randomly located squarred pulses
 #' for a given amplitude, duration and spacing between the pulses.
 #' @param amplitude  is a signed decimal or vector of signed decimals indicating the amplitude of the pulse. It must be greater than 0,
 #' otherwise an error is generated. If it is a vector, it should contain as many integers as the number of pulses (nexc). If this is not the case and the
@@ -150,12 +150,12 @@ calculate.gold <-  function(signal,
 #' it is possible to generate pulses of different duration and amplitude, and not just unitary (amplitude=1).
 #'
 #' @examples
-#' excitation.function(c(1,10,20),3,c(1,2,4),0.5,100,10)
-#' excitation.function(3,6,2,1,200,2)
+#' generate.excitation(c(1,10,20),3,c(1,2,4),0.5,100,10)
+#' generate.excitation(3,6,2,1,200,2)
 #'@export
 #'@importFrom utils head
 # Excitation signal generation.
-excitation.function = function(amplitude = 1,
+generate.excitation = function(amplitude = 1,
                                nexc = 1,
                                duration = 2,
                                deltatf = 0.1,
@@ -163,35 +163,41 @@ excitation.function = function(amplitude = 1,
                                minspacing = 1)
 {
   #Error management
-  if (any(duration <= 0) | any(amplitude == 0) | nexc <= 0){
-    stop("Invalid input parameters. At least one excitation must be defined. Duration and nexc must be greater than 0.Amplitude must be different from 0.\n")
+  if (any(duration <= 0)){
+    stop("Invalid input parameters. Pulse duration must be greater than 0.\n")
+  }
+  if (any(amplitude == 0)){
+    stop("Invalid input parameters. Amplitude must be different from 0.\n")
+  }
+  if (nexc <= 0){
+    stop("Invalid input parameters. At least one excitation must be defined.\n")
   }
   if (nexc < length(duration) | nexc < length(amplitude)){
-    warning("The number of excitations nexc is smaller than the number of elements in amplitude and duration. Only the first elements of these vectors were considered.\n")
+    stop("The number of excitations nexc is smaller than the number of elements in amplitude and/or duration.\n")
   }
 
   if (nexc > length(duration)){
     if (length(duration) > 1){
-      warning("The number of excitations nexc was higher than the durations defined. The values given for duration were repeated.\n")
+      warning("The number of excitations nexc was higher than the durations defined. Durations were recycled.\n")
     }
     duration <- rep(duration, ceiling(nexc/length(duration)))
     duration <- duration[1:nexc]
   }
   if (nexc > length(amplitude)){
     if (length(amplitude) > 1){
-      warning("The number of excitations nexc was higher than the amplitudes defined. The values given for amplitude were repeated.\n")
+      warning("The number of excitations nexc was higher than the amplitudes defined. Amplitudes were recycled.\n")
     }
     amplitude <- rep(amplitude,ceiling(nexc/length(amplitude)));
     amplitude <- amplitude[1:nexc]
   }
-  if(tmax < (sum(duration) + minspacing * (nexc-1))){stop("Non valid parameters. tmax should be greater than (duration + minspacing) * nexc.\n")}
+  if(tmax < (sum(duration) + minspacing * (nexc-1))){stop("Invalid input parameters. tmax should be greater than (duration + minspacing) * nexc.\n")}
 
   #Generation of time vector
   tim <- seq(0, tmax, deltatf)
 
   found <- FALSE #indicates final distribution of pulses has not been found yet
   while (!found){
-    tal <- c(sort(sample(1:tmax, nexc, replace = F)), tmax) #initial sampling. tal is a vector of time values in which the pulses will start
+    tal <- c(sort(sample(0:tmax, nexc, replace = F)), tmax) #initial sampling. tal is a vector of time values in which the pulses will start
     if(all(diff(tal) >= (minspacing + duration))){found <- TRUE} #means all the pulses fitted and we exit the loop
   }
 
@@ -239,7 +245,7 @@ generate.remi <- function(dampingtime,
     stop("Both the excitation (inputvec) and its time values (inputtim) should be vectors and have the same length.\n")
   }
   #if inputvec is a character or a matrix, the function stops
-  if (is.matrix(inputvec) | is.character(inputvec)) stop("inputvec should be a vector.")
+  if (is.matrix(inputvec) | is.character(inputvec)) stop("Inputvec should be a vector.")
 
   green <- exp(-1 / dampingtime * (inputtim - inputtim[1])) #Calculation of green function values.inputtim vector is forced to start in 0
 
@@ -347,16 +353,7 @@ generate.remi <- function(dampingtime,
 #'                            signal = "dampedsignal",
 #'                            embedding = 5)
 #'@export
-#'@importFrom data.table setDT
-#'@importFrom data.table copy
-#'@importFrom data.table setkey
-#'@importFrom data.table shift
-#'@importFrom data.table :=
-#'@importFrom data.table .SD
-#'@importFrom data.table .N
-#'@importFrom data.table .GRP
-#'@importFrom data.table setnames
-#'@importFrom data.table setcolorder
+#'@import data.table
 #'@importFrom lme4 lmer
 #'@importFrom lme4 lmerControl
 #'@importFrom lme4 ranef
@@ -370,7 +367,7 @@ remi <- function(data,
                  time = NULL,
                  signal,
                  embedding = 2){
-  if (class(data)=="doremidata"){ #if it is a doremidata object, it takes by default the $data table from it. Otherwise it takes whaterever is assigned to the data variable.
+  if (first(class(data))=="doremidata"){ #if it is a doremidata object, it takes by default the $data table from it. Otherwise it takes whaterever is assigned to the data variable.
     intdata <- copy(data$data)
   }else{
     intdata <- copy(data) #Keeps the original of data so that it can rename columns freely
@@ -384,7 +381,7 @@ remi <- function(data,
   if(!is.null(time) && !(time %in% names(intdata))){stop("No column found in data with the parameter \"time\" specified.\n")}
   if(!(signal %in% names(intdata))){stop("No column found in data with the parameter \"signal\" specified.\n")}
   #Verifying column names repeated in data table.
-  if(any(duplicated(colnames(intdata)))){stop("Input datatable contains duplicated column names. Please correct these in order to launch the analysis function.\n")}
+  if(any(duplicated(colnames(intdata)))){stop("Input datatable contains duplicated column names.\n")}
 
   #If id,input,time,signal are not strings containing the name of columns in "intdata", stop the function
   if(!is.null(id) && !is.character(id)){stop("id should be a string containing the name of the column in intdata that contains the individual identifier.\n")}
@@ -398,19 +395,28 @@ remi <- function(data,
   if (is.null(input)){intdata[, inputcol := 0]
     input = "inputcol"
     noinput <- TRUE #This flag will be needed later as if there is no input, coefficients for the excitation term will not be calculated in the regression
-    warning("No excitation signal introduced as input. input was set to 0.\n")
+    warning("No excitation signal introduced as input. Input was set to 0.\n")
   }
 
   if (is.null(time)){intdata[, timecol := 1L * c(1:.N), by = id]
     time <- "timecol" # if no time set it to a 1 sec step vector
-    warning("No time vector introduced as input. A 1 unit increment time vector is generated.\n")
+    warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
 
   #Converting intdata if columns are of type "factor" or "string" instead of numeric
-  if (any(sapply(c(input, time, signal),function(x){is.character(intdata[[x]])|is.factor(intdata[[x]])}))){
-    intdata[, c(input, time, signal) := lapply(.SD, function(x) {as.numeric(as.character(x))}), .SDcols = c(input, time, signal)]
-    warning("Some columns were found to be of the factor/string type and were converted to numeric.\n")
+  if (is.character(intdata[[input]])|is.factor(intdata[[input]])){
+    intdata[, input := as.numeric(as.character(input))]
+    warning("input colmumn was found to be of the factor/string type and was converted to numeric.\n")
   }
+  if (is.character(intdata[[time]])|is.factor(intdata[[time]])){
+    intdata[, time := as.numeric(as.character(time))]
+    warning("time colmumn was found to be of the factor/string type and was converted to numeric.\n")
+  }
+  if (is.character(intdata[[signal]])|is.factor(intdata[[signal]])){
+    intdata[, signal := as.numeric(as.character(signal))]
+    warning("signal colmumn was found to be of the factor/string type and was converted to numeric.\n")
+  }
+
   #If ID column is of type character, rename it to "idchar" and create an extra column "id" that is numeric
   #Regression works better with numeric id (comes from definition of lmer)
   oldid <- id #store input in variable to set the str_id attribute at the end of the function with this value
@@ -419,8 +425,6 @@ remi <- function(data,
     intdata[, paste0(id,"_tmp") := rep(seq(unique(get(id))), intdata[, .N, by = id]$N)]
     id <- paste0(id,"_tmp") #updating id column name to this new column to do the fit with lme4
   }
-
-  if (embedding == 2){warning("Only first derivative can be calculated with an embedding of 2.\n")}
 
   #Suppress NA elements if there is an NA in time or in signal
   #This suppresses the entire row of the intdata table
@@ -450,18 +454,18 @@ remi <- function(data,
     #Calculation of the final excitation column (superposition of all the excitation signals)
     intdata[, excitation_sum := unlist(Reduce(function(a,b) Map(`+`,a,b), .SD)), .SDcols = input]
   }
-  #Result data frames
-  #The first table contains the input data
-  #The second table contains the mean results for gamma and thao for each individual
-  resultid <- setDT(list( id = unique(intdata[[id]]) ))
-  #The third table contains the mean values for gamma and thao for all the individuals (single line)
-  #Generate mean results with convergence criterions
-  resultmean <- setDT(list(id = "All"))
   # Regression for SEVERAL individuals --------------------------------------
 
 
   # First order derivative equation mixed regression
   if (!is.null(id)){ #If the id column is not null then it is assumed that there are SEVERAL INDIVidUALS
+    #Result data frames
+    #The first table contains the input data
+    #The second table contains the mean results for gamma and thao for each individual
+    resultid <- setDT(list( id = unique(intdata[[id]]) ))
+    #The third table contains the mean values for gamma and thao for all the individuals (single line)
+    #Generate mean results with convergence criterions
+    resultmean <- setDT(list(id = "All"))
 
     setkey(resultid, id) #sorts the data table by id
 
@@ -512,13 +516,7 @@ remi <- function(data,
         #Ap=gamma
         #Bp=log(A)
 
-        #Shifting the signal so tht there are no NaN produced during log evaluation for negative values
-        if (any(intdata[, get(signal)] < 0)){
-          intdata[, minsignal := min(get(signal)), by = id]
-          intdata[, get(signal) := get(signal) + minsignal[1], by = id]
-        }
-
-        intdata[, expfit_A := lm(log(get(signal) - resultid[.GRP, get(paste0(signal, "_eqvalue"))]) ~ get(time))$coefficients[1], by = id]
+        intdata[, expfit_A := lm(log(abs(get(signal) - resultid[.GRP, eqvalue])) ~ get(time))$coefficients[1], by = id]
       }
       else{ # If there is an excitation term
         # Extract the excitation coeff for each excitation
@@ -540,7 +538,10 @@ remi <- function(data,
 
       # Write a warning if any of the damping times calculated was negative
       if (any(is.na(resultid[, dampingtime])) | any(resultid[, dampingtime] < 0)){
-        warning("Some of the damping times calculated were negative and thus, the estimated signal is not generated for these.\n")
+        warning("Some of the damping times calculated were negative and thus, the estimated signal was not generated for these.
+                Damping times can be negative for some individuals for the following reasons: 1. The signal of
+                the individual doesn't go back to equilibrium.2.The linear mixed-effects model estimating the random
+                effect showed some error messages/warnings.3.Model misspecification.\n")
       }
       if (noinput){ #There is no excitation signal as input
         intdata[, c(paste0(signal,"_estimated")) :=
@@ -551,15 +552,13 @@ remi <- function(data,
                     #Then it is assumed that the signal follows a decreasing exponential:
                     # y = A* exp(gamma*t)+B
                     #expmodel comes from fitting log(y-B)~t. Calculated above
-                    exp(expfit_A) * exp(-1L / resultid[.GRP, dampingtime] * get(time)) + resultid[.GRP, eqvalue] - minsignal[1] #shifting generated curve back again after the fit is done
+                    exp(expfit_A) * exp(-1L / resultid[.GRP, dampingtime] * get(time)) + resultid[.GRP, eqvalue]
 
                   }else{NaN}, by = id]
 
         #Adding calculated columns to table "estimated" and removing them from table "data"
         estimated <- intdata[, c(oldid, time, paste0(signal,"_estimated")), with = FALSE]
-        intdata <- intdata[, c("expfit_A", paste0(signal,"_estimated"),"minsignal") := NULL]
-        intdata[, get(signal) := get(signal) - minsignal[1], by = id] #shifting initial curve back again after the fit is done
-
+        intdata <- intdata[, c("expfit_A", paste0(signal,"_estimated")) := NULL]
 
       }else{
         # Generation of the third result table called \"estimated\"
@@ -588,8 +587,10 @@ remi <- function(data,
         estimated[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = oldid]
         estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = oldid]
         estimated <- estimated[!is.na(exc_min) & !is.na(exc_max)]
-        #Removing tmpsignal
+
+        #Removing tmpsignal from estimated and totalexc and excitation_sum from intdata
         estimated[, "tmpsignal" := NULL]
+        intdata[, c("totalexc","excitation_sum") := NULL]
 
         #Calculating the convolution
         estimated[, ymin := generate.remi(resultid[.GRP, dampingtime],exc_min,timecol)$y+
@@ -664,32 +665,25 @@ remi <- function(data,
         #Ap=gamma
         #Bp=log(A)
 
-        #Shifting the signal so tht there are no NaN produced during log evaluation for negative values
-        if (any(intdata[, get(signal)] < 0)){
-          intdata[, minsignal := min(get(signal))]
-          intdata[, get(signal) := get(signal) + minsignal[1]]
-        }
-
         y <- intdata[[signal]] #signal
         t <- intdata[[time]]
-        B <- resultmean[, get(paste0(signal,"_eqvalue"))] #intercept calculated previously wih lm
+        B <- resultmean[, eqvalue] #intercept calculated previously wih lm
 
-        expmodel <- lm(log(y-B) ~ t)
+        expmodel <- lm(log(abs(y-B)) ~ t)
       }
       if (noinput){ #there is NO excitation as input
         intdata[, c(paste0(signal, "_estimated")) :=
-                  if (!is.na(resultmean[, get(paste0(signal,"_dampingtime"))]) && resultmean[, get(paste0(signal,"_dampingtime"))] > 0 ){
+                  if (!is.na(resultmean[, dampingtime]) && resultmean[, dampingtime] > 0 ){
                     #Then it is assumed that the signal follows a decreasing exponential:
                     # y = A* exp(gamma*t)+B
                     #expmodel comes from fitting log(y-B)~t. Calculated above
-                    exp(expmodel$coefficients[1]) * exp(resultmean[, -1L/get(paste0(signal, "_dampingtime"))] * get(time)) +
-                      resultmean[, get(paste0(signal, "_eqvalue"))]-minsignal[1]
+                    exp(expmodel$coefficients[1]) * exp(resultmean[, -1L/dampingtime] * get(time)) +
+                      resultmean[, eqvalue]
                   }else {NaN}]
 
         #Adding calculated columns to table "estimated" and removing them from table "data"
         estimated <- intdata[, c(id, time, paste0(signal,"_estimated")), with = FALSE]
-        intdata <- intdata[, c(paste0(signal,"_estimated"),"minsignal") := NULL]
-        intdata[, get(signal) := get(signal) - minsignal[1]] #Shifting initial curve back after doing the fit
+        intdata <- intdata[, c(paste0(signal,"_estimated")) := NULL]
 
       }else{ #There is an excitation
         # Generation of the third result table called \"estimated\"
@@ -702,7 +696,8 @@ remi <- function(data,
         estimated <- intdata[, list(timecol = seq(floor(min(get(time), na.rm = T)), ceiling(max(get(time), na.rm = T)), deltat))]
 
         leftidx <- findInterval(intdata[, get(time)], estimated[, timecol])
-        #tmpsignal contains the value of exctotal were the original times are found in the new time vector
+
+        #tmpsignal contains the value of the total excitation were the original times are found in the new time vector
         #and NA in the rest of the positions
         estimated[leftidx, tmpsignal := intdata[, totalexc]]
 
@@ -713,8 +708,9 @@ remi <- function(data,
         estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T)]
         estimated <- estimated[!is.na(exc_min) & !is.na(exc_max)]
 
-        #Removing tmpsignal
+        #Removing tmpsignal from estimated and totalexc from data
         estimated[, "tmpsignal" := NULL]
+        intdata[, c("totalexc","excitation_sum") := NULL]
 
         #Calculating the convolution
         estimated[, ymin := generate.remi(resultmean[, get(paste0(signal, "_dampingtime"))],exc_min,timecol)$y+
@@ -758,7 +754,7 @@ remi <- function(data,
 #' @param nind  Is a positive integer indicating the number of signals that will be simulated, each of them corresponding to an individual.
 #' @param dampingtime Signal damping time. It is the characteristic response time of the solution to equation (1), and corresponds to the time needed to reach
 #' 37\% of the maximum value when there is no excitation (or 63\% of the maximum value for a constant excitation). It should be a signed integer (dampingtime>0).
-#' @inheritParams excitation.function
+#' @inheritParams generate.excitation
 #' @param internoise Is the inter-individual noise added. The dampingtime accross individuals follows a normal distribution centered on the input parameter dampingtime
 #' with a standard deviation of internoise*dampingtime
 #' @param intranoise It is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
@@ -773,14 +769,14 @@ remi <- function(data,
 #' Each one of these elements contains the following columns:
 #' \itemize{
 #'    \item id - individual identifier (starting by 1 and increasing by 1).
-#'    \item excitation - excitation signal generate through the excitation.function
+#'    \item excitation - excitation signal generate through the generate.excitation
 #'    \item timecol - time values
 #'    \item dampedsignalraw - signal with no noise (inter noise added for each individual)
 #'    \item dampedsignal - signal with intra noise added
 #' }
 #' @details Used for simulations in the context of the package.
 #' @seealso \code{\link{generate.remi}} for calculation of the analytical solution to the differential equation
-#' and \code{\link{excitation.function}} for excitation signal generation
+#' and \code{\link{generate.excitation}} for excitation signal generation
 #' @examples
 #' simulate.remi(nind = 5,
 #'                            dampingtime = 10,
@@ -820,17 +816,29 @@ simulate.remi <- function(nind = 1,
 
   #Add to that data table an "excitation" column, containing the values of the excitation signal.
   #Creates a new excitation signal for each individual
-  data[, excitation := excitation.function(amplitude, nexc, duration, deltat, tmax, minspacing)$exc, by = id]
-  data[, timecol := excitation.function(amplitude, nexc, duration, deltat, tmax, minspacing)$t, by = id]
+  data[, excitation := generate.excitation(amplitude, nexc, duration, deltat, tmax, minspacing)$exc, by = id]
+  data[, timecol := generate.excitation(amplitude, nexc, duration, deltat, tmax, minspacing)$t, by = id]
 
   #Creates a damping time vector by taking dampingtime input value and adding the internoise in a normal distribution
   #Contains as many elements as individuals
-  dampingtimevec <- dampingtime + rnorm(nind, mean = 0, sd = internoise * dampingtime)
+  dampingtimevec <- rnorm(nind, mean = dampingtime, sd = internoise * dampingtime)
 
   #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
-  if (any(dampingtimevec < 0)){
-    dampingtimevec[dampingtimevec < 0] <- dampingtime
-    warning("Some values for dampingtime where negative when adding internoise. The original dampingtime value has been used instead for those cases.\n")
+  if (any(dampingtimevec <= 0)){
+    a <- as.vector(prop.table(table(dampingtimevec<0.1)))[2] #Calculation of the percentile of elements that are <0.1 (damping times of 0 are thus also excluded)
+    b <- as.vector(quantile(dampingtimevec, probs = 1 - a)) #Calculation of the symmetrical threshold
+
+    #Truncating the normal distribution to these two thresholds
+    dampingtimevec[dampingtimevec < 0.1] <- 0.1
+    dampingtimevec[dampingtimevec > b] <- b
+
+    #Calculating new sd and internoise of the tuncated distribution
+    nsd <- sd(dampingtimevec)
+    ninternoise <- nsd / dampingtime
+
+    warning(" Some values for dampingtime where negative when adding internoise. Negative damping times imply signals
+            that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
+            the normal distribution used has been truncated. The inter-individual noise added is of", ninternoise, " instead of ",internoise,".\n")
   }
 
   #Creates the signals for each individual taking the damping time for that individual from dampingtimevec

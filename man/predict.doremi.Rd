@@ -7,7 +7,7 @@
 \method{predict}{doremi}(object, ..., newdata)
 }
 \arguments{
-\item{object}{DOREMI object result of an analysis with the function doremi_analyse_order1}
+\item{object}{DOREMI object result of an analysis with the function remi}
 
 \item{...}{Additionnal arguments inherited from generic predict method.}
 
@@ -25,7 +25,7 @@ values of the signal for that excitation
 predict signal values in a DOREMI object when entering a new excitation
 }
 \examples{
-mydata <- simulation_generate_order1(nindividuals = 5,
+mydata <- simulate.remi(nindividuals = 5,
                            dampingtime = 10,
                            amplitude = c(5,10),
                            nexc = 2,
@@ -35,7 +35,7 @@ mydata <- simulation_generate_order1(nindividuals = 5,
                            minspacing = 0,
                            internoise = 0.2,
                            intranoise = 0.1)
-myresult <- doremi_analyse_order1(userdata = mydata$data,
+myresult <- remi(userdata = mydata$data,
                            id = "id",
                            input = "excitation",
                            time = "timecol",
