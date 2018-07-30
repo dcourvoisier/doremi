@@ -100,14 +100,15 @@ summary.doremi = function (object, ...){
 
 #' S3 method to plot DOREMI objects
 #'
-#' \code{plot.doremi} S3 method for the plot function so that it can represent DOREMI objects
-#' @param x DOREMI object (contains several lists)
+#' \code{plot.doremi} generates a plot with the observed values of the signal, the excitation values and the fitted
+#' signal over time for each individual.
+#' @param x DOREMI object from \code{\link{remi}} analysis
 #' @param ... includes the additional arguments inherited from the generic plot method
-#' @param id Includes the identifiers of the individuals to be represented in the plot.
-#' id can be a scalar (the function will plot an individual) or a vector (it will plot the individuals with
-#' the numeric id contained in the vector)
-#' By default, it will print the six first individuals.
-#' @return Returns a plot with legend and title that includes the name of the DOREMI object
+#' @param id Identifiers of the individuals to be represented in the plot.
+#' By default, it will print the first six individuals.
+#' @return Returns a plot with axis labesl, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
+#' The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
+#' to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 #' @examples
 #' mydata <- simulate.remi(nindividuals = 5,
 #'                            dampingtime = 10,
@@ -126,8 +127,8 @@ summary.doremi = function (object, ...){
 #'                            signal = "dampedsignal",
 #'                            embedding = 5)
 #' plot(myresult)
-#' plot(myresult,1)
-#' plot(myresult,2:5)
+#' plot(myresult,id = 1)
+#' plot(myresult,id = 2:5)
 #' @export
 #' @import ggplot2
 #' @importFrom data.table melt
@@ -206,35 +207,37 @@ plot.doremi = function (x, ...,
 
 #' S3 method to predict signal values in a DOREMI object when entering a new excitation
 #'
-#' \code{predict.doremi} S3 method for the predict function so that it can
-#' predict signal values in a DOREMI object when entering a new excitation
+#' \code{predict.doremi} predicts signal values with a DOREMI object when providing a new excitation vector(s).
 #' @param object DOREMI object result of an analysis with the function remi
 #' @param ... Additionnal arguments inherited from generic predict method.
-#' @param newdata includes a data table containing three columns or more: id (optional), indicating the individual identifier,
-#' time, containing the time values and excitation, being one or several columns containing the different excitations
-#' to which the user desires to obtain an estimated signal. As in the other methods for the predict function, the columns of newdata
-#' must have the same names as those of the original object, otherwise an error message is displayed
-#' @return Returns an list containing the values of time, the values of the excitation and the predicted
-#' values of the signal for that excitation
+#' @param newdata includes a data frame containing three columns or more:
+#'
+#' id (optional), indicating the individual identifier
+#'
+#'
+#' time, containing the time values
+#'
+#' excitation, being one or several columns containing the different excitations
+#' used to estimatea new signal. As in the other methods for the predict function, the columns of newdata
+#' must have the same names as those of the original object.
+#' @return Returns a list containing the values of time, the values of the excitation and the predicted
+#' values of the signal for the new excitation(s).
 #' @examples
-#' mydata <- simulate.remi(nindividuals = 5,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 2,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
-#' myresult <- remi(userdata = mydata$data,
-#'                            id = "id",
-#'                            input = "excitation",
-#'                            time = "timecol",
-#'                            signal = "dampedsignal",
-#'                            embedding = 5)
-#' exc_table <- myresult$data
-#' predresult <- predict(myresult, newdata = exc_table)
+#' myresult <- remi(data = cardio,
+#'                  id = "id",
+#'                  input = "load",
+#'                  time = "time",
+#'                  signal = "hr",
+#'                  embedding = 5)
+#' #Copying cardio into a new data frame and modifying the excitation column
+#' new_exc <- cardio
+#' new_exc$load <- generate.excitation(amplitude = 3,
+#'                                    nexc = 6,
+#'                                    duration = 2,
+#'                                    deltatf = 1,
+#'                                    tmax = 200,
+#'                                    minspacing = 2)
+#' predresult <- predict(myresult, newdata = new_exc)
 #' plot(predresult)
 #' @export
 predict.doremi = function (object, ..., newdata){

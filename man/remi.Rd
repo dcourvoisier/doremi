@@ -7,32 +7,59 @@
 remi(data, id = NULL, input = NULL, time = NULL, signal, embedding = 2)
 }
 \arguments{
-\item{data}{Is a data frame or data table containing at least one column, that is the signal to be analysed.}
+\item{data}{Is a data frame containing at least one column, that is the signal to be analysed.}
 
-\item{id}{Is a STRING containing the NAME of the column of data containing the idENTIFIER of the individual.
-If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead.}
+\item{id}{Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
+of the linear mixed-effects regression.}
 
-\item{input}{Is a STRING or a VECTOR OF STRINGS containing the NAME of data column/s containing the EXCITATION vector/s.
+\item{input}{Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 If this parameter is not entered when calling the function,
-the excitation is assumed to be constant/non existent. In this case, the multi-level regression is still carried out but no coefficient is calculated
+the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
 and build the estimated curve.
-If this parameter is a vector, the function will consider an excitation column each column of data whose name is contained in the input vector.
-The function will then include all the excitations in the multilevel regression and calculate a coefficient for each one of these.}
+The function will consider an excitation variable each column of data whose name is contained in the input vector.
+The function will return a coefficient for each one of the excitation variables included.}
 
 \item{time}{Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.}
 
-\item{signal}{Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.This parameter can't be left empty.}
+\item{signal}{Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.}
 
 \item{embedding}{Is a positive integer containing the number of points to be used for the calculation of the derivatives. Its value by default is 2 as at
 least two points are needed for the calculation of the first derivative.}
 }
 \value{
+Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
+}
+\description{
+\code{remi}  estimates the coefficients of a first order differential equation of the form:
+\deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
+using linear mixed-effect models.
+Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
+}
+\details{
+The analysis performs the following liner mixed-effects regression:
+\deqn{y_{ij}'  \sim   b_{0} +b_{0i}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
+with j accounting for the different individuals, i for the time, \eqn{e_{ij}} are the residuals,
+\eqn{y_{ij}'} is the derivative calculated on embedding points
+y and E are the signal and the excitation averaged on embedding points.
+The coefficients estimated to characterize the signal are calculated as follows:
+\itemize{
+  \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
+  \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
+by the signal.
+  \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
+}
+The estimation is performed using the funtion lmer if there are several indiviuals or lm if there is only one.
+With the above estimated parameters, the estimated signal can be reconstructed for
+each individual by first performing the convolution of the excitation with the Green function using the estimated damping rate
+and then offsetting the resulting signal with the equilibrium value.
 The function returns five objects:
 \enumerate{
- \item data- A data.frame including the input data (for comparison purposes) and other intermediate calculations used to prepare the variables for
-  the fit, more specifically:
+ \item data- A data.frame including the input data and intermediate calculations used to prepare the variables for
+  the fit:
+
     dampedsignal_rollmean - calculation of the moving average of the signal over embedding points.
 
     dampedsignal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
@@ -40,80 +67,34 @@ The function returns five objects:
     timecol_derivate - calculation of the moving average of the time vector over embedding points.
 
     excitation_rollmean - calculation of the moving average of the excitation vector over embedding points.
- \item resultid- A data.frame including for each individual, listed by his/her id number, the damping time, the excitation coefficient and the
- equilibrium value (see variables presented above).
- \item resultmean- A data.frame including the average of the fixed effects of the three coefficients mentioned above for all the individiuals.
- \item regression- A list containing the summary of the multilevel regression (random and fixed parts, residuals, t values).
+ \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
+ equilibrium value (see variables presented in the Details section).
+ \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above.
+ \item regression- A list containing the summary of the linear mixed-effects regression.
  \item estimated- A data.frame containing the estimated signal calculated as the convolution of the Green function with the
  estimated damping time and the excitation
  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
- is thus completed taking the previous known value (to the "left" and thus generating the signal exc_min in the data.frame) or taking the next known value
- (to the "right" and thus generating the signal exc_max in the data.frame). With these two expanded excitation vectors, the two extreme cases of the
+ is completed by using the previous known value (exc_min in the data.frame) or using the next known value
+ (exc_max in the data.frame). With these two expanded excitation vectors, the two extreme cases of the
  mean estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
- the multilevel regression) and each one of the excitation signals described, thus generating ymin and ymax respectively.
-}
-}
-\description{
-\code{remi}  the function performs a multilevel regression of a first order linear
-constant coefficient differential equation of the form: \deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
-Where y(t) is the individual's signal, \deqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
-In order to do this, the function uses multilevel regression and calculates the coefficients, fixed and random effecs and the estimated signal.
-}
-\details{
-The analysis performs the following multilevel regression:
-\deqn{y_{ij}'  \sim   b_{0} +b_{0i}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
-with:
-j accounting for the different individuals
-i for the time
-\eqn{e_{ij}} for the error term
-\eqn{y_{ij}'} is the derivative calculated on \eqn{N_{E}} points
-y and E are the signal and the excitation averaged on \eqn{N_{E}} points.
-From this equation, the coefficients provided as outputs of the function and that characterize the signal are calculated as follows:
-\itemize{
-  \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
-  \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
-by the variable experiencing this excitation.
-  \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
-}
-The estimation is performed using the funtion lmer if there are several indiviuals or lm if there is only one.
-With the above estimated parameters, the estimated signal can be reconstructed for
-each individual by first performing the convolution of the excitation with the Green function , having a damping rate equal to the estimated
-and then offsetting the resulting signal with the equilibrium value.
+ the linear mixed-effects regression). These excitation variables are then used to generate the ymin and ymax signals respectively.
 
-Below are several examples of data that can be analysed with DOREMI:
-\itemize{
-  \item \strong{Medicine}
-         Excitation: load in a resistive bicycle during an effort test
-         Signal: individual's cardiac rythm
-  \item \strong{Sociology}
-         Excitation: occurrence of perturbing events in an individual's life
-         Signal: measurement of biomarkers in the individual with respect to time
-  \item \strong{Psychology}
-         Excitation: Sessions and trials where the individuals are required to carry out a task
-         Signal: response time for the execution of the task
-}
+ As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
+ can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
+ to access the regression summary by typing result$regression.
+ }
 }
 \examples{
-mydata <- simulate.remi(nind = 5,
-                           dampingtime = 10,
-                           amplitude = c(5,10),
-                           nexc = 2,
-                           duration = 20,
-                           deltatf = 2,
-                           tmax = 200,
-                           minspacing = 0,
-                           internoise = 0.2,
-                           intranoise = 0.1)
-myresult <- remi(data = mydata,
-                           id = "id",
-                           input = "excitation",
-                           time = "timecol",
-                           signal = "dampedsignal",
-                           embedding = 5)
+myresult <- remi(data = cardio,
+                 id = "id",
+                 input = "load",
+                 time = "time",
+                 signal = "hr",
+                 embedding = 5)
 }
 \seealso{
-\code{\link{simulate.remi}} to generate simulation signals that satisfy the equation presented
+\code{\link{calculate.gold}} to compute the derivatives, for details on embedding.
 }
 \keyword{analysis,}
 \keyword{exponential}

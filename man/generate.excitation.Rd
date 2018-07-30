@@ -8,46 +8,55 @@ generate.excitation(amplitude = 1, nexc = 1, duration = 2,
   deltatf = 0.1, tmax = 10, minspacing = 1)
 }
 \arguments{
-\item{amplitude}{is a signed decimal or vector of signed decimals indicating the amplitude of the pulse. It must be greater than 0,
-otherwise an error is generated. If it is a vector, it should contain as many integers as the number of pulses (nexc). If this is not the case and the
-elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
-all the pulses are covered (for instance, if the signal has 6 pulses and the amplitude vector has two elements, pulses 1,3 and 5 will
-have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).A warning will also
-be generated.}
+\item{amplitude}{is vector of values greater than 0 indicating the amplitude of the excitation. It should contain as many values
+as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
+all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
+have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).}
 
-\item{nexc}{is a signed integer indicating the number of pulses to be generated. It must be greater than 0, otherwise an error is generated.}
+\item{nexc}{is an integer greater than 0 indicating the number of pulses to generate.}
 
-\item{duration}{is a signed decimal or vector of signed decimals indicating the duration of the pulse in time units. It must be greater than 0,
-otherwise an error is generated. As for the amplitude, it should also have as many elements as the number of pulses (nexc). If this is not the
-case and the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
-all the pulses are covered. A warning will also be generated.}
+\item{duration}{is a vector of values greater than 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
+the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
+all the pulses are covered.}
 
-\item{deltatf}{is a signed decimal indicating the time step between two consecutive data points.}
+\item{deltatf}{is a value greater than 0 indicating the time step between two consecutive data points.}
 
-\item{tmax}{is a signed decimal indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
+\item{tmax}{is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
 
-\item{minspacing}{as pulses are generated randomnly, minspacing is a signed decimal that indicates minimum spacing between pulses, thus avoiding
+\item{minspacing}{as pulses are generated randomnly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
 overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
 }
 \value{
 Returns two vectors:
+
 E- vector containing the values of the excitation generated.
+
 t- vector containing the values of time generated.
 }
 \description{
 \code{generate.excitation} generates a vector of randomly located squarred pulses
-for a given amplitude, duration and spacing between the pulses.
+with a given amplitude, duration and spacing between the pulses.
 }
 \details{
 Used for simulations in the context of the package. Beware that the following condition should apply:
 \deqn{tmax >= (duration+minspacing)*nexc}
 so that the pulses "fit" in the time lapse defined.
-The package "seewave" already contains a function that generates a pulse (see function pulsew). The improvement of this function, regarding pulsew is that
-it is possible to generate pulses of different duration and amplitude, and not just unitary (amplitude=1).
+Compared to pulsew from the seewave package this function can generate pulses of different duration and amplitude.
 }
 \examples{
-generate.excitation(c(1,10,20),3,c(1,2,4),0.5,100,10)
-generate.excitation(3,6,2,1,200,2)
+generate.excitation (amplitude = 3,
+                     nexc = 6,
+                     duration = 2,
+                     deltatf = 1,
+                     tmax = 200,
+                     minspacing = 2)
+#Vector of length 201 (deltatf x tmax + 1 as it includes 0 as initial time value)
+generate.excitation (amplitude = c(1,10,20),
+                     nexc = 3,
+                     duration = c(1,2,4),
+                     deltatf = 0.5,
+                     tmax = 100,
+                     minspacing = 10)
 }
 \keyword{excitation,}
 \keyword{simulation}

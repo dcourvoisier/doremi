@@ -3,32 +3,35 @@
 \docType{data}
 \name{rotation}
 \alias{rotation}
-\title{Meaurements of response time of 17 individuals when carrying out mental rotation tasks}
-\format{A data frame with 619 rows of 5 variables
+\title{Measurements of response time of 17 individuals when carrying out mental rotation tasks}
+\format{A data frame with 619 rows and 5 variables
 \describe{
-  \item{id}{arbitrary identifier of the individual, dimensionless}
-  \item{sex}{sex of the individual, as the study highlighted the difference in response time according to sex, dimensionless}
-  \item{numtrials}{number of trial to which the mean response time belongs, dimensionless}
-  \item{meanRT}{mean response time of the individual to execute the mental rotation task, in milliseconds (ms)}
-  \item{logmeanRT}{natural logarithm of the mean response time, in milliseconds (ms)}
+  \item{id}{positive integer, arbitrary identifier of the individual}
+  \item{sex}{character, sex of the individual, as the study highlighted the difference in response time according to sex}
+  \item{numtrials}{positive integer, number of trial to which the mean response time belongs}
+  \item{meanRT}{positive integer, mean response time of the individual to execute the mental rotation task, in milliseconds (ms)}
+  \item{logmeanRT}{natural logarithm of the mean response time}
 
 }}
 \source{
 Delphine S. Courvoisier, Olivier Renaud, Christian Geiser, Kerstin Paschke, Kevin Gaudy, Kirsten Jordan,
 Sex hormones and mental rotation: An intensive longitudinal investigation,
+
 Hormones and Behavior,
+
 Volume 63, Issue 2,
+
 2013,
+
 Pages 345-351,
-ISSN 0018-506X,
-https://doi.org/10.1016/j.yhbeh.2012.12.007.
-(http://www.sciencedirect.com/science/article/pii/S0018506X12003066)
-Keywords: Mental rotation; Sex hormones; Longitudinal study; Monthly cycle; Intraindividual variability
+
+https://doi.org/10.1016/j.yhbeh.2012.12.007
 }
 \usage{
 data(rotation)
 }
 \description{
-A dataset containing trial number and response time of individuals that participated in the study by Courvoisier et al.(2013)
+Data containing reaction time to a mental rotation task over a 60 day period for 17 individuals
+\href{https://doi.org/10.1016/j.yhbeh.2012.12.007}{(Courvoisier et al., 2013)}.
 }
 \keyword{datasets}

@@ -352,7 +352,7 @@ y2 <- generate.remi(dampingtime = 10,
                     inputtim = timt1)$y 
 
 #Generating table with signals
-mydatab2 <- list(id = rep(c(1, 2), c(length(et1), length(et2))), 
+mydatab2 <- data.frame(id = rep(c(1, 2), c(length(et1), length(et2))), 
                  timecol = c(timt1, timt1),
                  excitation1 = c(e1$exc, e1$exc),
                  excitation2= c(e2$exc, e2$exc),

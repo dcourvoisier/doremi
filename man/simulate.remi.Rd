@@ -9,47 +9,41 @@
   intranoise = 0)
 }
 \arguments{
-\item{nind}{Is a positive integer indicating the number of signals that will be simulated, each of them corresponding to an individual.}
+\item{nind}{number of individuals.}
 
-\item{dampingtime}{Signal damping time. It is the characteristic response time of the solution to equation (1), and corresponds to the time needed to reach
-37\% of the maximum value when there is no excitation (or 63\% of the maximum value for a constant excitation). It should be a signed integer (dampingtime>0).}
+\item{dampingtime}{Signal damping time. It corresponds to the time needed to reach
+37\% of the difference between the rest valu and the amplitude of the signal reached when there is no excitation
+(or 63\% of the maximum value for a constant excitation). It should be positive (dampingtime>0).}
 
-\item{amplitude}{is a signed decimal or vector of signed decimals indicating the amplitude of the pulse. It must be greater than 0,
-otherwise an error is generated. If it is a vector, it should contain as many integers as the number of pulses (nexc). If this is not the case and the
-elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
-all the pulses are covered (for instance, if the signal has 6 pulses and the amplitude vector has two elements, pulses 1,3 and 5 will
-have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).A warning will also
-be generated.}
+\item{amplitude}{is vector of values greater than 0 indicating the amplitude of the excitation. It should contain as many values
+as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
+all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
+have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).}
 
-\item{nexc}{is a signed integer indicating the number of pulses to be generated. It must be greater than 0, otherwise an error is generated.}
+\item{nexc}{is an integer greater than 0 indicating the number of pulses to generate.}
 
-\item{duration}{is a signed decimal or vector of signed decimals indicating the duration of the pulse in time units. It must be greater than 0,
-otherwise an error is generated. As for the amplitude, it should also have as many elements as the number of pulses (nexc). If this is not the
-case and the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
-all the pulses are covered. A warning will also be generated.}
+\item{duration}{is a vector of values greater than 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
+the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
+all the pulses are covered.}
 
-\item{deltatf}{is a signed decimal indicating the time step between two consecutive data points.}
+\item{deltatf}{is a value greater than 0 indicating the time step between two consecutive data points.}
 
-\item{tmax}{is a signed decimal indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
+\item{tmax}{is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
 
-\item{minspacing}{as pulses are generated randomnly, minspacing is a signed decimal that indicates minimum spacing between pulses, thus avoiding
+\item{minspacing}{as pulses are generated randomnly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
 overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
 
 \item{internoise}{Is the inter-individual noise added. The dampingtime accross individuals follows a normal distribution centered on the input parameter dampingtime
-with a standard deviation of internoise*dampingtime}
+with a standard deviation of internoise*dampingtime, except if any damping time is negative (see Details section).}
 
-\item{intranoise}{It is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
+\item{intranoise}{Is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
 amplitude of the convolution when using an excitation containing a single pulse.}
 }
 \value{
-Returns a list of two objects:
+Returns a data frame with signal and time values starting at 0 and sampled at equal time steps deltatf in the time lapse tmax.
+It contains the following columns:
 \itemize{
-   \item data- contains a sampling of raw data at equal time steps to keep only the number of points set in nf.
-   \item fulldata- contains the signal and time values of the pseudo-continuous function with the parameters specified.
-}
-Each one of these elements contains the following columns:
-\itemize{
-   \item id - individual identifier (starting by 1 and increasing by 1).
+   \item id - individual identifier (from 1 to nind).
    \item excitation - excitation signal generate through the generate.excitation
    \item timecol - time values
    \item dampedsignalraw - signal with no noise (inter noise added for each individual)
@@ -57,31 +51,39 @@ Each one of these elements contains the following columns:
 }
 }
 \description{
-\code{simulate.remi} This function generates signals with intra and inter noise for several individuals.
-In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation
+\code{simulate.remi} Generates signals with intra and inter individual noise for several individuals.
+In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
 \deqn{\frac{dy(t)}{dt} - \gamma y(t) = E(t)}.
 The analytical solution to this equation is a convolution between the Green function and the excitation term.
-The function generates internally a pseudo-continuous signal to increase the precision with which the convolution is calculated. From this expanded signal, the function samples points with a constant time step in order to have
-the number of points indicated in nf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
+The function generates internally a pseudo-continuous signal to increase the precision with which the convolution is calculated. From this
+expanded signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
 intra-individual and inter-individual noise with normal distributions are added.
 }
 \details{
 Used for simulations in the context of the package.
+
+The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
+and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
+distribution is truncated at 0.1 and values below are set to 0.1. High values are symetrically set at the upper percentile value
+similar to a Winsorized mean.A warning provides the initial inter individual noise set as input argument and the inter individual
+noise obtained after truncation.
 }
 \examples{
 simulate.remi(nind = 5,
-                           dampingtime = 10,
-                           amplitude = c(5,10),
-                           nexc = 2,
-                           duration = 20,
-                           deltatf = 0.5,
-                           tmax = 200,
-                           minspacing = 0,
-                           internoise = 0.2,
-                           intranoise = 0.1)
+              dampingtime = 10,
+              amplitude = c(5,10),
+              nexc = 2,
+              duration = 20,
+              deltatf = 0.5,
+              tmax = 200,
+              minspacing = 0,
+              internoise = 0.2,
+              intranoise = 0.1)
 }
 \seealso{
-\code{\link{generate.remi}} for calculation of the analytical solution to the differential equation
+\code{\link{generate.remi}} for calculation of the analytical solution to the differential equation.
+Call the data frame $fulldata of the result for a full data frame with points generated at a very small deltatf in order
+to build a pseudo-continuous function that will enhance the quality of the generated signal (see \code{\link{remi}}).
 and \code{\link{generate.excitation}} for excitation signal generation
 }
 \keyword{differential}

@@ -8,7 +8,7 @@ generate.remi(dampingtime, inputvec, inputtim)
 }
 \arguments{
 \item{dampingtime}{Signal damping time. It represents the characteristic response time of the solution of the differential equation.
-It should be a signed decimal (dampingtime > 0), otherwise a warning will be generated.}
+It should be positive.}
 
 \item{inputvec}{Is a vector containing the values of the excitation signal.}
 
@@ -27,10 +27,6 @@ of the first order differential equation with a given damping time and an excita
 }
 \examples{
 generate.remi(10,rep(c(0,1,0),c(20,30,50)),1:100)
-
-\dontrun{
-generate.remi(20,matrix(1,2,3),1:100)
-}
 }
 \keyword{Green,}
 \keyword{differential}

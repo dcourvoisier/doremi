@@ -7,20 +7,21 @@
 \method{plot}{doremi}(x, ..., id = NULL)
 }
 \arguments{
-\item{x}{DOREMI object (contains several lists)}
+\item{x}{DOREMI object from \code{\link{remi}} analysis}
 
 \item{...}{includes the additional arguments inherited from the generic plot method}
 
-\item{id}{Includes the identifiers of the individuals to be represented in the plot.
-id can be a scalar (the function will plot an individual) or a vector (it will plot the individuals with
-the numeric id contained in the vector)
-By default, it will print the six first individuals.}
+\item{id}{Identifiers of the individuals to be represented in the plot.
+By default, it will print the first six individuals.}
 }
 \value{
-Returns a plot with legend and title that includes the name of the DOREMI object
+Returns a plot with axis labesl, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
+The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
+to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 }
 \description{
-\code{plot.doremi} S3 method for the plot function so that it can represent DOREMI objects
+\code{plot.doremi} generates a plot with the observed values of the signal, the excitation values and the fitted
+signal over time for each individual.
 }
 \examples{
 mydata <- simulate.remi(nindividuals = 5,
@@ -40,6 +41,6 @@ myresult <- remi(userdata = mydata$data,
                            signal = "dampedsignal",
                            embedding = 5)
 plot(myresult)
-plot(myresult,1)
-plot(myresult,2:5)
+plot(myresult,id = 1)
+plot(myresult,id = 2:5)
 }

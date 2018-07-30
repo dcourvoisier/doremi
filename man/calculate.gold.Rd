@@ -2,21 +2,21 @@
 % Please edit documentation in R/doremi.R
 \name{calculate.gold}
 \alias{calculate.gold}
-\title{Calculation of derivatives using the Gold method}
+\title{Calculation of derivatives using the GOLD method}
 \usage{
 calculate.gold(signal, time, embedding = 2)
 }
 \arguments{
 \item{signal}{is a vector containing the data from which the derivative is estimated.}
 
-\item{time}{is a vector containing the time values corresponding to the data contained in signal. Thus, they both have the same length.}
+\item{time}{is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.}
 
-\item{embedding}{is a signed integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 2 because at least
-two points are needed for the calculation of the first derivative and at least 3 for the calulation of the second derivative. If it is not the case, the
-function displays an error message. If not specified, embedding=2 by default.}
+\item{embedding}{is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
+two points are needed for the calculation of the first derivative and at least 3 for the calulation of the second derivative.}
 }
 \value{
 Returns a list containing three columns:
+
 dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 
 dsignal- is a data.frame containing three columns and the same number of rows as the signal.
@@ -26,14 +26,19 @@ and the third is the second derivative.
 embedding- contains the number of points used for the derivative calculation, which is constant.
 }
 \description{
-\code{calculate.gold} estimates the derivatives of a dataset according to the Generalized Orthogonal Local Derivative (GOLD)
-method described in \url{https://doi.org/10.1080/00273171.2010.498294}
-including management of variable time steps.
+\code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
+method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}.
+This method allows calculating over a number of measurement points (called the embedding number) the first derivative with errors uncorrelated with the signal.
+It was generalized for non-equidistant time points (variable time steps), in order to account for missing observations.
 }
 \examples{
+#In the following example the derivatives for the function y(t) = t^2 are calculated.
+#The expected results are:
+#y'(t) = 2t and y''(t) = 2
 time <- c(1:500)/100
 signal <- time^2
 result <- calculate.gold(signal = signal, time = time, embedding = 5)
+
 }
 \keyword{derivative,}
 \keyword{embed,}

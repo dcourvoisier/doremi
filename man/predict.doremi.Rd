@@ -11,37 +11,39 @@
 
 \item{...}{Additionnal arguments inherited from generic predict method.}
 
-\item{newdata}{includes a data table containing three columns or more: id (optional), indicating the individual identifier,
-time, containing the time values and excitation, being one or several columns containing the different excitations
-to which the user desires to obtain an estimated signal. As in the other methods for the predict function, the columns of newdata
-must have the same names as those of the original object, otherwise an error message is displayed}
+\item{newdata}{includes a data frame containing three columns or more:
+
+id (optional), indicating the individual identifier
+
+
+time, containing the time values
+
+excitation, being one or several columns containing the different excitations
+used to estimatea new signal. As in the other methods for the predict function, the columns of newdata
+must have the same names as those of the original object.}
 }
 \value{
-Returns an list containing the values of time, the values of the excitation and the predicted
-values of the signal for that excitation
+Returns a list containing the values of time, the values of the excitation and the predicted
+values of the signal for the new excitation(s).
 }
 \description{
-\code{predict.doremi} S3 method for the predict function so that it can
-predict signal values in a DOREMI object when entering a new excitation
+\code{predict.doremi} predicts signal values with a DOREMI object when providing a new excitation vector(s).
 }
 \examples{
-mydata <- simulate.remi(nindividuals = 5,
-                           dampingtime = 10,
-                           amplitude = c(5,10),
-                           nexc = 2,
-                           duration = 20,
-                           deltatf = 2,
-                           tmax = 200,
-                           minspacing = 0,
-                           internoise = 0.2,
-                           intranoise = 0.1)
-myresult <- remi(userdata = mydata$data,
-                           id = "id",
-                           input = "excitation",
-                           time = "timecol",
-                           signal = "dampedsignal",
-                           embedding = 5)
-exc_table <- myresult$data
-predresult <- predict(myresult, newdata = exc_table)
+myresult <- remi(data = cardio,
+                 id = "id",
+                 input = "load",
+                 time = "time",
+                 signal = "hr",
+                 embedding = 5)
+#Copying cardio into a new data frame and modifying the excitation column
+new_exc <- cardio
+new_exc$load <- generate.excitation(amplitude = 3,
+                                   nexc = 6,
+                                   duration = 2,
+                                   deltatf = 1,
+                                   tmax = 200,
+                                   minspacing = 2)
+predresult <- predict(myresult, newdata = new_exc)
 plot(predresult)
 }

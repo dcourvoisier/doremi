@@ -1,6 +1,6 @@
 Package: doremi
 Type: Package
-Title: Dynamics Of REturn to equilibrium during Multiple Inputs
+Title: Dynamics Of Return to Equilibrium during Multiple Inputs
 Version: 0.1.0
 Authors@R: c(
     person("Mongin", "Denis", email = "Denis.Mongin@hcuge.ch", role = "aut"),
@@ -8,10 +8,7 @@ Authors@R: c(
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "aut"),
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "cre"))
 Description: 
-    This package intends to model the dynamics of a self regulated system experiencing exogeneous inputs.
-    The underlying model uses a first order linear constant coefficient differential equation and multi-level regression 
-    to find out the characteristic parameters of the equation (the coefficients).
-    Based on these parameters and the analytical solution to this type of equation, the estimated signal is also generated.
+    This package provides models to fit the dynamics of a regulated system experiencing exogeneous inputs. The underlying models use differential equations and linear mixed-effects regressions to estimate the characteristic parameters of the equation (the coefficients) and an estimated signal. The package also provides print, summary, plot and predict functions, specific for the models outputs.
 License: GPL-3 
 Encoding: UTF-8
 LazyData: true

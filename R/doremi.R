@@ -1,16 +1,17 @@
 # calculate.gold ----------------------------------------------------------
-#' Calculation of derivatives using the Gold method
+#' Calculation of derivatives using the GOLD method
 #'
-#' \code{calculate.gold} estimates the derivatives of a dataset according to the Generalized Orthogonal Local Derivative (GOLD)
-#' method described in \url{https://doi.org/10.1080/00273171.2010.498294}
-#' including management of variable time steps.
+#' \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
+#' method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}.
+#' This method allows calculating over a number of measurement points (called the embedding number) the first derivative with errors uncorrelated with the signal.
+#' It was generalized for non-equidistant time points (variable time steps), in order to account for missing observations.
 #' @param signal is a vector containing the data from which the derivative is estimated.
-#' @param time is a vector containing the time values corresponding to the data contained in signal. Thus, they both have the same length.
-#' @param embedding is a signed integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 2 because at least
-#' two points are needed for the calculation of the first derivative and at least 3 for the calulation of the second derivative. If it is not the case, the
-#' function displays an error message. If not specified, embedding=2 by default.
+#' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
+#' @param embedding is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
+#' two points are needed for the calculation of the first derivative and at least 3 for the calulation of the second derivative.
 #' @keywords derivative, embed, rollmean
 #' @return Returns a list containing three columns:
+#'
 #' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 #'
 #' dsignal- is a data.frame containing three columns and the same number of rows as the signal.
@@ -20,9 +21,13 @@
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
 #'
 #' @examples
+#' #In the following example the derivatives for the function y(t) = t^2 are calculated.
+#' #The expected results are:
+#' #y'(t) = 2t and y''(t) = 2
 #' time <- c(1:500)/100
 #' signal <- time^2
 #' result <- calculate.gold(signal = signal, time = time, embedding = 5)
+#'
 #'@export
 #'@importFrom zoo rollmean
 calculate.gold <-  function(signal,
@@ -123,35 +128,43 @@ calculate.gold <-  function(signal,
 #' Excitation signal generation
 #'
 #' \code{generate.excitation} generates a vector of randomly located squarred pulses
-#' for a given amplitude, duration and spacing between the pulses.
-#' @param amplitude  is a signed decimal or vector of signed decimals indicating the amplitude of the pulse. It must be greater than 0,
-#' otherwise an error is generated. If it is a vector, it should contain as many integers as the number of pulses (nexc). If this is not the case and the
-#' elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
-#' all the pulses are covered (for instance, if the signal has 6 pulses and the amplitude vector has two elements, pulses 1,3 and 5 will
-#' have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).A warning will also
-#' be generated.
-#' @param nexc is a signed integer indicating the number of pulses to be generated. It must be greater than 0, otherwise an error is generated.
-#' @param duration is a signed decimal or vector of signed decimals indicating the duration of the pulse in time units. It must be greater than 0,
-#' otherwise an error is generated. As for the amplitude, it should also have as many elements as the number of pulses (nexc). If this is not the
-#' case and the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
-#' all the pulses are covered. A warning will also be generated.
-#' @param deltatf is a signed decimal indicating the time step between two consecutive data points.
-#' @param tmax is a signed decimal indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.
-#' @param minspacing as pulses are generated randomnly, minspacing is a signed decimal that indicates minimum spacing between pulses, thus avoiding
+#' with a given amplitude, duration and spacing between the pulses.
+#' @param amplitude  is vector of values greater than 0 indicating the amplitude of the excitation. It should contain as many values
+#' as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
+#' all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
+#' have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).
+#' @param nexc is an integer greater than 0 indicating the number of pulses to generate.
+#' @param duration is a vector of values greater than 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
+#' the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
+#' all the pulses are covered.
+#' @param deltatf is a value greater than 0 indicating the time step between two consecutive data points.
+#' @param tmax is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.
+#' @param minspacing as pulses are generated randomnly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
 #' overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.
 #' @keywords excitation, simulation
 #' @return Returns two vectors:
+#'
 #' E- vector containing the values of the excitation generated.
+#'
 #' t- vector containing the values of time generated.
 #' @details Used for simulations in the context of the package. Beware that the following condition should apply:
 #' \deqn{tmax >= (duration+minspacing)*nexc}
 #' so that the pulses "fit" in the time lapse defined.
-#' The package "seewave" already contains a function that generates a pulse (see function pulsew). The improvement of this function, regarding pulsew is that
-#' it is possible to generate pulses of different duration and amplitude, and not just unitary (amplitude=1).
-#'
+#' Compared to pulsew from the seewave package this function can generate pulses of different duration and amplitude.
 #' @examples
-#' generate.excitation(c(1,10,20),3,c(1,2,4),0.5,100,10)
-#' generate.excitation(3,6,2,1,200,2)
+#' generate.excitation (amplitude = 3,
+#'                      nexc = 6,
+#'                      duration = 2,
+#'                      deltatf = 1,
+#'                      tmax = 200,
+#'                      minspacing = 2)
+#' #Vector of length 201 (deltatf x tmax + 1 as it includes 0 as initial time value)
+#' generate.excitation (amplitude = c(1,10,20),
+#'                      nexc = 3,
+#'                      duration = c(1,2,4),
+#'                      deltatf = 0.5,
+#'                      tmax = 100,
+#'                      minspacing = 10)
 #'@export
 #'@importFrom utils head
 # Excitation signal generation.
@@ -219,7 +232,7 @@ generate.excitation = function(amplitude = 1,
 #' of the first order differential equation with a given damping time and an excitation term.
 #'
 #' @param dampingtime Signal damping time. It represents the characteristic response time of the solution of the differential equation.
-#' It should be a signed decimal (dampingtime > 0), otherwise a warning will be generated.
+#' It should be positive.
 #' @param inputvec Is a vector containing the values of the excitation signal.
 #' @param inputtim Is a vector containing the time values corresponding to the excitation signal.
 #' @keywords Green, excitation, first order differential equation
@@ -230,10 +243,6 @@ generate.excitation = function(amplitude = 1,
 #' }
 #' @examples
 #' generate.remi(10,rep(c(0,1,0),c(20,30,50)),1:100)
-#'
-#' \dontrun{
-#' generate.remi(20,matrix(1,2,3),1:100)
-#' }
 #'@export
 #'@importFrom stats convolve
 generate.remi <- function(dampingtime,
@@ -258,30 +267,49 @@ generate.remi <- function(dampingtime,
 # remi --------------------------------------------------------------------
 #' DOREMI first order analysis function
 #'
-#' \code{remi}  the function performs a multilevel regression of a first order linear
-#' constant coefficient differential equation of the form: \deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
-#' Where y(t) is the individual's signal, \deqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
-#' In order to do this, the function uses multilevel regression and calculates the coefficients, fixed and random effecs and the estimated signal.
-#' @param data Is a data frame or data table containing at least one column, that is the signal to be analysed.
-#' @param id Is a STRING containing the NAME of the column of data containing the idENTIFIER of the individual.
-#' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead.
-#' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME of data column/s containing the EXCITATION vector/s.
+#' \code{remi}  estimates the coefficients of a first order differential equation of the form:
+#' \deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
+#' using linear mixed-effect models.
+#' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
+#' @param data Is a data frame containing at least one column, that is the signal to be analysed.
+#' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+#' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
+#' of the linear mixed-effects regression.
+#' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
-#' the excitation is assumed to be constant/non existent. In this case, the multi-level regression is still carried out but no coefficient is calculated
+#' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
 #' and build the estimated curve.
-#' If this parameter is a vector, the function will consider an excitation column each column of data whose name is contained in the input vector.
-#' The function will then include all the excitations in the multilevel regression and calculate a coefficient for each one of these.
+#' The function will consider an excitation variable each column of data whose name is contained in the input vector.
+#' The function will return a coefficient for each one of the excitation variables included.
 #' @param time  Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
-#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.This parameter can't be left empty.
+#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
 #' @param embedding Is a positive integer containing the number of points to be used for the calculation of the derivatives. Its value by default is 2 as at
 #' least two points are needed for the calculation of the first derivative.
 #' @keywords analysis, first order, exponential
-#' @return The function returns five objects:
+#' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
+#' @details The analysis performs the following liner mixed-effects regression:
+#' \deqn{y_{ij}'  \sim   b_{0} +b_{0i}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
+#' with j accounting for the different individuals, i for the time, \eqn{e_{ij}} are the residuals,
+#' \eqn{y_{ij}'} is the derivative calculated on embedding points
+#' y and E are the signal and the excitation averaged on embedding points.
+#' The coefficients estimated to characterize the signal are calculated as follows:
+#' \itemize{
+#'   \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
+#'   \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
+#' by the signal.
+#'   \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
+#' }
+#' The estimation is performed using the funtion lmer if there are several indiviuals or lm if there is only one.
+#' With the above estimated parameters, the estimated signal can be reconstructed for
+#' each individual by first performing the convolution of the excitation with the Green function using the estimated damping rate
+#' and then offsetting the resulting signal with the equilibrium value.
+#' The function returns five objects:
 #' \enumerate{
-#'  \item data- A data.frame including the input data (for comparison purposes) and other intermediate calculations used to prepare the variables for
-#'   the fit, more specifically:
+#'  \item data- A data.frame including the input data and intermediate calculations used to prepare the variables for
+#'   the fit:
+#'
 #'     dampedsignal_rollmean - calculation of the moving average of the signal over embedding points.
 #'
 #'     dampedsignal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
@@ -289,69 +317,31 @@ generate.remi <- function(dampingtime,
 #'     timecol_derivate - calculation of the moving average of the time vector over embedding points.
 #'
 #'     excitation_rollmean - calculation of the moving average of the excitation vector over embedding points.
-#'  \item resultid- A data.frame including for each individual, listed by his/her id number, the damping time, the excitation coefficient and the
-#'  equilibrium value (see variables presented above).
-#'  \item resultmean- A data.frame including the average of the fixed effects of the three coefficients mentioned above for all the individiuals.
-#'  \item regression- A list containing the summary of the multilevel regression (random and fixed parts, residuals, t values).
+#'  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
+#'  equilibrium value (see variables presented in the Details section).
+#'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above.
+#'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'  \item estimated- A data.frame containing the estimated signal calculated as the convolution of the Green function with the
 #'  estimated damping time and the excitation
 #'  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
 #'  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
-#'  is thus completed taking the previous known value (to the "left" and thus generating the signal exc_min in the data.frame) or taking the next known value
-#'  (to the "right" and thus generating the signal exc_max in the data.frame). With these two expanded excitation vectors, the two extreme cases of the
+#'  is completed by using the previous known value (exc_min in the data.frame) or using the next known value
+#'  (exc_max in the data.frame). With these two expanded excitation vectors, the two extreme cases of the
 #'  mean estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
-#'  the multilevel regression) and each one of the excitation signals described, thus generating ymin and ymax respectively.
-#'}
-#' @details The analysis performs the following multilevel regression:
-#' \deqn{y_{ij}'  \sim   b_{0} +b_{0i}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
-#' with:
-#' j accounting for the different individuals
-#' i for the time
-#' \eqn{e_{ij}} for the error term
-#' \eqn{y_{ij}'} is the derivative calculated on \eqn{N_{E}} points
-#' y and E are the signal and the excitation averaged on \eqn{N_{E}} points.
-#' From this equation, the coefficients provided as outputs of the function and that characterize the signal are calculated as follows:
-#' \itemize{
-#'   \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
-#'   \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
-#' by the variable experiencing this excitation.
-#'   \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
-#' }
-#' The estimation is performed using the funtion lmer if there are several indiviuals or lm if there is only one.
-#' With the above estimated parameters, the estimated signal can be reconstructed for
-#' each individual by first performing the convolution of the excitation with the Green function , having a damping rate equal to the estimated
-#' and then offsetting the resulting signal with the equilibrium value.
+#'  the linear mixed-effects regression). These excitation variables are then used to generate the ymin and ymax signals respectively.
 #'
-#' Below are several examples of data that can be analysed with DOREMI:
-#' \itemize{
-#'   \item \strong{Medicine}
-#'          Excitation: load in a resistive bicycle during an effort test
-#'          Signal: individual's cardiac rythm
-#'   \item \strong{Sociology}
-#'          Excitation: occurrence of perturbing events in an individual's life
-#'          Signal: measurement of biomarkers in the individual with respect to time
-#'   \item \strong{Psychology}
-#'          Excitation: Sessions and trials where the individuals are required to carry out a task
-#'          Signal: response time for the execution of the task
-#' }
-#' @seealso \code{\link{simulate.remi}} to generate simulation signals that satisfy the equation presented
+#'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
+#'  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
+#'  to access the regression summary by typing result$regression.
+#'  }
+#' @seealso \code{\link{calculate.gold}} to compute the derivatives, for details on embedding.
 #' @examples
-#' mydata <- simulate.remi(nind = 5,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 2,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
-#' myresult <- remi(data = mydata,
-#'                            id = "id",
-#'                            input = "excitation",
-#'                            time = "timecol",
-#'                            signal = "dampedsignal",
-#'                            embedding = 5)
+#' myresult <- remi(data = cardio,
+#'                  id = "id",
+#'                  input = "load",
+#'                  time = "time",
+#'                  signal = "hr",
+#'                  embedding = 5)
 #'@export
 #'@import data.table
 #'@importFrom lme4 lmer
@@ -404,15 +394,21 @@ remi <- function(data,
   }
 
   #Converting intdata if columns are of type "factor" or "string" instead of numeric
-  if (is.character(intdata[[input]])|is.factor(intdata[[input]])){
-    intdata[, input := as.numeric(as.character(input))]
-    warning("input colmumn was found to be of the factor/string type and was converted to numeric.\n")
+  for (i in seq(input)){
+    if (is.character(intdata[[input[i]]]) | is.factor(intdata[[input[i]]])){
+      intdata[, input[i] := as.numeric(as.character(input[i]))]
+      if (i == 1){warning("input colmumn was found to be of the factor/string type and was converted to numeric.\n")
+      }else{
+        warning("input ",i," colmumn was found to be of the factor/string type and was converted to numeric.\n")
+        }
+
+    }
   }
-  if (is.character(intdata[[time]])|is.factor(intdata[[time]])){
+  if (is.character(intdata[[time]]) | is.factor(intdata[[time]])){
     intdata[, time := as.numeric(as.character(time))]
     warning("time colmumn was found to be of the factor/string type and was converted to numeric.\n")
   }
-  if (is.character(intdata[[signal]])|is.factor(intdata[[signal]])){
+  if (is.character(intdata[[signal]]) | is.factor(intdata[[signal]])){
     intdata[, signal := as.numeric(as.character(signal))]
     warning("signal colmumn was found to be of the factor/string type and was converted to numeric.\n")
   }
@@ -742,52 +738,57 @@ remi <- function(data,
 
 #' Simulation of various individual signals with intra and inter noise
 #'
-#' \code{simulate.remi} This function generates signals with intra and inter noise for several individuals.
+#' \code{simulate.remi} Generates signals with intra and inter individual noise for several individuals.
 
-#' In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation
+#' In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
 #' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = E(t)}.
 #' The analytical solution to this equation is a convolution between the Green function and the excitation term.
-#' The function generates internally a pseudo-continuous signal to increase the precision with which the convolution is calculated. From this expanded signal, the function samples points with a constant time step in order to have
-#' the number of points indicated in nf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
+#' The function generates internally a pseudo-continuous signal to increase the precision with which the convolution is calculated. From this
+#' expanded signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
 #' intra-individual and inter-individual noise with normal distributions are added.
 
-#' @param nind  Is a positive integer indicating the number of signals that will be simulated, each of them corresponding to an individual.
-#' @param dampingtime Signal damping time. It is the characteristic response time of the solution to equation (1), and corresponds to the time needed to reach
-#' 37\% of the maximum value when there is no excitation (or 63\% of the maximum value for a constant excitation). It should be a signed integer (dampingtime>0).
+#' @param nind  number of individuals.
+#' @param dampingtime Signal damping time. It corresponds to the time needed to reach
+#' 37\% of the difference between the rest valu and the amplitude of the signal reached when there is no excitation
+#' (or 63\% of the maximum value for a constant excitation). It should be positive (dampingtime>0).
 #' @inheritParams generate.excitation
 #' @param internoise Is the inter-individual noise added. The dampingtime accross individuals follows a normal distribution centered on the input parameter dampingtime
-#' with a standard deviation of internoise*dampingtime
-#' @param intranoise It is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
+#' with a standard deviation of internoise*dampingtime, except if any damping time is negative (see Details section).
+#' @param intranoise Is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
 #' amplitude of the convolution when using an excitation containing a single pulse.
 
 #' @keywords simulation, first order, differential equation
-#' @return Returns a list of two objects:
+#' @return Returns a data frame with signal and time values starting at 0 and sampled at equal time steps deltatf in the time lapse tmax.
+#' It contains the following columns:
 #' \itemize{
-#'    \item data- contains a sampling of raw data at equal time steps to keep only the number of points set in nf.
-#'    \item fulldata- contains the signal and time values of the pseudo-continuous function with the parameters specified.
-#' }
-#' Each one of these elements contains the following columns:
-#' \itemize{
-#'    \item id - individual identifier (starting by 1 and increasing by 1).
+#'    \item id - individual identifier (from 1 to nind).
 #'    \item excitation - excitation signal generate through the generate.excitation
 #'    \item timecol - time values
 #'    \item dampedsignalraw - signal with no noise (inter noise added for each individual)
 #'    \item dampedsignal - signal with intra noise added
 #' }
 #' @details Used for simulations in the context of the package.
-#' @seealso \code{\link{generate.remi}} for calculation of the analytical solution to the differential equation
+#'
+#' The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
+#' and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
+#' distribution is truncated at 0.1 and values below are set to 0.1. High values are symetrically set at the upper percentile value
+#' similar to a Winsorized mean.A warning provides the initial inter individual noise set as input argument and the inter individual
+#' noise obtained after truncation.
+#' @seealso \code{\link{generate.remi}} for calculation of the analytical solution to the differential equation.
+#' Call the data frame $fulldata of the result for a full data frame with points generated at a very small deltatf in order
+#' to build a pseudo-continuous function that will enhance the quality of the generated signal (see \code{\link{remi}}).
 #' and \code{\link{generate.excitation}} for excitation signal generation
 #' @examples
 #' simulate.remi(nind = 5,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 0.5,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
+#'               dampingtime = 10,
+#'               amplitude = c(5,10),
+#'               nexc = 2,
+#'               duration = 20,
+#'               deltatf = 0.5,
+#'               tmax = 200,
+#'               minspacing = 0,
+#'               internoise = 0.2,
+#'               intranoise = 0.1)
 #'@export
 #'@importFrom data.table setDT
 #'@importFrom data.table copy
@@ -795,15 +796,15 @@ remi <- function(data,
 #'@importFrom data.table .N
 #'@importFrom stats rnorm
 simulate.remi <- function(nind = 1,
-                                       dampingtime,
-                                       amplitude = 1,
-                                       nexc = 1,
-                                       duration = 10,
-                                       deltatf = 0.5,
-                                       tmax,
-                                       minspacing = 10,
-                                       internoise = 0,
-                                       intranoise = 0){
+                 dampingtime,
+                 amplitude = 1,
+                 nexc = 1,
+                 duration = 10,
+                 deltatf = 0.5,
+                 tmax,
+                 minspacing = 10,
+                 internoise = 0,
+                 intranoise = 0){
   #Internal time step to generate pseudo-continuous function
   deltat = 0.1
   npoints <- tmax / deltat + 1
@@ -832,7 +833,7 @@ simulate.remi <- function(nind = 1,
     dampingtimevec[dampingtimevec < 0.1] <- 0.1
     dampingtimevec[dampingtimevec > b] <- b
 
-    #Calculating new sd and internoise of the tuncated distribution
+    #Calculating new sd and internoise of the truncated distribution
     nsd <- sd(dampingtimevec)
     ninternoise <- nsd / dampingtime
 
