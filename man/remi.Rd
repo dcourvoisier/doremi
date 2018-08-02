@@ -7,7 +7,7 @@
 remi(data, id = NULL, input = NULL, time = NULL, signal, embedding = 2)
 }
 \arguments{
-\item{data}{Is a data frame containing at least one column, that is the signal to be analysed.}
+\item{data}{Is a data frame containing at least one column, that is the signal to be analyzed.}
 
 \item{id}{Is a STRING containing the NAME of the column of data containing the identifier of the individual.
 If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
@@ -51,7 +51,7 @@ The coefficients estimated to characterize the signal are calculated as follows:
 by the signal.
   \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
 }
-The estimation is performed using the funtion lmer if there are several indiviuals or lm if there is only one.
+The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 With the above estimated parameters, the estimated signal can be reconstructed for
 each individual by first performing the convolution of the excitation with the Green function using the estimated damping rate
 and then offsetting the resulting signal with the equilibrium value.
@@ -64,7 +64,7 @@ The function returns five objects:
 
     dampedsignal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
 
-    timecol_derivate - calculation of the moving average of the time vector over embedding points.
+    time_derivate - calculation of the moving average of the time vector over embedding points.
 
     excitation_rollmean - calculation of the moving average of the excitation vector over embedding points.
  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
@@ -76,7 +76,7 @@ The function returns five objects:
  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
  is completed by using the previous known value (exc_min in the data.frame) or using the next known value
- (exc_max in the data.frame). With these two expanded excitation vectors, the two extreme cases of the
+ (exc_max in the data.frame). With these two inputed excitation vectors, the two extreme cases of the
  mean estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
  the linear mixed-effects regression). These excitation variables are then used to generate the ymin and ymax signals respectively.
 

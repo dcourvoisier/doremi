@@ -12,12 +12,12 @@ globalVariables(c("value","variable"))
 
 #' S3 method to print DOREMI objects
 #'
-#' \code{print.doremi} S3 method for the print function so that it can represent DOREMI objects
-#' @param x DOREMI object (contains several lists)
+#' \code{print.doremi} prints the most important results of a DOREMI object
+#' @param x DOREMI object
 #' @param ... includes the additional arguments inherited from the generic print method
-#' @return Returns the main parameters of the DOREMI object: the mean values of the three coefficients of the differential equation
+#' @return Returns the three coefficients of the differential equation estimated (fixed part, table $resultmean of the DOREMI object)
 #' @examples
-#' mydata <- simulate.remi(nind = 5,
+#' mydata <- generate.panel.remi(nind = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -41,12 +41,12 @@ print.doremi = function (x, ...){
 
 #' S3 method to print DOREMI data objects
 #'
-#' \code{print.doremidata} S3 method for the print function so that it can show DOREMI data objects
-#' @param x DOREMI object (contains several lists)
+#' \code{print.doremidata} prints the most important results of a  DOREMIDATA object
+#' @param x DOREMIDATA object
 #' @param ... includes the additional arguments inherited from the generic print method
-#' @return Returns the main parameters of the DOREMI data object
+#' @return Returns the table $data of the DOREMIDATA object
 #' @examples
-#' mydata <- simulate.remi(nind = 5,
+#' mydata <- generate.panel.remi(nind = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -64,27 +64,17 @@ print.doremidata = function (x, ...){
 
 #' S3 method for DOREMI object summary
 #'
-#' \code{summary.doremi} S3 method for the summary function so that it can represent DOREMI objects
+#' \code{summary.doremi} provides a summary of the remi analysis
 #' @param object DOREMI object (contains several lists)
 #' @param ... includes the additional arguments inherited from the generic summary method
-#' @return Returns a summary with all the lists of the DOREMI object
+#' @return Returns a summary containing the five lists of the DOREMI object
 #' @examples
-#' mydata <- simulate.remi(nind = 5,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 2,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
-#' myresult <- remi(data = mydata,
-#'                            id = "id",
-#'                            input = "excitation",
-#'                            time = "timecol",
-#'                            signal = "dampedsignal",
-#'                            embedding = 5)
+#' myresult <- remi(data = cardiomydata,
+#'                  id = "id",
+#'                  input = "excitation",
+#'                  time = "timecol",
+#'                  signal = "dampedsignal",
+#'                  embedding = 5)
 #' summary(myresult)
 #' @export
 summary.doremi = function (object, ...){
@@ -106,11 +96,11 @@ summary.doremi = function (object, ...){
 #' @param ... includes the additional arguments inherited from the generic plot method
 #' @param id Identifiers of the individuals to be represented in the plot.
 #' By default, it will print the first six individuals.
-#' @return Returns a plot with axis labesl, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
+#' @return Returns a plot with axis labels, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
 #' The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
 #' to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 #' @examples
-#' mydata <- simulate.remi(nindividuals = 5,
+#' mydata <- generate.panel.remi(nindividuals = 5,
 #'                            dampingtime = 10,
 #'                            amplitude = c(5,10),
 #'                            nexc = 2,
@@ -209,7 +199,7 @@ plot.doremi = function (x, ...,
 #'
 #' \code{predict.doremi} predicts signal values with a DOREMI object when providing a new excitation vector(s).
 #' @param object DOREMI object result of an analysis with the function remi
-#' @param ... Additionnal arguments inherited from generic predict method.
+#' @param ... Additional arguments inherited from generic predict method.
 #' @param newdata includes a data frame containing three columns or more:
 #'
 #' id (optional), indicating the individual identifier
@@ -278,7 +268,7 @@ predict.doremi = function (object, ..., newdata){
         estimated[nrow(estimated[get(object$str_id) < IDvec[idx]]) + leftidx, tmpsignal := newdata[get(object$str_id) == IDvec[idx], totalexc]]
 
       }
-      print(estimated)
+
       #The na.locf function (last observation called forward) will repeat the last non NA value.
       #We use it to repeat the values in the excitation function to the left and to the right
       estimated[, exc_min := na.locf(tmpsignal, na.rm = F, fromLast = F), by = id]

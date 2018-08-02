@@ -7,18 +7,18 @@
 \method{print}{doremidata}(x, ...)
 }
 \arguments{
-\item{x}{DOREMI object (contains several lists)}
+\item{x}{DOREMIDATA object}
 
 \item{...}{includes the additional arguments inherited from the generic print method}
 }
 \value{
-Returns the main parameters of the DOREMI data object
+Returns the table $data of the DOREMIDATA object
 }
 \description{
-\code{print.doremidata} S3 method for the print function so that it can show DOREMI data objects
+\code{print.doremidata} prints the most important results of a  DOREMIDATA object
 }
 \examples{
-mydata <- simulate.remi(nind = 5,
+mydata <- generate.panel.remi(nind = 5,
                            dampingtime = 10,
                            amplitude = c(5,10),
                            nexc = 2,

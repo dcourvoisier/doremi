@@ -8,7 +8,7 @@
 \describe{
   \item{id}{positive integer, arbitrary identifier of the individual}
   \item{sex}{character, sex of the individual, as the study highlighted the difference in response time according to sex}
-  \item{numtrials}{positive integer, number of trial to which the mean response time belongs}
+  \item{days}{positive integer,day since the beginning of the experiment}
   \item{meanRT}{positive integer, mean response time of the individual to execute the mental rotation task, in milliseconds (ms)}
   \item{logmeanRT}{natural logarithm of the mean response time}
 

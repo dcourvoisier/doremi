@@ -12,7 +12,7 @@ calculate.gold(signal, time, embedding = 2)
 \item{time}{is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.}
 
 \item{embedding}{is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
-two points are needed for the calculation of the first derivative and at least 3 for the calulation of the second derivative.}
+two points are needed for the calculation of the first derivative and at least 3 for the calculation of the second derivative.}
 }
 \value{
 Returns a list containing three columns:

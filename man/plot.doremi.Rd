@@ -15,7 +15,7 @@
 By default, it will print the first six individuals.}
 }
 \value{
-Returns a plot with axis labesl, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
+Returns a plot with axis labels, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
 The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
 to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 }
@@ -24,7 +24,7 @@ to generate the graphs and so it is possible to override the values of axis labe
 signal over time for each individual.
 }
 \examples{
-mydata <- simulate.remi(nindividuals = 5,
+mydata <- generate.panel.remi(nindividuals = 5,
                            dampingtime = 10,
                            amplitude = c(5,10),
                            nexc = 2,

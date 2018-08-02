@@ -12,27 +12,17 @@
 \item{...}{includes the additional arguments inherited from the generic summary method}
 }
 \value{
-Returns a summary with all the lists of the DOREMI object
+Returns a summary containing the five lists of the DOREMI object
 }
 \description{
-\code{summary.doremi} S3 method for the summary function so that it can represent DOREMI objects
+\code{summary.doremi} provides a summary of the remi analysis
 }
 \examples{
-mydata <- simulate.remi(nind = 5,
-                           dampingtime = 10,
-                           amplitude = c(5,10),
-                           nexc = 2,
-                           duration = 20,
-                           deltatf = 2,
-                           tmax = 200,
-                           minspacing = 0,
-                           internoise = 0.2,
-                           intranoise = 0.1)
-myresult <- remi(data = mydata,
-                           id = "id",
-                           input = "excitation",
-                           time = "timecol",
-                           signal = "dampedsignal",
-                           embedding = 5)
+myresult <- remi(data = cardiomydata,
+                 id = "id",
+                 input = "excitation",
+                 time = "timecol",
+                 signal = "dampedsignal",
+                 embedding = 5)
 summary(myresult)
 }

@@ -7,18 +7,18 @@
 \method{print}{doremi}(x, ...)
 }
 \arguments{
-\item{x}{DOREMI object (contains several lists)}
+\item{x}{DOREMI object}
 
 \item{...}{includes the additional arguments inherited from the generic print method}
 }
 \value{
-Returns the main parameters of the DOREMI object: the mean values of the three coefficients of the differential equation
+Returns the three coefficients of the differential equation estimated (fixed part, table $resultmean of the DOREMI object)
 }
 \description{
-\code{print.doremi} S3 method for the print function so that it can represent DOREMI objects
+\code{print.doremi} prints the most important results of a DOREMI object
 }
 \examples{
-mydata <- simulate.remi(nind = 5,
+mydata <- generate.panel.remi(nind = 5,
                            dampingtime = 10,
                            amplitude = c(5,10),
                            nexc = 2,

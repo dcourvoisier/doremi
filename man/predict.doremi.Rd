@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{DOREMI object result of an analysis with the function remi}
 
-\item{...}{Additionnal arguments inherited from generic predict method.}
+\item{...}{Additional arguments inherited from generic predict method.}
 
 \item{newdata}{includes a data frame containing three columns or more:
 

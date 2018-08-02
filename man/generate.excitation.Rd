@@ -23,7 +23,7 @@ all the pulses are covered.}
 
 \item{tmax}{is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
 
-\item{minspacing}{as pulses are generated randomnly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
+\item{minspacing}{as pulses are generated randomly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
 overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
 }
 \value{
@@ -34,8 +34,9 @@ E- vector containing the values of the excitation generated.
 t- vector containing the values of time generated.
 }
 \description{
-\code{generate.excitation} generates a vector of randomly located squarred pulses
-with a given amplitude, duration and spacing between the pulses.
+\code{generate.excitation} generates a vector of randomly located square pulses
+with a given amplitude, duration and spacing between the pulses. A pulse is where the excitation passes from value 0 to value amplitude
+for a given duration and then returns back to 0, thus producing a square shape.
 }
 \details{
 Used for simulations in the context of the package. Beware that the following condition should apply:

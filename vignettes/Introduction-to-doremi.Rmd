@@ -37,23 +37,23 @@ Where the variables:
 And regarding the coefficients:
 
 * $\gamma$ is the damping rate, the inverse of which is the damping time. The damping rate indicates the relative variation of the signal with respect to time when the excitation term is 0.
-The damping time is the characteristic response time of the solution to equation (1), After an excitation, when the signal returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value.
+The damping time is the characteristic response time of the solution to equation (1). When the excitation starts, the signal reaches its new vaue and $\tau = 1 \ \gamma$ corresponds to the 63% of the difference between the maximum value and the initial value. After an excitation, when the signal returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value. Figure 1 presents both the damping time $\tau$ for the increase and decrease of the signal. Further development of the model will relax this constraint and will allow for different signal increase and decrease behavior.
 
-```{r fig.width = 7, fig.height = 6, fig.align = "center", echo = FALSE}
+```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
 exc <- rep(c(0,1,0),c(10,30,50))
 signal<- generate.remi(10, exc, seq(1:90))
 temp <- paste("theta")
 
 ggplot2::ggplot(data = data.frame(signal)) +
 ggplot2::ggtitle( "Definition of damping time")+
-  ggplot2::geom_point(ggplot2::aes(t,y, colour = "Signal"))+
+  ggplot2::geom_line(ggplot2::aes(t,y, colour = "Signal"))+
   ggplot2::geom_line(ggplot2::aes(t,exc, colour = "Excitation"))+
   ggplot2::geom_hline(yintercept=0.63*max(signal$y), linetype="dashed", colour = "gray")+
   ggplot2::geom_hline(yintercept=0.37*max(signal$y), linetype="dashed", colour = "gray")+
-  ggplot2::geom_vline(xintercept=signal$t[signal$y==max(signal$y)], linetype="dashed", colour = "gray")+
-  ggplot2::geom_vline(xintercept=50, linetype="dashed", colour = "gray")+
-  ggplot2::geom_vline(xintercept=19, linetype="dashed", colour = "gray")+
-  ggplot2::geom_vline(xintercept=10, linetype="dashed", colour = "gray")+
+  ggplot2::geom_vline(xintercept=signal$t[signal$y==max(signal$y)], colour = "gray")+
+  ggplot2::geom_vline(xintercept=50, colour = "gray")+
+  ggplot2::geom_vline(xintercept=19, colour = "gray")+
+  ggplot2::geom_vline(xintercept=10, colour = "gray")+
   ggplot2::annotate("segment", x = 10, xend = 19, y = -0.5, yend = -0.5, colour = "dark green", size = 1)+
   ggplot2::annotate("text", x = 15, y = -1, label = "tau", parse = TRUE, colour = "dark green")+
   
@@ -119,7 +119,7 @@ These are functions that allow the user to create data corresponding to a first 
 * **generate.remi:** Creates the solution of equation (1) for a given damping time and excitation vector.
 
 
-* **simulate.remi:** creates a set of signals that are solution of equation (1) for a random simulated excitation. Number of points, damping time, intra-individual noise and inter-individual noise can be controlled.
+* **generate.panel.remi:** creates a set of signals that are solution of equation (1) for a random simulated excitation. Number of points, damping time, intra-individual noise and inter-individual noise can be controlled.
 
 ### Analysis functions
 The analysis function presented in the package is:
@@ -143,7 +143,7 @@ In this section, we present increasingly complex examples of data simulation.
 Generating data for 4 individuals, with a damping time of 10s for an excitation vector formed by 3 excitations of amplitude 1 and duration 10s distributed randomly in a time period of 100s, with a minimum spacing between pulses of 20 s and with no noise. That is, the signal follows exactly the differential equation (no intraindividual noise) with no variation of the damping time, the excitation coefficient and the equilibrium value across individuals (no interindividual noise):
 
 ```{r}
-mydataa1 <- simulate.remi(nind = 4, 
+mydataa1 <- generate.panel.remi(nind = 4, 
                           dampingtime = 10, 
                           amplitude = 1, 
                           nexc = 3, 
@@ -171,15 +171,15 @@ Where:
 
 * dampedsignal is the signal with noise (in this case, the values of this column are the same as those of the dampedsignalraw column and in the plot, you will see that both lines are overlapped). 
 
-* timecol is the time column generated.
+* time is the time column generated.
 
 Plotting data:
 
 ```{r fig.width = 7, fig.height = 6, fig.align = "center"}
 ggplot2::ggplot( data = mydataa1$data ) +
-  ggplot2::geom_line(ggplot2::aes(timecol,dampedsignalraw, colour = "dampedsignalraw"))+
-  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignal, colour = "dampedsignal"))+
-  ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
+  ggplot2::geom_line(ggplot2::aes(time,dampedsignalraw, colour = "dampedsignalraw"))+
+  ggplot2::geom_point(ggplot2::aes(time,dampedsignal, colour = "dampedsignal"))+
+  ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (s)",
            y = "Signal (arb. unit)",
@@ -191,7 +191,7 @@ The call to the function remains almost the same, this time adding a 20% intra-i
 
 ```{r}
 # Generation of signals with intra and inter-noise
-mydataa2 <- simulate.remi(nind = 4, 
+mydataa2 <- generate.panel.remi(nind = 4, 
                           dampingtime = 10, 
                           amplitude = 1, 
                           nexc = 3, 
@@ -206,9 +206,9 @@ mydataa2 <- simulate.remi(nind = 4,
 ```{r fig.width = 7, fig.height = 6, fig.align = "center"}
 # Plotting the data
 ggplot2::ggplot( data = mydataa2$data ) +
-  ggplot2::geom_line(ggplot2::aes(timecol,dampedsignalraw, colour = "Signal-no noise"))+
-  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignal, colour = "Signal with 20% intra-noise"))+
-  ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
+  ggplot2::geom_line(ggplot2::aes(time,dampedsignalraw, colour = "Signal-no noise"))+
+  ggplot2::geom_point(ggplot2::aes(time,dampedsignal, colour = "Signal with 20% intra-noise"))+
+  ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Excitation"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (s)",
            y = "Signal (arb. unit)",
@@ -227,7 +227,7 @@ Analyzing the data generated in the example 2 above, the user must specify the n
 resultb1 <- remi(data = mydataa2,
                  id = "id",
                  input ="excitation",
-                 time ="timecol",
+                 time ="time",
                  signal = "dampedsignal",
                  embedding = 5)
 ```
@@ -256,7 +256,7 @@ Where:
 
 * dampedsignal_derivate1 contains the first derivate of dampedsignal, calculated by using the `calculate.gold` function. 
 
-* timecol_derivate contains the values of time in which the derivative has been evaluated.
+* time_derivate contains the values of time in which the derivative has been evaluated.
 
 * excitation_rollmean contains the roll mean of the excitation signal in embedding points.
 
@@ -353,7 +353,7 @@ y2 <- generate.remi(dampingtime = 10,
 
 #Generating table with signals
 mydatab2 <- data.frame(id = rep(c(1, 2), c(length(et1), length(et2))), 
-                 timecol = c(timt1, timt1),
+                 time = c(timt1, timt1),
                  excitation1 = c(e1$exc, e1$exc),
                  excitation2= c(e2$exc, e2$exc),
                  excitation3 = c(e3$exc, e3$exc),
@@ -364,8 +364,8 @@ mydatab2 <- data.frame(id = rep(c(1, 2), c(length(et1), length(et2))),
 ```{r fig.width = 7, fig.height = 4, fig.align = "center"}
 #Plotting signals
 ggplot2::ggplot( data = data.frame(mydatab2)) +
-  ggplot2::geom_line(ggplot2::aes(timecol,signalcol, colour = "Signal-no noise"))+
-  ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Total excitation"))+
+  ggplot2::geom_line(ggplot2::aes(time,signalcol, colour = "Signal-no noise"))+
+  ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Total excitation"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (s)",
            y = "Signal (arb. unit)",
@@ -377,7 +377,7 @@ ggplot2::ggplot( data = data.frame(mydatab2)) +
 resultb2 <- remi(data = mydatab2,
                  id = "id",
                  input = c("excitation1", "excitation2", "excitation3"),
-                 time ="timecol",
+                 time ="time",
                  signal = "signalcol",
                  embedding = 5)
 
@@ -401,7 +401,7 @@ Similarly to the example 2, we will generate data so that the analysis can fit a
 
 ```{r}
 #Simulating data with these hypothesis
-mydatab3 <- simulate.remi(nind = 6,
+mydatab3 <- generate.panel.remi(nind = 6,
                           dampingtime = 10,
                           amplitude = -1,
                           nexc = 1,
@@ -419,7 +419,7 @@ Note that decreasing exponentials can be easily generated through the simulation
 #Analysing
 resultb3 <- remi(data = mydatab3,
                  id = "id",
-                 time = "timecol",
+                 time = "time",
                  signal = "dampedsignal",
                  embedding = 5)
 ```
@@ -437,7 +437,7 @@ In this case, we can reuse the signals of the example 2 for a single individual
 
 ```{r}
 #Creating the data table
-mydatab4 <- data.frame(timecol = timt1,
+mydatab4 <- data.frame(time = timt1,
                  excitation = et1, 
                  signalcol = y1)
 ```
@@ -448,7 +448,7 @@ Note that the `id` parameter has been omitted when calling the function.
 #Analyzing
 resultb4 <- remi(data = mydatab4,
                  input = "excitation",
-                 time ="timecol",
+                 time ="time",
                  signal = "signalcol",
                  embedding = 5)
 ```
@@ -463,7 +463,7 @@ plot(resultb4)
 When simulating signals with missing measurements, we examine how the analysis function still manages to retrieve an accurate fit:
 
 ```{r}
-mydatab5 <- simulate.remi(nind = 4, 
+mydatab5 <- generate.panel.remi(nind = 4, 
                           dampingtime = 10, 
                           amplitude = 1, 
                           nexc = 3, 
@@ -476,7 +476,7 @@ mydatab5 <- simulate.remi(nind = 4,
 
 #Keeping one third of the rows selected randomly from the full data set
 mydatab5rd <- mydatab5$fulldata[sample(nrow(mydatab5$fulldata), nrow(mydatab5$fulldata)/3), ]
-mydatab5rd <- mydatab5rd[order(id,timecol)]
+mydatab5rd <- mydatab5rd[order(id,time)]
 
 ```
 
@@ -484,9 +484,9 @@ In the next plot we show the selection of random points made on the full data se
 
 ```{r fig.width = 7, fig.height = 6, fig.align = "center"}
 ggplot2::ggplot( data = mydatab5$fulldata ) +
-  ggplot2::geom_point(ggplot2::aes(timecol,dampedsignalraw, colour = "Full data set. No noise"))+
-  ggplot2::geom_line(ggplot2::aes(timecol,excitation,colour = "Excitation"))+
-  ggplot2::geom_point(data = mydatab5rd, ggplot2::aes(timecol,dampedsignalraw, colour = "Random sampling"))+
+  ggplot2::geom_point(ggplot2::aes(time,dampedsignalraw, colour = "Full data set. No noise"))+
+  ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Excitation"))+
+  ggplot2::geom_point(data = mydatab5rd, ggplot2::aes(time,dampedsignalraw, colour = "Random sampling"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (unit)",
            y = "Signal (unit)",
@@ -499,7 +499,7 @@ Then analyzing and visualizing the random points selection:
 resultb5 <- remi(data = mydatab5rd,
                  id = "id",
                  input = "excitation",
-                 time ="timecol",
+                 time ="time",
                  signal = "dampedsignal",
                  embedding = 5)
 ```
@@ -520,7 +520,7 @@ In brief, the data is from 21 individuals doing an effort test on a cycle ergome
 resultc1 <- remi(data = cardio,
                  id = "id",
                  input = "load",
-                 time ="timecol",
+                 time ="time",
                  signal = "hr",
                  embedding = 5)
 ```
@@ -536,12 +536,12 @@ As can be seen, the model reproduces quite well the variation of the heart rate,
 ## C2 - Meaurements of response time of individuals when carrying out mental rotation tasks
 
 Using the `rotation` dataset present in this package, we will apply the model to a case in which the excitation signal is not clearly defined.
-In brief, the data is from 17 individuals that carried out mental rotation tasks (identify if two figures, one of which is rotated, are the same or a mirror image) and the response time (in milliseconds) was measured [(Courvoisier et al., 2013)](https://doi.org/10.1016/j.yhbeh.2012.12.007). Each individual was measured every day for 60 days, though there can be missing data. To account for this, the time has been represented by the number of trials (variable `numtrials`). The signal is the mean response time (variable `meanRT`) over the ~200 stimuli done every day. The purpose of the study was to compare the performance between men and women.
+In brief, the data is from 17 individuals that carried out mental rotation tasks (identify if two figures, one of which is rotated, are the same or a mirror image) and the response time (in milliseconds) was measured [(Courvoisier et al., 2013)](https://doi.org/10.1016/j.yhbeh.2012.12.007). Each individual was measured every day for 60 days, though there can be missing data. To account for this, the time has been represented by the number of days since the beginning of the experiment (variable `days`). The signal is the mean response time (variable `meanRT`) over the ~200 stimuli done every day. The purpose of the study was to compare the performance between men and women.
 
 ```{r}
 resultc2 <- remi(data = rotation,
                  id = "id",
-                 time ="numtrials",
+                 time ="days",
                  signal = "meanRT",
                  embedding = 5)
 ```
