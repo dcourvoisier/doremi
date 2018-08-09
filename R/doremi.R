@@ -130,7 +130,7 @@ calculate.gold <-  function(signal,
 #' \code{generate.excitation} generates a vector of randomly located square pulses
 #' with a given amplitude, duration and spacing between the pulses. A pulse is where the excitation passes from value 0 to value amplitude
 #' for a given duration and then returns back to 0, thus producing a square shape.
-#' @param amplitude  is vector of values greater than 0 indicating the amplitude of the excitation. It should contain as many values
+#' @param amplitude  is vector of values different than 0 indicating the amplitude of the excitation. It should contain as many values
 #' as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 #' all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
 #' have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).
@@ -269,7 +269,7 @@ generate.remi <- function(dampingtime,
 #' DOREMI first order analysis function
 #'
 #' \code{remi}  estimates the coefficients of a first order differential equation of the form:
-#' \deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
+#' \deqn{\frac{1}{\gamma} \dot{y}(t) = - y(t) + \epsilon E(t) + eqvalue}
 #' using linear mixed-effect models.
 #' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
@@ -290,17 +290,17 @@ generate.remi <- function(dampingtime,
 #' least two points are needed for the calculation of the first derivative.
 #' @keywords analysis, first order, exponential
 #' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
-#' @details The analysis performs the following liner mixed-effects regression:
-#' \deqn{y_{ij}'  \sim   b_{0} +b_{0i}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
-#' with j accounting for the different individuals, i for the time, \eqn{e_{ij}} are the residuals,
-#' \eqn{y_{ij}'} is the derivative calculated on embedding points
+#' @details The analysis performs the following linear mixed-effects regression:
+#' \deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
+#' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
+#' \eqn{y_{ij}'} is the derivative calculated on embedding points and
 #' y and E are the signal and the excitation averaged on embedding points.
 #' The coefficients estimated to characterize the signal are calculated as follows:
 #' \itemize{
-#'   \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
-#'   \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
-#' by the signal.
-#'   \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
+#'   \item Damping time:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
+#'   \item Excitation coefficient: \eqn{\epsilon = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
+#'   difference between the maximum value reached by the signal and its initial value.
+#'   \item Equilibrium value: \eqn{eqvalue = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
 #' }
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal can be reconstructed for
@@ -317,13 +317,13 @@ generate.remi <- function(dampingtime,
 #'
 #'     time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
-#'     excitation_rollmean - calculation of the moving average of the excitation vector over embedding points.
+#'     input_rollmean - calculation of the moving average of the excitation vector over embedding points.
 #'  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
 #'  equilibrium value (see variables presented in the Details section).
 #'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above.
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'  \item estimated- A data.frame containing the estimated signal calculated as the convolution of the Green function with the
-#'  estimated damping time and the excitation
+#'  estimated damping time, excitation coefficient and equilibrium value and the excitation
 #'  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
 #'  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
 #'  is completed by using the previous known value (exc_min in the data.frame) or using the next known value
@@ -559,7 +559,7 @@ remi <- function(data,
     #Renaming columns in $data object to original names
     intdata[, id := NULL]
     if(!is.null(resultid)){resultid[, id := NULL]}
-    if(!is.null(estimated)){setnames(estimated,"id_tmp",id)
+    if(!is.null(estimated)){setnames(estimated, c("id_tmp", "time"), c(id, time))
       if(noinput){ #If there was no input, rename signal_estimated column in table estimated
         setnames(estimated,"signal_estimated",paste0(signal,"_estimated"))
       }}
@@ -587,7 +587,7 @@ remi <- function(data,
 
   # Regression for SINGLE individuals ----------------------------------------
   else{ #If id is null it is assumed that all the data comes from a SINGLE INDIVIDUAL.
-    print("Status: time series data")
+    print("Status: Time series data")
     #Saving original names and then renaming data table to internal names
     originalnames <- c(time, signal, input)
     doremiexc <- paste0("input", seq(input))
@@ -596,91 +596,74 @@ remi <- function(data,
 
     #Calculation of the signal rollmean and first derivative of the signal column
     #Paste is only used to generate new column names based on the orignal ones (concatenate strings)
-    intdata[, c(paste0(signal, "_rollmean")) := calculate.gold(signal, time, embedding)$dsignal[, 1]]
-    intdata[, c(paste0(signal, "_derivate1")) := calculate.gold(signal, time, embedding)$dsignal[, 2]]
-    intdata[, c(paste0(time, "_derivate")) := calculate.gold(signal, time, embedding)$dtime]
+    intdata[, signal_rollmean := calculate.gold(signal, time, embedding)$dsignal[, 1]]
+    intdata[, signal_derivate1 := calculate.gold(signal, time, embedding)$dsignal[, 2]]
+    intdata[, time_derivate := calculate.gold(signal, time, embedding)$dtime]
 
     #Calculation of the roll mean of the excitation columns if there is at least one input column
     if (!noinput){
       myfun <- function(x){x[] <- c(rollmean(x, (embedding)), rep(NA, embedding - 1)); x}
-      intdata[, (paste0(input,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc]
+      intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc]
      }
 
     #In this case it is a linear regression and function lm is used instead of lmer
     #In the analysis for one individual there is no resultid table
     resultid <- NULL
-    #Create empty resultmean table
-    resultmean <- setDT(list(id = "All", dampingtime = NA, eqvalue = NA))
 
     if(noinput){ # if there is no excitation signal
-      model <- tryCatch({lm(paste0(signal,"_derivate1 ~ ",signal,"_rollmean"),
-                            data = intdata)}, error = function(e) e)
+      model <- tryCatch({lm(signal_derivate1 ~ signal_rollmean, data = intdata)}, error = function(e) e)
+      print("Status: Unknown excitation. Linear regression calculated")
+
     }
     else{ # if there is one or several excitation signals
-      model <- tryCatch({lm(paste0(signal, "_derivate1 ~ ", signal, "_rollmean + ", paste(input, "rollmean ", collapse = "+", sep = "_")),
+      model <- tryCatch({lm(paste0("signal_derivate1 ~ signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
                              data = intdata)}, error = function(e) e)
-      #Creating empty coefficients in the resultmean table
-      resultmean[, paste0(input, "_coeff") := NA]
+      print("Status: One or several excitations. Linear regression calculated")
     }
     if (!inherits(model,"error")){ # if the regression worked
+      print("Status: Linear mixed-effect model had no errors")
       summary <- summary(model) # Summary of the regression
+      regression <- summary
 
-      #Generate mean results (third output table, there will not be a second output table as there is a single individual)
-      #with convergence criterions
-      # Extract the damping coefficient from the regression summary
-      resultmean <- setDT(list(id = "All"))
-
+      # Generate mean results
       # calculate the damping time: -1/damping_coeff
-      resultmean[, dampingtime := -1L / summary$coefficients[paste0(signal, "_rollmean"), "Estimate"] ]
+      resultmean <- setDT(list(dampingtime = -1L / summary$coefficients["signal_rollmean", "Estimate"]))
 
-      # Extract the intercept coeff (equilibrium value)
+      # Extract the equilibrium value
       resultmean[, eqvalue := summary$coefficients["(Intercept)", "Estimate"] * resultmean[, dampingtime]]
 
-      # Extract the excitation coeff for each excitation
-      if (!noinput){ # If there is an excitation term
-        intdata[, totalexc := 0]
-        for (i in 1:length(input)) #For loop to go through all the inputs
-        {
-          resultmean[, c(paste0(input[i], "_exccoeff")) := summary$coefficients[paste0(input[i], "_rollmean"), "Estimate"] * resultmean[, dampingtime]]
-          intdata[, totalexc:= totalexc + (summary$coefficients[paste0(input[i], "_rollmean"), "Estimate"]) * doremiexc[i]]
-        }
-      }
-      # Generation of the fitted signal using remi generate FOR ONE INDIVIDUAL with the estimated damping time
-      if (noinput){
+      # Generation of the estimated signal using remi generate FOR ONE INDIVIDUAL with the estimated coefficients
+      if (noinput){ #there is NO excitation as input
+        print("Unknown excitation. Calculation of estimated signal through exponential fit")
         #Exponential model is assumed when no input is provided and thus a new fit is necessary:
         #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
         #B is known, it is the intercept*thao, from the model fit with the derivative inside the analysis function
         #A is unknown. It can be found by fitting log(y-B)~ t
-        #We'll call the coefficients resulting from this new fit Ap and Bp
-        #Ap=gamma
-        #Bp=log(A)
-
+        #We'll call the coefficients resulting from this new fit Ap and Bp. Ap=gamma, Bp=log(A)
         y <- intdata$signal
         t <- intdata$time
         B <- resultmean[, eqvalue] #intercept calculated previously with lm
-
         expmodel <- lm(log(abs(y-B)) ~ t)
-      }
-      if (noinput){ #there is NO excitation as input
-        intdata[, c(paste0(signal, "_estimated")) :=
-                  if (!is.na(resultmean[, dampingtime]) && resultmean[, dampingtime] > 0 ){
-                    #Then it is assumed that the signal follows a decreasing exponential:
-                    # y = A* exp(gamma*t)+B
-                    #expmodel comes from fitting log(y-B)~t. Calculated above
-                    exp(expmodel$coefficients[1]) * exp(resultmean[, -1L/dampingtime] * time) + resultmean[, eqvalue]
-                  }else {NaN}]
-
-        #Adding calculated columns to table "estimated" and removing them from table "data"
-        estimated <- intdata[, c("time", paste0(signal,"_estimated")), with = FALSE]
-        intdata <- intdata[, c(paste0(signal,"_estimated")) := NULL]
+        #Then it is assumed that the signal follows a decreasing exponential:
+        # y = A* exp(gamma*t)+B
+        if (!is.na(resultmean[, dampingtime]) && resultmean[, dampingtime] > 0){
+          estimated <- setDT(list(time = intdata$time, signal_estimated =
+                                  exp(expmodel$coefficients[1]) * exp(resultmean[, -1L/dampingtime] * time) + resultmean[, eqvalue]))
+        }else{estimated <- NULL}
 
       }else{ #There is an excitation
-        # Generation of the third result table called \"estimated\"
-        # Contains expanded time vector, minimum an maximum generated signals (for the two extreme scenarios of expanded excitation)
+        print("Status: One or several excitations. Calculation of estimated signal through convolution")
+        intdata[, totalexc := 0]
+        for (i in 1:length(input)) #For loop to go through all the inputs
+        {
+          resultmean[, c(paste0(doremiexc[i], "_coeff")) := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, dampingtime]]
+          intdata[, totalexc:= totalexc + (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]) * get(doremiexc[i])]
+        }
+        # Estimated table contains expanded time vector, minimum an maximum generated signals (for the two extreme scenarios of expanded excitation)
         # Expanded vectors according to deltat chosen
         # Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
         # Time vector and excitation vectors min and max
-        deltat <- 0.1 * max(intdata$time)
+        deltat <- 0.1 * min(diff(intdata$time))
         #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
         estimated <- intdata[, list(time = seq(floor(min(time, na.rm = T)), ceiling(max(time, na.rm = T)), deltat))]
 
@@ -697,18 +680,38 @@ remi <- function(data,
         estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T)]
         estimated <- estimated[!is.na(exc_min) & !is.na(exc_max)]
 
-        #Removing tmpsignal from estimated and totalexc from data
+        #Removing tmpsignal from estimated and totalexc from intdata
         estimated[, tmpsignal := NULL]
         intdata[, totalexc := NULL]
 
         #Calculating the convolution
         estimated[, ymin := generate.remi(resultmean[, dampingtime], exc_min, time)$y + resultmean[, eqvalue]]
         estimated[, ymax := generate.remi(resultmean[, dampingtime], exc_max, time)$y + resultmean[, eqvalue]]
-
       }
     }else{ # if the regression didn't work, all coeffs will remain NA. The summary will contain the model and the estimated table wil be set to null
+      print("Status: Linear regression produced errors.")
+      warning("Linear regression produced an error. Verify the regression object of the result.\n")
       regression <- model
+      resultmean <- NULL
       estimated <- NULL
+    }
+    #Renaming columns in $data object to original names
+    if(!is.null(estimated)){#If there was no input, rename signal_estimated column in table estimated
+      if(noinput){setnames(estimated,"signal_estimated",paste0(signal,"_estimated"))}
+    }
+
+    for(idx in seq(doreminames))
+    {
+      colnew <- doreminames[idx]
+      colold <- originalnames[idx]
+      tochange <- grep(colnew, names(intdata), value = T) #Composed names
+      setnames(intdata, tochange, gsub(colnew, colold, tochange))
+      if(!is.null(resultmean)){
+        if(colnew %in% doremiexc){ #Only the excitation columns need to change name
+          tochange <- grep(colnew, names(resultmean), value = T) #Composed names
+          setnames(resultmean, tochange, gsub(colnew,colold,tochange))
+        }
+      }
     }
   }
 
@@ -730,7 +733,7 @@ remi <- function(data,
 #' \code{generate.panel.remi} Generates signals with intra and inter individual noise for several individuals.
 
 #' In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
-#' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = \epsilon E(t) + eqvalue}
+#' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = E(t)}
 #' The analytical solution to this equation is a convolution between the Green function and the excitation term.
 #' The function generates internally a pseudo-continuous signal to increase the precision with which the convolution is calculated. From this
 #' expanded signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
@@ -760,7 +763,7 @@ remi <- function(data,
 #'
 #' The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
 #' and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
-#' distribution is truncated at 0.1 and values below are set to 0.1. High values are symmetrically set at the upper percentile value
+#' distribution is truncated at 0.1*deltatf and values below are set to this limit. High values are symmetrically set at the upper percentile value
 #' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
 #' noise obtained after truncation.
 #' @seealso \code{\link{generate.remi}} for calculation of the analytical solution to the differential equation.
@@ -795,7 +798,7 @@ generate.panel.remi <- function(nind = 1,
                  internoise = 0,
                  intranoise = 0){
   #Internal time step to generate pseudo-continuous function
-  deltat <- 0.01 * tmax
+  deltat <- 0.1 * deltatf  #We do at least 10 divisions of the final time step chosen
   npoints <- tmax / deltat + 1
 
   # Generate simulation data for a given excitation and damping time
@@ -815,11 +818,12 @@ generate.panel.remi <- function(nind = 1,
 
   #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
   if (any(dampingtimevec <= 0)){
-    a <- as.vector(prop.table(table(dampingtimevec<0.1)))[2] #Calculation of the percentile of elements that are <0.1 (damping times of 0 are thus also excluded)
-    b <- as.vector(quantile(dampingtimevec, probs = 1 - a)) #Calculation of the symmetrical threshold
+    a <- 0.1 * deltatf #Threshold to truncate the dampingtime distribution
+    perc <- as.vector(prop.table(table(dampingtimevec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
+    b <- as.vector(quantile(dampingtimevec, probs = 1 - perc)) #Calculation of the symmetrical threshold
 
     #Truncating the normal distribution to these two thresholds
-    dampingtimevec[dampingtimevec < 0.1] <- 0.1
+    dampingtimevec[dampingtimevec < a] <- a
     dampingtimevec[dampingtimevec > b] <- b
 
     #Calculating new sd and internoise of the truncated distribution

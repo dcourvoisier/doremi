@@ -61,11 +61,11 @@ print.doremidata = function (x, ...){
 #' @param ... includes the additional arguments inherited from the generic summary method
 #' @return Returns a summary containing the five lists of the DOREMI object
 #' @examples
-#' myresult <- remi(data = cardiomydata,
+#' myresult <- remi(data = cardio,
 #'                  id = "id",
-#'                  input = "excitation",
+#'                  input = "load",
 #'                  time = "time",
-#'                  signal = "dampedsignal",
+#'                  signal = "hr",
 #'                  embedding = 5)
 #' summary(myresult)
 #' @export

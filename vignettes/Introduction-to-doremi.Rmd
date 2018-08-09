@@ -89,7 +89,7 @@ where:
 
 * $e_{ij}$ is the error term
 
-Note that random effects are estimated for the intercept $b_{0} +b_{0i}$, signal $b_{1} +u_{1j}$ and excitation terms $b_{2} +u_{2j}$, so that individuals can vary on their initial level, their evolution over time and their reaction to an excitation.
+Note that random effects are estimated for the intercept $b_{0} +b_{0j}$, signal $b_{1} +u_{1j}$ and excitation terms $b_{2} +u_{2j}$, so that individuals can vary on their initial level, their evolution over time and their reaction to an excitation.
 
 The coefficients aforementioned can be thus calculated as:
 
@@ -97,7 +97,7 @@ The coefficients aforementioned can be thus calculated as:
 
 * Excitation coefficient: $\epsilon = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
 
-* Equilibrium value: $eqvalue = \frac{b_{0} + b_{0i} }{\gamma _{j}}$ 
+* Equilibrium value: $eqvalue = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
 
 The estimation is performed using the function [lmer](https://CRAN.R-project.org/package=lme4) if there are several individuals or [lm](http://stat.ethz.ch/R-manual/R-devel/library/stats/html/lm.html) if there is only one.
 
