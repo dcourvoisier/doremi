@@ -7,7 +7,7 @@
 \format{A data frame with 1686 rows and 4 variables
 \describe{
   \item{id}{positive integer, arbitrary identifier of the patient}
-  \item{timecol}{positive real number, time since the beginning of the test, in seconds (s)}
+  \item{time}{positive real number, time since the beginning of the test, in seconds (s)}
   \item{load}{positive real number, load of the resistive bicycle, effort that the patient needs to do, in watts (W)}
   \item{hr}{positive real number, patient's cardiac rythm, in heart beats per minute (1/min)}
 

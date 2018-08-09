@@ -31,7 +31,7 @@ mydata <- generate.panel.remi(nind = 5,
 myresult <- remi(data = mydata,
                            id = "id",
                            input = "excitation",
-                           time = "timecol",
+                           time = "time",
                            signal = "dampedsignal",
                            embedding = 5)
 myresult

@@ -19,7 +19,7 @@ id (optional), indicating the individual identifier
 time, containing the time values
 
 excitation, being one or several columns containing the different excitations
-used to estimatea new signal. As in the other methods for the predict function, the columns of newdata
+used to estimate a new signal. As in the other methods for the predict function, the columns of newdata
 must have the same names as those of the original object.}
 }
 \value{

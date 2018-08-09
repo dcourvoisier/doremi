@@ -21,7 +21,7 @@ Returns a summary containing the five lists of the DOREMI object
 myresult <- remi(data = cardiomydata,
                  id = "id",
                  input = "excitation",
-                 time = "timecol",
+                 time = "time",
                  signal = "dampedsignal",
                  embedding = 5)
 summary(myresult)

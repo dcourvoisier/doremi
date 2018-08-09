@@ -1,9 +1,10 @@
 # Call to global variables ------------------------------------------------
 
-globalVariables(c("inputcol", "timecol", "excitation_sum", "expfit_A"))
+globalVariables(c("inputcol", "time", "excitation_sum", "expfit_A"))
 globalVariables(c("dampedsignalraw", "amplitudenorm", "dampedsignal", "exc_max", "exc_min", "excitation", "id", "intervals", "totalexc", "ymax", "ymin"))
 globalVariables(c("idchar","tmpsignal"))
 globalVariables(c("value","variable"))
+globalVariables(c("dampingtime", "eqvalue", "quantile", "sd", "time"))
 
 # Call to classes and methods ---------------------------------------------
 # Classes documented directly in the analysis function (object "doremi")
@@ -17,22 +18,12 @@ globalVariables(c("value","variable"))
 #' @param ... includes the additional arguments inherited from the generic print method
 #' @return Returns the three coefficients of the differential equation estimated (fixed part, table $resultmean of the DOREMI object)
 #' @examples
-#' mydata <- generate.panel.remi(nind = 5,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 2,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
-#' myresult <- remi(data = mydata,
-#'                            id = "id",
-#'                            input = "excitation",
-#'                            time = "timecol",
-#'                            signal = "dampedsignal",
-#'                            embedding = 5)
+#' myresult <- remi(data = cardio,
+#'                  id = "id",
+#'                  input = "load",
+#'                  time = "time",
+#'                  signal = "hr",
+#'                  embedding = 5)
 #' myresult
 #' @export
 print.doremi = function (x, ...){
@@ -59,6 +50,7 @@ print.doremi = function (x, ...){
 #' mydata
 #' @export
 print.doremidata = function (x, ...){
+  print("$data")
   print(x$data)
 }
 
@@ -72,7 +64,7 @@ print.doremidata = function (x, ...){
 #' myresult <- remi(data = cardiomydata,
 #'                  id = "id",
 #'                  input = "excitation",
-#'                  time = "timecol",
+#'                  time = "time",
 #'                  signal = "dampedsignal",
 #'                  embedding = 5)
 #' summary(myresult)
@@ -86,6 +78,10 @@ summary.doremi = function (object, ...){
    print(object$resultmean)
    cat("\n Coefficients per individual ($resultid):\n")
    print(object$resultid)
+   cat("\n Estimated signal ($estimated):\n")
+   print(object$estimated)
+   cat("\n Embedding number ($embedding):\n")
+   print(object$embedding)
 }
 
 #' S3 method to plot DOREMI objects
@@ -100,22 +96,12 @@ summary.doremi = function (object, ...){
 #' The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
 #' to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 #' @examples
-#' mydata <- generate.panel.remi(nindividuals = 5,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 2,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
-#' myresult <- remi(userdata = mydata$data,
-#'                            id = "id",
-#'                            input = "excitation",
-#'                            time = "timecol",
-#'                            signal = "dampedsignal",
-#'                            embedding = 5)
+#' myresult <- remi(data = cardio,
+#'                  id = "id",
+#'                  input = "load",
+#'                  time = "time",
+#'                  signal = "hr",
+#'                  embedding = 5)
 #' plot(myresult)
 #' plot(myresult,id = 1)
 #' plot(myresult,id = 2:5)
@@ -149,9 +135,9 @@ plot.doremi = function (x, ...,
       if (is.null(xe[[x$str_id]])) {stop("id column not found in table \"estimated\". Check call to the analysis function, the id column
       should have been provided as input parameter.\n")}
       p <- p + geom_line(data = xe[get(x$str_id) %in% facets],
-                          aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
+                          aes(time, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
                geom_line(data = xe[get(x$str_id) %in% facets],
-                          aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
+                          aes(time, ymax, colour = paste0(x$str_signal, " estimated, max value")))
 
     }else{ #If there is no excitation term
 
@@ -170,8 +156,8 @@ plot.doremi = function (x, ...,
        p <- p + geom_line(data = dataplot, aes(get(x$str_time), value, color = as.factor(variable)))
 
       #Estimated values
-       p <- p + geom_line(data = xe, aes(timecol, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
-         geom_line(data = xe, aes(timecol, ymax, colour = paste0(x$str_signal, " estimated, max value")))
+       p <- p + geom_line(data = xe, aes(time, ymin, colour = paste0(x$str_signal, " estimated, min value"))) +
+         geom_line(data = xe, aes(time, ymax, colour = paste0(x$str_signal, " estimated, max value")))
 
     }else{ #If there is no excitation term
 
@@ -208,7 +194,7 @@ plot.doremi = function (x, ...,
 #' time, containing the time values
 #'
 #' excitation, being one or several columns containing the different excitations
-#' used to estimatea new signal. As in the other methods for the predict function, the columns of newdata
+#' used to estimate a new signal. As in the other methods for the predict function, the columns of newdata
 #' must have the same names as those of the original object.
 #' @return Returns a list containing the values of time, the values of the excitation and the predicted
 #' values of the signal for the new excitation(s).
@@ -246,7 +232,7 @@ predict.doremi = function (object, ..., newdata){
       newdata[, totalexc := 0]
       for (i in 1:length(object$str_exc)){ #For loop to go through all the excitation columns
         newdata[, totalexc := totalexc + object$resultid[.GRP, get(paste0(object$str_exc[i], "_exccoeff"))]/
-                    object$resultid[.GRP, get(paste0(object$str_signal, "_dampingtime"))] *
+                    object$resultid[.GRP, dampingtime] *
                     get(object$str_exc[i]), by = get(object$str_id)]
       }
       # Generation of the third result table called \"estimated\"
@@ -254,7 +240,7 @@ predict.doremi = function (object, ..., newdata){
       #Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
       #Time vector and excitation vectors min and max
       #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
-      estimated <- newdata[, list(timecol = seq(floor(min(get(object$str_time), na.rm = T)), ceiling(max(get(object$str_time), na.rm = T)), deltat)), by = id]
+      estimated <- newdata[, list(time = seq(floor(min(get(object$str_time), na.rm = T)), ceiling(max(get(object$str_time), na.rm = T)), deltat)), by = id]
 
       #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
 
@@ -262,7 +248,7 @@ predict.doremi = function (object, ..., newdata){
 
       for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
         #And it will be necessary to shift these indexes according to in which id we are
-        leftidx <- findInterval(newdata[get(object$str_id) == IDvec[idx], get(object$str_time)], estimated[get(object$str_id) == IDvec[idx], timecol])
+        leftidx <- findInterval(newdata[get(object$str_id) == IDvec[idx], get(object$str_time)], estimated[get(object$str_id) == IDvec[idx], time])
         #tmpsignal contains the value of exctotal were the original times are found in the new time vector
         #and NA in the rest of the positions
         estimated[nrow(estimated[get(object$str_id) < IDvec[idx]]) + leftidx, tmpsignal := newdata[get(object$str_id) == IDvec[idx], totalexc]]
@@ -275,10 +261,10 @@ predict.doremi = function (object, ..., newdata){
       estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T), by = id]
 
       #Calculating the convolution
-      estimated[, ymin := generate.remi(object$resultid[.GRP, get(paste0(object$str_signal,"_dampingtime"))],exc_min,timecol)$y+
-                  object$resultid[.GRP, get(paste0(object$str_signal,"_eqvalue"))], by = id]
-      estimated[, ymax := generate.remi(object$resultid[.GRP, get(paste0(object$str_signal,"_dampingtime"))],exc_max,timecol)$y+
-                  object$resultid[.GRP, get(paste0(object$str_signal,"_eqvalue"))], by = id]
+      estimated[, ymin := generate.remi(object$resultid[.GRP, dampingtime],exc_min,time)$y +
+                  object$resultid[.GRP, eqvalue], by = id]
+      estimated[, ymax := generate.remi(object$resultid[.GRP, dampingtime],exc_max,time)$y+
+                  object$resultid[.GRP, eqvalue], by = id]
   }else{  # Single individual
 
     #Calculation of the total excitation (sum of all the excitation columns times their regression coefficients)
@@ -286,7 +272,7 @@ predict.doremi = function (object, ..., newdata){
     for (i in 1:length(object$str_exc)) #For loop to go through all the excitation columns
     {
       newdata[, totalexc := totalexc + object$resultmean[, get(paste0(object$str_exc[i], "_exccoeff"))]/
-                                         object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))] *
+                                         object$resultmean[, dampingtime] *
                                          get(object$str_exc[i])]
     }
 
@@ -294,8 +280,8 @@ predict.doremi = function (object, ..., newdata){
     # Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values
     # Time vector and excitation vectors min and max
     #Expanded time vector: takes the minimum and the maximum of all the time intervals and creates the vector with deltat time intervals
-    estimated <- object$data[, list(timecol = seq(floor(min(get(object$str_time), na.rm = T)), ceiling(max(get(object$str_time), na.rm = T)), deltat))]
-    leftidx <- findInterval(newdata[, get(object$str_time)], estimated[, timecol])
+    estimated <- object$data[, list(time = seq(floor(min(get(object$str_time), na.rm = T)), ceiling(max(get(object$str_time), na.rm = T)), deltat))]
+    leftidx <- findInterval(newdata[, get(object$str_time)], estimated[, time])
     #tmpsignal contains the value of exctotal were the original times are found in the new time vector
     #and NA in the rest of the positions
     estimated[leftidx, tmpsignal := newdata[, totalexc]]
@@ -306,11 +292,8 @@ predict.doremi = function (object, ..., newdata){
     estimated[, exc_max := na.locf(tmpsignal, na.rm = F, fromLast = T)]
 
     #Calculating the convolution
-    estimated[, ymin := generate.remi(object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))],exc_min,timecol)$y+
-                object$resultmean[, get(paste0(object$str_signal,"_eqvalue"))]]
-    estimated[, ymax := generate.remi(object$resultmean[, get(paste0(object$str_signal, "_dampingtime"))],exc_max,timecol)$y+
-                object$resultmean[, get(paste0(object$str_signal,"_eqvalue"))]]
-
+    estimated[, ymin := generate.remi(object$resultmean[, dampingtime],exc_min,time)$y + object$resultmean[, eqvalue]]
+    estimated[, ymax := generate.remi(object$resultmean[, dampingtime],exc_max,time)$y + object$resultmean[, eqvalue]]
   }
   #Creating a DOREMI object to return so that it can be easily plotted afterwards
   #This object will be a copy of the original object set as input,
@@ -332,3 +315,38 @@ predict.doremi = function (object, ..., newdata){
   return(res)
 }
 
+
+# Error management function -----------------------------------------------
+
+#' Displays error messages for the analysis function according to the nature of the error
+#' \code{errorcheck} displays error messages and/or warnings concerning the validity of input arguments provided to the analysis function
+#' @param data data.frame or data.table containing the data to be analysed. Same object that is passed as input argument to the analysis function.
+#' @param col_var column variable. Contains a string that indicates the name of the column to analyze ("id","input",etc.)
+#' @return Doesn't return a value. Either displays directly the error message/warning or changes data type in the data.frame/data.table provided
+#' @examples
+#' input <- "nonexistentname"
+#' errorcheck(cardio,input)
+errorcheck = function (data, col_var){
+  col_str <- deparse(substitute(col_var)) # Stores the name of the variable
+
+  #It is a string but doesnt find a column with that name in the data table provided
+  if(!(col_var %in% names(data)) && all(is.character(col_var))){
+    stop("No column found in data with the parameter \"", col_str, "\" specified.\n")
+  }
+  #It is not a string
+  if(!is.character(col_var)){
+    if(col_str == "id"){contents <- "individual identifier"}
+    if(col_str == "input"){contents <- "excitation"}
+    if(col_str == "time"){contents <- "time"}
+    if(col_str == "signal"){contents <- "signal"}
+    stop(col_str," argument should be a string containing the name of the column in data that contains the ", contents,".\n")
+  }
+  #Verifies if data associated to the variable column is of the type string or factor and converts it to numeric
+  for (i in seq(col_var)){
+    if (is.character(data[[col_var[i]]]) | is.factor(data[[col_var[i]]])){
+      data[, col_var[i] := as.numeric(as.character(get(col_var[i])))]
+      contents <- col_var[i]
+      warning(contents," column was found to be of the factor/string type and was converted to numeric.\n")
+    }
+  }
+}

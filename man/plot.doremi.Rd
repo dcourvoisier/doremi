@@ -24,7 +24,7 @@ to generate the graphs and so it is possible to override the values of axis labe
 signal over time for each individual.
 }
 \examples{
-mydata <- generate.panel.remi(nindividuals = 5,
+mydata <- generate.panel.remi(nind = 5,
                            dampingtime = 10,
                            amplitude = c(5,10),
                            nexc = 2,
@@ -34,12 +34,12 @@ mydata <- generate.panel.remi(nindividuals = 5,
                            minspacing = 0,
                            internoise = 0.2,
                            intranoise = 0.1)
-myresult <- remi(userdata = mydata$data,
-                           id = "id",
-                           input = "excitation",
-                           time = "timecol",
-                           signal = "dampedsignal",
-                           embedding = 5)
+myresult <- remi(data = mydata$data,
+                 id = "id",
+                 input = "excitation",
+                 time = "time",
+                 signal = "dampedsignal",
+                 embedding = 5)
 plot(myresult)
 plot(myresult,id = 1)
 plot(myresult,id = 2:5)
