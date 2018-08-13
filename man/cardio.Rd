@@ -22,3 +22,4 @@ data(cardio)
 Data containing time, cardiac frequency and load of a resistive bicycle run by patients during effort tests
 }
 \keyword{datasets}
+

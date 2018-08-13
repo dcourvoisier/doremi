@@ -5,8 +5,8 @@
 \title{Simulation of various individual signals with intra and inter noise}
 \usage{
 generate.panel.remi(nind = 1, dampingtime, amplitude = 1, nexc = 1,
-  duration = 10, deltatf = 0.5, tmax, minspacing = 10,
-  internoise = 0, intranoise = 0)
+  duration = 10, deltatf = 0.5, tmax, minspacing = 10, internoise = 0,
+  intranoise = 0)
 }
 \arguments{
 \item{nind}{number of individuals.}
@@ -91,3 +91,4 @@ and \code{\link{generate.excitation}} for excitation signal generation
 \keyword{first}
 \keyword{order,}
 \keyword{simulation,}
+

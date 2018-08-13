@@ -19,7 +19,4 @@ Doesn't return a value. Either displays directly the error message/warning or ch
 Displays error messages for the analysis function according to the nature of the error
 \code{errorcheck} displays error messages and/or warnings concerning the validity of input arguments provided to the analysis function
 }
-\examples{
-input <- "nonexistentname"
-errorcheck(cardio,input)
-}
+

@@ -46,3 +46,4 @@ new_exc$load <- generate.excitation(amplitude = 3,
 predresult <- predict(myresult, newdata = new_exc)
 plot(predresult)
 }
+

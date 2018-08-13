@@ -43,3 +43,4 @@ result <- calculate.gold(signal = signal, time = time, embedding = 5)
 \keyword{derivative,}
 \keyword{embed,}
 \keyword{rollmean}
+

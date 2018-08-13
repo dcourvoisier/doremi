@@ -30,3 +30,4 @@ mydata <- generate.panel.remi(nind = 5,
                            intranoise = 0.1)
 mydata
 }
+

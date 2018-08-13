@@ -61,3 +61,4 @@ generate.excitation (amplitude = c(1,10,20),
 }
 \keyword{excitation,}
 \keyword{simulation}
+
