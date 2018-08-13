@@ -555,7 +555,7 @@ plot(resultc2, id = 1:17)
 As can be seen, the decreasing exponential fit shows that response time is reduced throughout the trials and thus the days, indicating that the individual has learned and can execute the task faster by the end of the tests. Furthermore, the damping time for men’s mean response time was shorter than for women, as it can be seen in the box plot below, built with the information in `$resultid` and adding the sex:
 
 ```{r  fig.width = 5, fig.height = 4, echo = FALSE, fig.align = "center"}
-dt <- merge(resultc2$resultid,resultc2$data[, sex[1], by=id])
+dt <- merge(resultc2$resultid,rotation[, sex[1], by=id])
 dt<-dt[!id==15]
 ggplot2::ggplot(dt, ggplot2::aes(x=V1, y=dampingtime, color=V1)) + ggplot2::geom_boxplot() + 
 ggplot2::ggtitle("Comparison between men and women \n damping times for the rotation data") + 

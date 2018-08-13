@@ -35,22 +35,22 @@ Returns a summary of the fixed components for the three coefficients: damping ti
 }
 \description{
 \code{remi}  estimates the coefficients of a first order differential equation of the form:
-\deqn{\dot{y}(t) = -\gamma y(t) + E(t)}
+\deqn{\frac{1}{\gamma} \dot{y}(t) = - y(t) + \epsilon E(t) + eqvalue}
 using linear mixed-effect models.
 Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and E(t) is the excitation.
 }
 \details{
-The analysis performs the following liner mixed-effects regression:
-\deqn{y_{ij}'  \sim   b_{0} +b_{0i}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
-with j accounting for the different individuals, i for the time, \eqn{e_{ij}} are the residuals,
-\eqn{y_{ij}'} is the derivative calculated on embedding points
+The analysis performs the following linear mixed-effects regression:
+\deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
+with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
+\eqn{y_{ij}'} is the derivative calculated on embedding points and
 y and E are the signal and the excitation averaged on embedding points.
 The coefficients estimated to characterize the signal are calculated as follows:
 \itemize{
-  \item Damping time:  \eqn{\tau _{i} =  \frac{1}{ \gamma _{i} }}  with \eqn{\gamma _{i} =  b_{1} + u_{1j} }
-  \item Excitation coefficient: \eqn{\frac{b_{2} + u_{2j}}{\gamma _{i}}} It is the proportionality between the excitation and the maximum value reached
-by the signal.
-  \item Equilibrium value: \eqn{\frac{b_{0} + b_{0i} }{\gamma _{i}}} It is the stable value reached in the absence of excitation.
+  \item Damping time:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
+  \item Excitation coefficient: \eqn{\epsilon = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
+  difference between the maximum value reached by the signal and its initial value.
+  \item Equilibrium value: \eqn{eqvalue = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
 }
 The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 With the above estimated parameters, the estimated signal can be reconstructed for
@@ -61,19 +61,19 @@ The function returns five objects:
  \item data- A data.frame including the input data and intermediate calculations used to prepare the variables for
   the fit:
 
-    dampedsignal_rollmean - calculation of the moving average of the signal over embedding points.
+    signal_rollmean - calculation of the moving average of the signal over embedding points.
 
-    dampedsignal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
+    signal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
 
     time_derivate - calculation of the moving average of the time vector over embedding points.
 
-    excitation_rollmean - calculation of the moving average of the excitation vector over embedding points.
+    input_rollmean - calculation of the moving average of the excitation vector over embedding points.
  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
  equilibrium value (see variables presented in the Details section).
  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above.
  \item regression- A list containing the summary of the linear mixed-effects regression.
  \item estimated- A data.frame containing the estimated signal calculated as the convolution of the Green function with the
- estimated damping time and the excitation
+ estimated damping time, excitation coefficient and equilibrium value and the excitation
  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
  is completed by using the previous known value (exc_min in the data.frame) or using the next known value
@@ -84,7 +84,8 @@ The function returns five objects:
  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
  to access the regression summary by typing result$regression.
- }
+ \item embedding - containts the embedding number used to generate the results (same as function input argument)
+}
 }
 \examples{
 myresult <- remi(data = cardio,

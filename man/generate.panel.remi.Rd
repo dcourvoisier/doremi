@@ -15,14 +15,14 @@ generate.panel.remi(nind = 1, dampingtime, amplitude = 1, nexc = 1,
 37\% (1/e) of the difference between the equilibrium value and the amplitude of the signal reached when there is no excitation
 (or 63\% of the maximum value for a constant excitation). It should be positive (dampingtime>0).}
 
-\item{amplitude}{is vector of values greater than 0 indicating the amplitude of the excitation. It should contain as many values
+\item{amplitude}{is vector of values different than 0 indicating the amplitude of the excitation. It should contain as many values
 as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
 have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).}
 
 \item{nexc}{is an integer greater than 0 indicating the number of pulses to generate.}
 
-\item{duration}{is a vector of values greater than 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
+\item{duration}{is a vector of values greater or equal to 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
 the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered.}
 
@@ -53,7 +53,7 @@ It contains the following columns:
 \description{
 \code{generate.panel.remi} Generates signals with intra and inter individual noise for several individuals.
 In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
-\deqn{\frac{dy(t)}{dt} - \gamma y(t) = \epsilon E(t) + eqvalue}
+\deqn{\frac{dy(t)}{dt} - \gamma y(t) = E(t)}
 The analytical solution to this equation is a convolution between the Green function and the excitation term.
 The function generates internally a pseudo-continuous signal to increase the precision with which the convolution is calculated. From this
 expanded signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
@@ -64,7 +64,7 @@ Used for simulations in the context of the package.
 
 The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
 and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
-distribution is truncated at 0.1 and values below are set to 0.1. High values are symmetrically set at the upper percentile value
+distribution is truncated at 0.1*deltatf and values below are set to this limit. High values are symmetrically set at the upper percentile value
 similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
 noise obtained after truncation.
 }

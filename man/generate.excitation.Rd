@@ -8,14 +8,14 @@ generate.excitation(amplitude = 1, nexc = 1, duration = 2,
   deltatf = 0.1, tmax = 10, minspacing = 1)
 }
 \arguments{
-\item{amplitude}{is vector of values greater than 0 indicating the amplitude of the excitation. It should contain as many values
+\item{amplitude}{is vector of values different than 0 indicating the amplitude of the excitation. It should contain as many values
 as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
 have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).}
 
 \item{nexc}{is an integer greater than 0 indicating the number of pulses to generate.}
 
-\item{duration}{is a vector of values greater than 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
+\item{duration}{is a vector of values greater or equal to 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
 the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered.}
 

@@ -135,7 +135,7 @@ calculate.gold <-  function(signal,
 #' all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
 #' have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).
 #' @param nexc is an integer greater than 0 indicating the number of pulses to generate.
-#' @param duration is a vector of values greater than 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
+#' @param duration is a vector of values greater or equal to 0 indicating the duration of each pulse in time units. It should have as many elements as the number of pulses (nexc). If
 #' the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 #' all the pulses are covered.
 #' @param deltatf is a value greater than 0 indicating the time step between two consecutive data points.
@@ -177,8 +177,8 @@ generate.excitation = function(amplitude = 1,
                                minspacing = 1)
 {
   #Error management
-  if (any(duration <= 0)){
-    stop("Invalid input parameters. Pulse duration must be greater than 0.\n")
+  if (any(duration < 0)){
+    stop("Invalid input parameters. Pulse duration must be greater or equal to 0.\n")
   }
   if (any(amplitude == 0)){
     stop("Invalid input parameters. Amplitude must be different from 0.\n")
@@ -369,14 +369,19 @@ remi <- function(data,
 
   intdata <- intdata[,.SD,.SDcols = c(id, input, time, signal)] # Extracting only relevant columns
   # Error management --------------------------------------------------------
-  if (!is.null(id)){errorcheck(intdata, id)}
-  if (!is.null(input)){errorcheck(intdata, input)
+  if (!is.null(input)){
+    errorcheck(intdata, input)
+
+    if(all(intdata[, diff(get(input)), by = id]$V1 == 0) == TRUE){
+      noinput <- TRUE
+      warning("Excitation signal is constant. Adjustment will consist on exponential fit.\n")
+    } #If input is constant
   }else{
     #If no input argument is provided, a warning will be generated indicating that the input has been set to 0.
     intdata[, input := 0]
     input = "input"
     noinput <- TRUE #This flag will be needed later as if there is no input, coefficients for the excitation term will not be calculated in the regression
-    warning("No excitation signal introduced as input. Input was set to 0.\n")
+    warning("No excitation signal introduced as input. Input was set to 0. Adjustment will consist on exponential fit.\n")
   }
   if (!is.null(time)){errorcheck(intdata, time)
   }else{
@@ -412,7 +417,8 @@ remi <- function(data,
 
     #Rename id column to "id_tmp" and create an extra column "id" that is numeric
     #Regression works better with numeric id (comes from definition of lmer)
-    intdata[, id := rep(seq(unique(id_tmp)), intdata[, .N, by = id_tmp]$N)]
+    intdata[, id := rep(1:length(unique(id_tmp)), intdata[, .N, by = id_tmp]$N)]
+
 
     #Calculation of the signal rollmean and first derivative of the signal column
     #Paste is only used to generate new column names based on the orignal ones (concatenate strings)
@@ -428,12 +434,12 @@ remi <- function(data,
 
     #Linear mixed-effect regression
     if (noinput){ # if there is no excitation signal
-      model <- tryCatch({lmer(signal_derivate1 ~ signal_rollmean + (1 + signal_rollmean | id),
+      model <- tryCatch({lmer(signal_derivate1 ~ signal_rollmean + (1 + signal_rollmean |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       print("Status: Unknown excitation. Linear mixed-effect model calculated.")
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
-                              " + signal_rollmean | id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
+                              " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       print("Status: One or several excitations. Linear mixed-effect model calculated.")
     }
@@ -520,7 +526,7 @@ remi <- function(data,
         estimated <- intdata[, list(time = seq(floor(min(time, na.rm = T)), ceiling(max(time, na.rm = T)), deltat[1])), by = c("id_tmp", "id")]
 
         #Finding the values of the original time vector in the expanded time vector by using the function "findInterval"
-        IDvec <- unique(intdata[[id]])
+        IDvec <- unique(intdata$id)
 
         for (idx in seq(IDvec)){ #It is necessary to do a loop because findInterval finds the index in which the value is found in the original time vector
           #And it will be necessary to shift these indexes according to in which id we are

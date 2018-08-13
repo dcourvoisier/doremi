@@ -18,11 +18,11 @@ Returns a summary containing the five lists of the DOREMI object
 \code{summary.doremi} provides a summary of the remi analysis
 }
 \examples{
-myresult <- remi(data = cardiomydata,
+myresult <- remi(data = cardio,
                  id = "id",
-                 input = "excitation",
+                 input = "load",
                  time = "time",
-                 signal = "dampedsignal",
+                 signal = "hr",
                  embedding = 5)
 summary(myresult)
 }

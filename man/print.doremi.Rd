@@ -18,21 +18,11 @@ Returns the three coefficients of the differential equation estimated (fixed par
 \code{print.doremi} prints the most important results of a DOREMI object
 }
 \examples{
-mydata <- generate.panel.remi(nind = 5,
-                           dampingtime = 10,
-                           amplitude = c(5,10),
-                           nexc = 2,
-                           duration = 20,
-                           deltatf = 2,
-                           tmax = 200,
-                           minspacing = 0,
-                           internoise = 0.2,
-                           intranoise = 0.1)
-myresult <- remi(data = mydata,
-                           id = "id",
-                           input = "excitation",
-                           time = "time",
-                           signal = "dampedsignal",
-                           embedding = 5)
+myresult <- remi(data = cardio,
+                 id = "id",
+                 input = "load",
+                 time = "time",
+                 signal = "hr",
+                 embedding = 5)
 myresult
 }
