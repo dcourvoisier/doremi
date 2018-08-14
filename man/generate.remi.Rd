@@ -34,4 +34,3 @@ generate.remi(10,rep(c(0,1,0),c(20,30,50)),1:100)
 \keyword{excitation,}
 \keyword{first}
 \keyword{order}
-

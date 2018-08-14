@@ -34,4 +34,3 @@ plot(myresult)
 plot(myresult,id = 1)
 plot(myresult,id = 2:5)
 }
-

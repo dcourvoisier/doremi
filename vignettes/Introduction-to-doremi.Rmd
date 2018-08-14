@@ -21,10 +21,10 @@ knitr::opts_chunk$set(
 )
 ```
 
-The main purpose of the dynamics of return to equilibrium during multiple inputs (doremi) model included in this package is to be able to fit trends of homeostasis and return to equilibrium in noisy data. doremi estimates coefficients for the solution of a first order differential equation using linear mixed-effects (multilevel) models. 
+The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to be able to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates coefficients for the solution of a first order differential equation using linear mixed-effects (multilevel) models. 
 The differential equation considered is the following:
 
-$$\1 / \gamma dot{y}(t) + y(t) = \epsilon E(t) + eqvalue  (1)$$
+$$\frac{1}{\gamma} dot{y}(t) + y(t) = \epsilon E(t) + eqvalue  (1)$$
 
 Where the variables:
 
@@ -32,12 +32,12 @@ Where the variables:
 
 * $\dot{y}(t)$ is its first derivative
 
-* $E(t)$ is the excitation term creating the dynamics of y(t)
+* $E(t)$ is the excitation term creating the dynamics of $y(t)$
 
 And regarding the coefficients:
 
 * $\gamma$ is the damping rate, the inverse of which is the damping time. The damping rate indicates the relative variation of the signal with respect to time when the excitation term is 0.
-The damping time is the characteristic response time of the solution to equation (1). When the excitation starts, the signal reaches its new value and $\tau = 1 \ \gamma$ corresponds to the time needed to reach 63% of the difference between the maximum value and the initial value. After an excitation, when the signal returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value. Figure 1 presents both the damping time $\tau$ for the increase and decrease of the signal. Further development of the model will relax this constraint and will allow for different signal increase and decrease behavior.
+The damping time is the characteristic response time of the solution to equation (1). When the excitation starts, the signal reaches its new value and $\tau =\frac{1}{\gamma}$ corresponds to the time needed to reach 63% of the difference between the maximum value and the initial value. After an excitation, when the signal returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value. Figure 1 presents both the damping time $\tau$ for the increase and decrease of the signal. Further development of the model will relax this constraint and will allow for different signal increase and decrease behavior.
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
 exc <- rep(c(0,1,0),c(10,30,50))
@@ -73,7 +73,7 @@ ggplot2::ggtitle( "Definition of damping time")+
 
 * _eqvalue_ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
 
-In order to find these coefficients, the model performs the following linear mixed-effect regression derived from equation (1), as presented by [(Mongin et al.,2018)](https://doi.org/10.1080/00273171.2010.498294):
+In order to find these coefficients, the model performs the following linear mixed-effect regression derived from equation (1), as presented by [(Mongin et al., under review)]:
 
 $$\dot{y}_{ij} \sim b_{0}+b_{0j}+b_{1}y_{ij}+b_{2}E_{ij}+u_{1j}y_{ij}+u_{2j}E_{ij}+e_{ij} (2)$$
 
@@ -85,11 +85,11 @@ where:
 
 * $\dot{y}_{ij}$ is the derivative calculated on embedding points through the GOLD method [(Deboeck, 2010)](https://doi.org/10.1080/00273171.2010.498294) to avoid the appearance of correlated errors in the estimation
 
-* y and E are the signal and the excitation averaged on embedding points
+* $y_{ij}$ and $E_{ij}$ are the signal and the excitation averaged on embedding points
 
 * $e_{ij}$ is the error term
 
-Note that random effects are estimated for the intercept $b_{0} +b_{0j}$, signal $b_{1} +u_{1j}$ and excitation terms $b_{2} +u_{2j}$, so that individuals can vary on their initial level, their evolution over time and their reaction to an excitation.
+Note that random effects are estimated for the intercept ($b_{0} +b_{0j}$), signal ($b_{1} +u_{1j}$) and excitation terms ($b_{2} +u_{2j}$), so that individuals can vary on their initial level, their evolution over time and their reaction to an excitation.
 
 The coefficients aforementioned can be thus calculated as:
 
@@ -99,7 +99,7 @@ The coefficients aforementioned can be thus calculated as:
 
 * Equilibrium value: $eqvalue = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
 
-The estimation is performed using the function [lmer](https://CRAN.R-project.org/package=lme4) if there are several individuals or [lm](http://stat.ethz.ch/R-manual/R-devel/library/stats/html/lm.html) if there is only one.
+The estimation is performed using the function `lmer` if there are several individuals or `lm` if there is only one.
 
 With the above estimated parameters, the estimated signal can be reconstructed for each individual as the analytical solution to equation (1) is known:
 
@@ -110,16 +110,16 @@ $$G(t) = exp(\frac{-t}{\tau}) (4)$$
 
 The estimated signal is then built by first performing the convolution of the excitation with the Green function -using the estimated damping rate- and then offsetting the resulting signal with the equilibrium value.
 
-The package contains three types of functions:
+The doremi package contains three types of functions:
 
 ### Simulation functions
 These are functions that allow the user to create data corresponding to a first order differential equation (i.e. solution of equation (1)). The simulation functions presented in the file are:
 
 
-* **generate.remi:** Creates the solution of equation (1) for a given damping time and excitation vector.
+* **generate.remi:** creates the solution of equation (1) for a given damping time and excitation vector.
 
 
-* **generate.panel.remi:** creates a set of signals that are solution of equation (1) for a random simulated excitation. Number of points, damping time, intra-individual noise and inter-individual noise can be controlled.
+* **generate.panel.remi:** creates a set of signals that are solution of equation (1) for random simulated excitations. Number of points, damping time, intra-individual noise and inter-individual noise can be controlled.
 
 ### Analysis functions
 The analysis function presented in the package is:
@@ -132,7 +132,7 @@ These functions are used by the simulation and/or analysis functions but they ca
 
 * **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only).
 
-* **calculate.gold:** calculates the derivative of a group of data points by using the Gold method [(Deboeck, 2010)](https://doi.org/10.1080/00273171.2010.498294) (used in the analysis function only).
+* **calculate.gold:** calculates the derivative of a group of data points by using the GOLD method [(Deboeck, 2010)](https://doi.org/10.1080/00273171.2010.498294) extended to treat non-constant time steps (used in the analysis function only).
 
 # A - Simulating data 
 
@@ -140,7 +140,7 @@ In this section, we present increasingly complex examples of data simulation.
 
 ## Example 1 - Generating signals with no noise
 
-Generating data for 4 individuals, with a damping time of 10s for an excitation vector formed by 3 excitations of amplitude 1 and duration 10s distributed randomly in a time period of 100s, with a minimum spacing between pulses of 20 s and with no noise. That is, the signal follows exactly the differential equation (no intraindividual noise) with no variation of the damping time, the excitation coefficient and the equilibrium value across individuals (no interindividual noise). The amplitude of the generated signal is set so that $\tau x \gamma = 1$ in equation (3). 
+Generating data for 4 individuals, with a damping time of 10s for an excitation vector formed by 3 pulses of amplitude 1 and duration 10s distributed randomly in a time period of 100s, with a minimum spacing between pulses of 20 s and with no noise. That is, the signal follows exactly the differential equation (no intraindividual noise) with no variation of the damping time, the excitation coefficient and the equilibrium value across individuals (no interindividual noise). The amplitude of the generated signal is set so that $\tau * \gamma = 1$ in equation (3). 
 
 ```{r}
 mydataa1 <- generate.panel.remi(nind = 4, 
@@ -155,7 +155,7 @@ mydataa1 <- generate.panel.remi(nind = 4,
                           intranoise = 0)
 ```
 
-The function returns the data as an output value, which can be visualized using the `str` or `head` functions. Entering `mydataa1` directly will allow you to visualize the first and last lines.
+The function returns an object of the class 'doremidata' that contains two data.frame that can be visualized using the `str` or `head` functions. Entering the variable name directly will display the first and last lines of the `$data` data.frame, that contains the data sampled at deltatf intervals.
 
 ```{r}
 mydataa1
@@ -167,13 +167,14 @@ Where:
 
 * excitation is the excitation signal
 
+* time is the time column generated.
+
 * dampedsignalraw is the signal without noise
 
 * dampedsignal is the signal with noise (in this case, the values of this column are the same as those of the dampedsignalraw column and in the plot, you will see that both lines are overlapped). 
 
-* time is the time column generated.
 
-Plotting data:
+Plotting the data:
 
 ```{r fig.width = 7, fig.height = 6, fig.align = "center"}
 ggplot2::ggplot( data = mydataa1$data ) +
@@ -244,7 +245,7 @@ This is a simplified view of the results. The analysis function supplies an obje
 summary(resultb1) 
 ```
 
-The first object of the output contains the original data with some columns added. These columns contain intermediate variables necessary for the mixed effect regression:
+The first object of the output contains the original data with some columns added. These columns contain intermediate variables necessary for the mixed-effect regression:
 
 ```{r}
 head(resultb1$data)
@@ -269,7 +270,7 @@ resultb1$regression
 
 Where we have the random and fixed effects and the residuals calculated by the function `lmer` or `lm` depending on if the sample had several or one individual respectively. 
 
-Beware that the standard errors coming for this regression are not entirely correct as the calculation of derivatives "smoothes" the fit and underestimates them. Please see [(Mongin et al., 2018)](https://doi.org/10.1080/00273171.2010.498294) for more details.
+Beware that the standard errors coming for this regression are not entirely correct as the calculation of derivatives "smoothes" the fit and underestimates them. Please see (Mongin et al., under review) for more details.
 
 
 The following table contains the average of these coefficients for all the individuals (result displayed by default when calling a doremi variable, as mentioned before):
@@ -278,7 +279,7 @@ The following table contains the average of these coefficients for all the indiv
 resultb1$resultmean
 ```
 
-The damping time is close to the real value 10, the equilibrium value close to its true value 0, and the exccoeff close to 10 its true value (the simulated signal has an excitation coefficient equal to $\tau$). And for each individual we have:
+It can be observed that the damping time is close to the value introduced to the simulation function (10), the equilibrium value close to its true value (0), and the excitation coefficient close to its true value (10, as the simulated signal had an excitation coefficient equal to $\tau$). And for each individual we have:
   
 ```{r}
 resultb1$resultid
@@ -286,11 +287,11 @@ resultb1$resultid
 
 Where:
 
-* excitation_coeff is the coefficient of the excitation term. 
-
 * dampingtime is the inverse of the damping coefficient. 
 
 * eqvalue is the equilibrium value.
+
+* excitation_coeff is the coefficient of the excitation term. 
 
 These values for excitation_coeff and eqvalue, as well as their homologues in the `$resultmean` table, have been calculated by extracting the coefficients from the regression and then multiplying them by the damping time.
 
@@ -300,7 +301,7 @@ If we graphically wish to verify how the estimated signal fits the initial signa
 plot(resultb1)
 ```
 
-The values used to build the estimated signals are in `resultb1$estimated`.
+The values used to build the estimated signals can be found in `resultb1$estimated`.
 
 Similarly to the `print` function, `plot` applied to a doremi object plots by default the first six individuals contained in the result. If we wish to visualize a single individual or a specific set of individuals, we can specify them by changing the "id" input parameter of the function:
 
@@ -397,7 +398,7 @@ plot(resultb2)
 
 ## Example 3 - Analyzing data when the excitation is unknown, with some inter- and intraindividual noise
 
-Similarly to the example 2, we will generate data so that the analysis can fit a decreasing exponential, as is the case when there is no excitation, but also when the excitation is unknown, or the excitation is constant over time.  
+Similarly to the example 2, we will generate data so that the analysis can fit a decreasing exponential, as is the case when there is no excitation, when it is unknown, or when it is constant over time.  
 
 ```{r}
 #Simulating data with these hypothesis
@@ -480,7 +481,7 @@ mydatab5rd <- mydatab5rd[order(id,time)]
 
 ```
 
-In the next plot we show the selection of random points made on the full data set. The signal without noise has been represented in order to better see the selection of points made. However, the signal with noise will be used to carry out the analysis.
+In the next plot we show the selection of random points made on the full data set (by accessing the list `$fulldata`of the doremidata object). The signal without noise has been represented in order to better see the selection of points made. However, the signal with noise will be used to carry out the analysis.
 
 ```{r fig.width = 7, fig.height = 6, fig.align = "center"}
 ggplot2::ggplot( data = mydatab5$fulldata ) +
@@ -514,7 +515,7 @@ plot(resultb5)
 ## C1 - Measuring heart frequency during effort tests
 
 Using the `cardio` dataset present in this package, we will apply the model to real heart frequency measurements. The data fields are described with detail in the pdf manual of the package, together with the source from which the data was obtained.
-In brief, the data is from 21 individuals doing an effort test on a cycle ergometer, and measuring heart rate. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min).
+In brief, the data is from 21 individuals carrying out an effort test on a cycle ergometer, and measuring heart rate. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min).
 
 ```{r}
 resultc1 <- remi(data = cardio,
@@ -565,9 +566,11 @@ ggplot2::labs(x = "Sex",
 
 ```  
 
+Which confirms the results of the study by [Courvoisier et al. (2013)](https://doi.org/10.1016/j.yhbeh.2012.12.007).
+
 # D - Print, summary, plot and predict with doremi objects
 
-As seen earlier, it is possible to print a doremi object by just calling the variable in which the doremi object is stored.It is also possible to print a summary of it by using the `summary` function available in R and to plot it directly using the `plot` function.In the same way, a S3 method for the `predict` function has been included to handle doremi objects. Thus, it is possible to carry out an analysis of a given signal and excitation and then use the analysis results to predict the signal that would have occurred if another different excitation had happened. Taking example 2 of section B, we select only the first individual, and the first part of the data to have a single excitation. We then use the results to carry out a prediction of the second signal to the second excitation. Finally, we will verify that the result of the predict function matches the second signal.
+As seen earlier, it is possible to print a doremi object by just calling the variable in which the doremi object is stored. It is also possible to print a summary of it by using the `summary` function available in R and to plot it directly using the `plot` function. In the same way, a S3 method for the `predict` function has been included to handle doremi objects. Thus, it is possible to carry out an analysis of a given signal and excitation and then use the analysis results to predict the signal that would have occurred if another different excitation had happened. Taking example 2 of section B, we select only the first individual, and the first part of the data to have a single excitation. We then use the results to carry out a prediction of the second signal to the second excitation. Finally, we will verify that the result of the predict function matches the second signal.
   
 ```{r   fig.width = 5,fig.height = 4, fig.pos = 0.5, fig.align = "center"}
 #Input data

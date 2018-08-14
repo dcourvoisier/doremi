@@ -4,7 +4,8 @@
 \alias{remi}
 \title{DOREMI first order analysis function}
 \usage{
-remi(data, id = NULL, input = NULL, time = NULL, signal, embedding = 2)
+remi(data, id = NULL, input = NULL, time = NULL, signal,
+  embedding = 2)
 }
 \arguments{
 \item{data}{Is a data frame containing at least one column, that is the signal to be analyzed.}
@@ -101,4 +102,3 @@ myresult <- remi(data = cardio,
 \keyword{exponential}
 \keyword{first}
 \keyword{order,}
-

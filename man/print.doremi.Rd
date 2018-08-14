@@ -26,4 +26,3 @@ myresult <- remi(data = cardio,
                  embedding = 5)
 myresult
 }
-

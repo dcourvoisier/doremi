@@ -21,9 +21,10 @@ Imports:
     data.table,
     lme4,
     ggplot2
-RoxygenNote: 5.0.0
+RoxygenNote: 6.1.0
 Suggests:
     knitr,
     rmarkdown,
-    devtools
+    devtools,
+    roxygen2
 VignetteBuilder: knitr

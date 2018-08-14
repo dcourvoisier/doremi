@@ -438,7 +438,7 @@ remi <- function(data,
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       print("Status: Unknown excitation. Linear mixed-effect model calculated.")
     }else{ # if there is one OR SEVERAL excitation signals
-      model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
+      model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
                               " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       print("Status: One or several excitations. Linear mixed-effect model calculated.")
@@ -446,7 +446,7 @@ remi <- function(data,
     if (!inherits(model,"error")){ # if the regression worked
       print("Status: Linear mixed-effect model had no errors.")
       summary <- summary(model) # Summary of the regression
-      random <- ranef(model)$id # Variation of the estimate coefficient over the individuals
+      random <- ranef(model) # Variation of the estimate coefficient over the individuals
       regression <- list(summary, random) # list to output both results: summary, and the table from ranef
 
       #Create tables with results
@@ -467,11 +467,11 @@ remi <- function(data,
       setkey(resultid, id) #sorts the data table by id
 
       # Damping time in resultid ------------------------------------------------
-      resultid[, dampingtime := resultmean[, dampingtime] + random[.GRP, "signal_rollmean"], by = id]
+      resultid[, dampingtime := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
 
       # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
       # Offset in resultid ------------------------------------------------------
-      resultid[, eqvalue := (summary$coefficients["(Intercept)", "Estimate"] + random[.GRP, "(Intercept)"]) * resultid[.GRP, dampingtime], by = id]
+      resultid[, eqvalue := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, dampingtime], by = id]
 
       # Fifth table (after regression) contains the estimated signal
       # Generation of the estimated signal for all id using remi generate FOR SEVERAL INDIVIDUALS
@@ -513,9 +513,9 @@ remi <- function(data,
           #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
           #Excitation coefficient in resultid --------------------------------------
           resultid[, paste0(doremiexc[i],"_coeff") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                         random[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, dampingtime], by = id]
+                                                         random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, dampingtime], by = id]
           intdata[, totalexc := totalexc + (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                              random[.GRP,paste0(doremiexc[i], "_rollmean")]) * get(doremiexc[i]), by = id]
+                                              random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * get(doremiexc[i]), by = id]
         }
         #The estimated table contains expanded time vector, minimum and maximum generated signals (for the two extreme scenarios of expanded excitation)
         #Generation of the expanded excitation vector according to desired deltat. Minimum and maximum values

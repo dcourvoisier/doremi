@@ -208,13 +208,16 @@ plot.doremi = function (x, ...,
 #'                  signal = "hr",
 #'                  embedding = 5)
 #' #Copying cardio into a new data frame and modifying the excitation column
-#' new_exc <- cardio[id == 1]
-#' new_exc$load <- generate.excitation(amplitude = 3,
+#' new_exc <- cardio[id == 1, !"id"]
+#'
+#' et <- generate.excitation(amplitude = 100,
 #'                                    nexc = 6,
 #'                                    duration = 2,
 #'                                    deltatf = 1,
-#'                                    tmax = 200,
+#'                                    tmax = 49,
 #'                                    minspacing = 2)
+#' new_exc$load <- et$exc
+#' new_exc$time <- et$t
 #' predresult <- predict(myresult, newdata = new_exc)
 #' plot(predresult)
 #' @export
