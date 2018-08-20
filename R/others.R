@@ -98,15 +98,23 @@ summary.doremi = function (object, ...){
 #' The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
 #' to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 #' @examples
-#' myresult <- remi(data = cardio,
+#' mydata <- generate.panel.remi(nind = 2,
+#'                            dampingtime = 10,
+#'                            amplitude = c(5,10),
+#'                            nexc = 2,
+#'                            duration = 20,
+#'                            deltatf = 2,
+#'                            tmax = 200,
+#'                            minspacing = 0,
+#'                            internoise = 0.2,
+#'                            intranoise = 0.1)
+#' myresult <- remi(data = mydata,
 #'                  id = "id",
-#'                  input = "load",
+#'                  input = "excitation",
 #'                  time = "time",
-#'                  signal = "hr",
+#'                  signal = "dampedsignal",
 #'                  embedding = 5)
 #' plot(myresult)
-#' plot(myresult,id = 1)
-#' plot(myresult,id = 2:5)
 #' @export
 #' @import ggplot2
 #' @importFrom data.table melt
