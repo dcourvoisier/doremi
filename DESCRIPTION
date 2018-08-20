@@ -8,7 +8,7 @@ Authors@R: c(
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "aut"),
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "cre"))
 Description: This package provides models to fit the dynamics of a regulated
-    system experiencing exogeneous inputs. The underlying models use differential
+    system experiencing exogenous inputs. The underlying models use differential
     equations and linear mixed-effects regressions to estimate the characteristic
     parameters of the equation (the coefficients) and an estimated signal. The
     package also provides print, summary, plot and predict functions, specific for
@@ -20,7 +20,8 @@ Imports:
     zoo,
     data.table,
     lme4,
-    ggplot2
+    ggplot2,
+    lmerTest
 RoxygenNote: 6.1.0
 Suggests:
     knitr,

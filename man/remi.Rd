@@ -5,7 +5,7 @@
 \title{DOREMI first order analysis function}
 \usage{
 remi(data, id = NULL, input = NULL, time = NULL, signal,
-  embedding = 2)
+  embedding = 2, verbose = FALSE)
 }
 \arguments{
 \item{data}{Is a data frame containing at least one column, that is the signal to be analyzed.}
@@ -29,6 +29,8 @@ it is assumed that time steps are of 1 unit and the time vector is generated int
 
 \item{embedding}{Is a positive integer containing the number of points to be used for the calculation of the derivatives. Its value by default is 2 as at
 least two points are needed for the calculation of the first derivative.}
+
+\item{verbose}{Is a boolean that displays status messages of the function when set to 1.}
 }
 \value{
 Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
@@ -48,9 +50,9 @@ y and E are the signal and the excitation averaged on embedding points.
 The coefficients estimated to characterize the signal are calculated as follows:
 \itemize{
   \item Damping time:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
-  \item Excitation coefficient: \eqn{\epsilon = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
+  \item Excitation coefficient: \eqn{\epsilon _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
   difference between the maximum value reached by the signal and its initial value.
-  \item Equilibrium value: \eqn{eqvalue = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
+  \item Equilibrium value: \eqn{eqvalue _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
 }
 The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 With the above estimated parameters, the estimated signal can be reconstructed for
@@ -77,14 +79,14 @@ The function returns five objects:
  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
  is completed by using the previous known value (exc_min in the data.frame) or using the next known value
- (exc_max in the data.frame). With these two inputed excitation vectors, the two extreme cases of the
+ (exc_max in the data.frame). With these two imputed excitation vectors, the two extreme cases of the
  mean estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
  the linear mixed-effects regression). These excitation variables are then used to generate the ymin and ymax signals respectively.
 
  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
  to access the regression summary by typing result$regression.
- \item embedding - containts the embedding number used to generate the results (same as function input argument)
+ \item embedding - contains the embedding number used to generate the results (same as function input argument)
 }
 }
 \examples{

@@ -4,7 +4,7 @@
 \alias{predict.doremi}
 \title{S3 method to predict signal values in a DOREMI object when entering a new excitation}
 \usage{
-\method{predict}{doremi}(object, ..., newdata)
+\method{predict}{doremi}(object, ..., newdata, verbose = FALSE)
 }
 \arguments{
 \item{object}{DOREMI object result of an analysis with the function remi}
@@ -21,6 +21,8 @@ time, containing the time values
 excitation, being one or several columns containing the different excitations
 used to estimate a new signal. As in the other methods for the predict function, the columns of newdata
 must have the same names as those of the original object.}
+
+\item{verbose}{Is a boolean that displays status messages of the function when set to 1.}
 }
 \value{
 Returns a list containing the values of time, the values of the excitation and the predicted

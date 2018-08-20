@@ -288,6 +288,7 @@ generate.remi <- function(dampingtime,
 #' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
 #' @param embedding Is a positive integer containing the number of points to be used for the calculation of the derivatives. Its value by default is 2 as at
 #' least two points are needed for the calculation of the first derivative.
+#' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @keywords analysis, first order, exponential
 #' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
 #' @details The analysis performs the following linear mixed-effects regression:
@@ -298,9 +299,9 @@ generate.remi <- function(dampingtime,
 #' The coefficients estimated to characterize the signal are calculated as follows:
 #' \itemize{
 #'   \item Damping time:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
-#'   \item Excitation coefficient: \eqn{\epsilon = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
+#'   \item Excitation coefficient: \eqn{\epsilon _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
 #'   difference between the maximum value reached by the signal and its initial value.
-#'   \item Equilibrium value: \eqn{eqvalue = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
+#'   \item Equilibrium value: \eqn{eqvalue _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
 #' }
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal can be reconstructed for
@@ -327,14 +328,14 @@ generate.remi <- function(dampingtime,
 #'  vector with an added offset (see above). There are two extreme cases in the generation of the signal and these depend on sampling. The excitation
 #'  vector is expanded to generate a pseudo-continuous signal and increase accuracy when calculating the convolution. Missing data in the exitation signal
 #'  is completed by using the previous known value (exc_min in the data.frame) or using the next known value
-#'  (exc_max in the data.frame). With these two inputed excitation vectors, the two extreme cases of the
+#'  (exc_max in the data.frame). With these two imputed excitation vectors, the two extreme cases of the
 #'  mean estimated signal are calculated by carrying out the convolution between the Green function (decreasing exponential with the damping time calculated by
 #'  the linear mixed-effects regression). These excitation variables are then used to generate the ymin and ymax signals respectively.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
 #'  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
 #'  to access the regression summary by typing result$regression.
-#'  \item embedding - containts the embedding number used to generate the results (same as function input argument)
+#'  \item embedding - contains the embedding number used to generate the results (same as function input argument)
 #' }
 #' @seealso \code{\link{calculate.gold}} to compute the derivatives, for details on embedding.
 #' @examples
@@ -346,7 +347,7 @@ generate.remi <- function(dampingtime,
 #'                  embedding = 5)
 #'@export
 #'@import data.table
-#'@importFrom lme4 lmer
+#'@importFrom lmerTest lmer
 #'@importFrom lme4 lmerControl
 #'@importFrom lme4 ranef
 #'@importFrom stats embed
@@ -358,7 +359,8 @@ remi <- function(data,
                  input = NULL,
                  time = NULL,
                  signal,
-                 embedding = 2){
+                 embedding = 2,
+                 verbose = FALSE){
   #If it is a doremidata object, it takes by default the $data table from it.
   #Otherwise it takes whaterever is assigned to the data variable.
   if (first(class(data)) == "doremidata"){intdata <- copy(data$data)
@@ -408,7 +410,7 @@ remi <- function(data,
 
   # First order derivative equation mixed regression
   if (!is.null(id)){ #If the id column is not null then it is assumed that there are SEVERAL INDIVIDUALS
-    print("Status: panel data")
+    if (verbose){print("Status: panel data")}
     #Saving original names and then renaming data table to internal names
     originalnames <- c(id, time, signal, input)
     doremiexc <- paste0("input", seq(input)) # Doremi excitation vector ("input1","input2","input3"...)
@@ -436,15 +438,15 @@ remi <- function(data,
     if (noinput){ # if there is no excitation signal
       model <- tryCatch({lmer(signal_derivate1 ~ signal_rollmean + (1 + signal_rollmean |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      print("Status: Unknown excitation. Linear mixed-effect model calculated.")
+      if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
                               " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      print("Status: One or several excitations. Linear mixed-effect model calculated.")
+      if (verbose){print("Status: One or several excitations. Linear mixed-effect model calculated.")}
     }
     if (!inherits(model,"error")){ # if the regression worked
-      print("Status: Linear mixed-effect model had no errors.")
+      if (verbose){print("Status: Linear mixed-effect model had no errors.")}
       summary <- summary(model) # Summary of the regression
       random <- ranef(model) # Variation of the estimate coefficient over the individuals
       regression <- list(summary, random) # list to output both results: summary, and the table from ranef
@@ -483,7 +485,7 @@ remi <- function(data,
                 effect showed some error messages/warnings. 3.Model misspecification.\n")
       }
       if (noinput){ #There is no excitation signal as input: exponential fit
-        print("Status: Unknown excitation. Calculation of estimated signal through exponential fit.")
+        if (verbose){print("Status: Unknown excitation. Calculation of estimated signal through exponential fit.")}
         #Exponential model is assumed when no input is provided and thus a new fit is necessary BY INDIVIDUAL
         #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
         #B is known, it is the intercept*thao, from the model fit with the derivative inside the analysis function
@@ -503,7 +505,7 @@ remi <- function(data,
         intdata <- intdata[, c("expfit_A", "signal_estimated") := NULL]
 
       }else{
-        print("Status: One or several excitation terms. Calculation of estimated signal through convolution.")
+        if (verbose){print("Status: One or several excitation terms. Calculation of estimated signal through convolution.")}
         # Extract the excitation coeff for each excitation
         intdata[, totalexc := 0]
         for (i in 1:length(input)){ #For loop to go through all the inputs
@@ -554,7 +556,7 @@ remi <- function(data,
       #Renaming columns in $resultid, $resultmean and $estimated objects to original names
 
     }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
-      print("Status: Linear mixed-effect model produced errors.")
+      if (verbose){print("Status: Linear mixed-effect model produced errors.")}
       warning("Linear mixed-effect regression produced an error. Verify the regression object of the result.\n")
       resultid <- NULL
       resultmean <- NULL
@@ -593,7 +595,7 @@ remi <- function(data,
 
   # Regression for SINGLE individuals ----------------------------------------
   else{ #If id is null it is assumed that all the data comes from a SINGLE INDIVIDUAL.
-    print("Status: Time series data")
+    if (verbose){print("Status: Time series data")}
     #Saving original names and then renaming data table to internal names
     originalnames <- c(time, signal, input)
     doremiexc <- paste0("input", seq(input))
@@ -618,16 +620,16 @@ remi <- function(data,
 
     if(noinput){ # if there is no excitation signal
       model <- tryCatch({lm(signal_derivate1 ~ signal_rollmean, data = intdata)}, error = function(e) e)
-      print("Status: Unknown excitation. Linear regression calculated")
+      if (verbose){print("Status: Unknown excitation. Linear regression calculated")}
 
     }
     else{ # if there is one or several excitation signals
       model <- tryCatch({lm(paste0("signal_derivate1 ~ signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
                              data = intdata)}, error = function(e) e)
-      print("Status: One or several excitations. Linear regression calculated")
+      if (verbose){print("Status: One or several excitations. Linear regression calculated")}
     }
     if (!inherits(model,"error")){ # if the regression worked
-      print("Status: Linear mixed-effect model had no errors")
+      if (verbose){print("Status: Linear mixed-effect model had no errors")}
       summary <- summary(model) # Summary of the regression
       regression <- summary
 
@@ -640,7 +642,7 @@ remi <- function(data,
 
       # Generation of the estimated signal using remi generate FOR ONE INDIVIDUAL with the estimated coefficients
       if (noinput){ #there is NO excitation as input
-        print("Unknown excitation. Calculation of estimated signal through exponential fit")
+        if (verbose){print("Unknown excitation. Calculation of estimated signal through exponential fit")}
         #Exponential model is assumed when no input is provided and thus a new fit is necessary:
         #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
         #B is known, it is the intercept*thao, from the model fit with the derivative inside the analysis function
@@ -658,7 +660,7 @@ remi <- function(data,
         }else{estimated <- NULL}
 
       }else{ #There is an excitation
-        print("Status: One or several excitations. Calculation of estimated signal through convolution")
+        if (verbose){print("Status: One or several excitations. Calculation of estimated signal through convolution")}
         intdata[, totalexc := 0]
         for (i in 1:length(input)) #For loop to go through all the inputs
         {
@@ -695,7 +697,7 @@ remi <- function(data,
         estimated[, ymax := generate.remi(resultmean[, dampingtime], exc_max, time)$y + resultmean[, eqvalue]]
       }
     }else{ # if the regression didn't work, all coeffs will remain NA. The summary will contain the model and the estimated table wil be set to null
-      print("Status: Linear regression produced errors.")
+      if (verbose){print("Status: Linear regression produced errors.")}
       warning("Linear regression produced an error. Verify the regression object of the result.\n")
       regression <- model
       resultmean <- NULL
@@ -750,7 +752,7 @@ remi <- function(data,
 #' 37\% (1/e) of the difference between the equilibrium value and the amplitude of the signal reached when there is no excitation
 #' (or 63\% of the maximum value for a constant excitation). It should be positive (dampingtime>0).
 #' @inheritParams generate.excitation
-#' @param internoise Is the inter-individual noise added. The dampingtime accross individuals follows a normal distribution centered on the input parameter dampingtime
+#' @param internoise Is the inter-individual noise added. The dampingtime across individuals follows a normal distribution centered on the input parameter dampingtime
 #' with a standard deviation of internoise*dampingtime, except if any damping time is negative (see Details section).
 #' @param intranoise Is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
 #' amplitude of the convolution when using an excitation containing a single pulse.

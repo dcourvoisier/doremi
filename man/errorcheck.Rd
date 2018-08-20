@@ -8,7 +8,7 @@
 errorcheck(data, col_var)
 }
 \arguments{
-\item{data}{data.frame or data.table containing the data to be analysed. Same object that is passed as input argument to the analysis function.}
+\item{data}{data.frame or data.table containing the data to be analyzed. Same object that is passed as input argument to the analysis function.}
 
 \item{col_var}{column variable. Contains a string that indicates the name of the column to analyze ("id","input",etc.)}
 }

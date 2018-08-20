@@ -7,7 +7,7 @@
 #'   \item{id}{positive integer, arbitrary identifier of the patient}
 #'   \item{time}{positive real number, time since the beginning of the test, in seconds (s)}
 #'   \item{load}{positive real number, load of the resistive bicycle, effort that the patient needs to do, in watts (W)}
-#'   \item{hr}{positive real number, patient's cardiac rythm, in heart beats per minute (1/min)}
+#'   \item{hr}{positive real number, patient's cardiac rhythm, in heart beats per minute (1/min)}
 #'
 #' }
 #' @source Mongin et al. 2018, under review (future DOI will be inserted here)

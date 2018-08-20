@@ -33,7 +33,7 @@ all the pulses are covered.}
 \item{minspacing}{as pulses are generated randomly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
 overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
 
-\item{internoise}{Is the inter-individual noise added. The dampingtime accross individuals follows a normal distribution centered on the input parameter dampingtime
+\item{internoise}{Is the inter-individual noise added. The dampingtime across individuals follows a normal distribution centered on the input parameter dampingtime
 with a standard deviation of internoise*dampingtime, except if any damping time is negative (see Details section).}
 
 \item{intranoise}{Is the noise added in each individual signal. It also follows a normal distribution with a standard deviation equal to this parameter times the maximum

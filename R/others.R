@@ -94,7 +94,7 @@ summary.doremi = function (object, ...){
 #' @param ... includes the additional arguments inherited from the generic plot method
 #' @param id Identifiers of the individuals to be represented in the plot.
 #' By default, it will print the first six individuals.
-#' @return Returns a plot with axis labels, legend and title. The axis labels and legend include the names of the variables set as input argmunets.
+#' @return Returns a plot with axis labels, legend and title. The axis labels and legend include the names of the variables set as input arguments.
 #' The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
 #' to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 #' @examples
@@ -199,6 +199,7 @@ plot.doremi = function (x, ...,
 #' excitation, being one or several columns containing the different excitations
 #' used to estimate a new signal. As in the other methods for the predict function, the columns of newdata
 #' must have the same names as those of the original object.
+#' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @return Returns a list containing the values of time, the values of the excitation and the predicted
 #' values of the signal for the new excitation(s).
 #' @examples
@@ -221,7 +222,10 @@ plot.doremi = function (x, ...,
 #' predresult <- predict(myresult, newdata = new_exc)
 #' plot(predresult)
 #' @export
-predict.doremi = function (object, ..., newdata){
+predict.doremi = function (object,
+                           ...,
+                           newdata,
+                           verbose = FALSE){
   #Error management
   if (any(is.na(match(names(newdata), names(object$data))))) {
     stop("Cannot find the column names of data.frame 'newdata' in ", deparse(substitute(object))," .")
@@ -229,7 +233,7 @@ predict.doremi = function (object, ..., newdata){
   newdata <- setDT(newdata) #Convert data to data table
 
   if (!is.null(object$str_id)){ # Multiple individuals
-      print("Predict status: panel data")
+      if (verbose){print("Predict status: panel data")}
 
       #Recovering id from object
       id <- object$str_id
@@ -274,7 +278,7 @@ predict.doremi = function (object, ..., newdata){
       estimated[, ymax := generate.remi(object$resultid[.GRP, dampingtime],exc_max,time)$y +  object$resultid[.GRP, eqvalue], by = id]
 
   }else{  # Single individual
-    print("Predict status: time series")
+    if (verbose){print("Predict status: time series")}
     id <- NULL
 
     #Create column with time interval for each individual
@@ -333,7 +337,7 @@ predict.doremi = function (object, ..., newdata){
 
 #' Displays error messages for the analysis function according to the nature of the error
 #' \code{errorcheck} displays error messages and/or warnings concerning the validity of input arguments provided to the analysis function
-#' @param data data.frame or data.table containing the data to be analysed. Same object that is passed as input argument to the analysis function.
+#' @param data data.frame or data.table containing the data to be analyzed. Same object that is passed as input argument to the analysis function.
 #' @param col_var column variable. Contains a string that indicates the name of the column to analyze ("id","input",etc.)
 #' @return Doesn't return a value. Either displays directly the error message/warning or changes data type in the data.frame/data.table provided
 errorcheck = function (data, col_var){

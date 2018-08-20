@@ -9,10 +9,11 @@ vignette: >
   %\VignetteEncoding{UTF-8}
   %\VignetteDepends{ggplot2}
   %\VignetteDepends{data.table}
+
 ```{r}
 devtools::load_all("C:/Users/Alba/Documents/Unige/doremi")
 ```
-
+  
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -24,7 +25,7 @@ knitr::opts_chunk$set(
 The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to be able to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates coefficients for the solution of a first order differential equation using linear mixed-effects (multilevel) models. 
 The differential equation considered is the following:
 
-$$\frac{1}{\gamma} dot{y}(t) + y(t) = \epsilon E(t) + eqvalue  (1)$$
+$$\frac{1}{\gamma} \dot{y}(t) + y(t) = \epsilon E(t) + eqvalue  (1)$$
 
 Where the variables:
 
@@ -69,7 +70,7 @@ ggplot2::ggtitle( "Definition of damping time")+
   ggplot2::theme(legend.position = "top", plot.title = ggplot2::element_text(hjust = 0.5))
 ```
 
-* $\epsilon$ is the excitation coefficient, also called "gain" in control theory. It indicates the relationship between the signal and the input (also called excitation).
+* $\epsilon$ is the excitation coefficient, also called "gain" in control theory.  It indicates the proportionality between the maximal amplitude the signal can reach and the input (also called excitation).
 
 * _eqvalue_ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
 
@@ -95,9 +96,9 @@ The coefficients aforementioned can be thus calculated as:
 
 * Damping time: $\tau_{j} = \frac{1}{\gamma_{j}}$  with $\gamma_{j} =  b_{1} + u_{1j}$
 
-* Excitation coefficient: $\epsilon = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
+* Excitation coefficient: $\epsilon_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
 
-* Equilibrium value: $eqvalue = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
+* Equilibrium value: $eqvalue_{j} = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
 
 The estimation is performed using the function `lmer` if there are several individuals or `lm` if there is only one.
 
@@ -356,7 +357,7 @@ y2 <- generate.remi(dampingtime = 10,
 mydatab2 <- data.frame(id = rep(c(1, 2), c(length(et1), length(et2))), 
                  time = c(timt1, timt1),
                  excitation1 = c(e1$exc, e1$exc),
-                 excitation2= c(e2$exc, e2$exc),
+                 excitation2 = c(e2$exc, e2$exc),
                  excitation3 = c(e3$exc, e3$exc),
                  excitation = c(et1, et2), 
                  signalcol = c(y1, y2))
@@ -378,18 +379,20 @@ ggplot2::ggplot( data = data.frame(mydatab2)) +
 resultb2 <- remi(data = mydatab2,
                  id = "id",
                  input = c("excitation1", "excitation2", "excitation3"),
-                 time ="time",
+                 time = "time",
                  signal = "signalcol",
                  embedding = 5)
 
 #Looking for the calculation of the coefficients of the excitation
+resultb2
 resultb2$resultid
+
 ```
 
 And, keeping into account the form of the analytical solution:
 $$y(t) = \frac{\epsilon}{\tau}\int E(t')G(t-t')dt'+ eqvalue$$
-One can find the excitation coefficients introduced either by extracting them from the summary of the regression or by taking the values from the `$resultid` table and dividing them by the damping time as explained before: $\epsilon_{1}=1.18$, $\epsilon_{2}=3.36$, $\epsilon_{3}=5.76$ for individual 1 and
-$\epsilon_{1}=1.18$, $\epsilon_{2}=2.78$, $\epsilon_{3}=4.62$ for individual 2, which are a good approximation of the coefficients set at the beginning of the example, using this small sample of 2 individuals.
+One can find the excitation coefficients introduced either by extracting them from the summary of the regression or by taking the values from the `$resultid` table and dividing them by the damping time as explained before: $\epsilon_{1}=10.32$, $\epsilon_{2}=37.52$, $\epsilon_{3}=44.79$ for individual 1 and
+$\epsilon_{1}=10.31$, $\epsilon_{2}=31.07$, $\epsilon_{3}=35.7$ for individual 2, which are a good approximation of the coefficients set at the beginning of the example (the factor for each excitation multiplied by the damping time $\tau = 10$) using this small sample of 2 individuals.
 
 ```{r fig.width = 7, fig.height = 4, fig.align = "center"}
 #Plotting signals
