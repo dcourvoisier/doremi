@@ -369,15 +369,17 @@ remi <- function(data,
   intdata <- setDT(intdata) # Converts data to data.table.
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
 
-  intdata <- intdata[,.SD,.SDcols = c(id, input, time, signal)] # Extracting only relevant columns
-  # Error management --------------------------------------------------------
+# Error management --------------------------------------------------------
+    errorcheck(intdata,signal)
+  if (!is.null(id)){errorcheck(intdata,id)}
   if (!is.null(input)){
     errorcheck(intdata, input)
-
-    if(all(intdata[, diff(get(input)), by = id]$V1 == 0) == TRUE){
-      noinput <- TRUE
-      warning("Excitation signal is constant. Adjustment will consist on exponential fit.\n")
-    } #If input is constant
+    for (i in 1:length(input)){ #For loop to go through all the inputs
+      if(all(intdata[, diff(get(input)), by = id]$V1 == 0) == TRUE){
+        noinput <- TRUE
+        warning("Excitation signal is constant. Adjustment will consist on exponential fit.\n")
+      } #If input is constant
+    }
   }else{
     #If no input argument is provided, a warning will be generated indicating that the input has been set to 0.
     intdata[, input := 0]
@@ -392,6 +394,17 @@ remi <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
+
+  #After verification, extracting only relevant columns
+  intdata <- intdata[,.SD,.SDcols = c(id, input, time, signal)]
+
+  #Sorting table
+  setkeyv(intdata,c(id,time))
+
+  #Find time duplicates and display error message if it is the case
+  intdata[,timedup:=lapply(.SD,duplicated),.SDcols = time,by = id]
+  if(any(intdata$timedup)){stop("Input data.table contains duplicated time points.\n")}
+    else  intdata[, timedup := NULL]
 
   #Verifying column names repeated in data table.
   if(any(duplicated(colnames(intdata)))){stop("Input datatable contains duplicated column names.\n")}
@@ -409,7 +422,11 @@ remi <- function(data,
 
 
   # First order derivative equation mixed regression
-  if (!is.null(id)){ #If the id column is not null then it is assumed that there are SEVERAL INDIVIDUALS
+  if (!is.null(id)){nind <- length(unique(intdata[[id]]))} #If there is an input id, verify number of individuals
+  else nind <-1
+
+  if (!is.null(id) & nind > 1){ #If the id column is not null and there is more
+    #than one ID then it is assumed that there are SEVERAL INDIVIDUALS
     if (verbose){print("Status: panel data")}
     #Saving original names and then renaming data table to internal names
     originalnames <- c(id, time, signal, input)
@@ -553,7 +570,6 @@ remi <- function(data,
         intdata[, c("deltat","totalexc") := NULL]
 
       }
-      #Renaming columns in $resultid, $resultmean and $estimated objects to original names
 
     }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
       if (verbose){print("Status: Linear mixed-effect model produced errors.")}
@@ -564,7 +580,7 @@ remi <- function(data,
       estimated <- NULL
     }
 
-    #Renaming columns in $data object to original names
+    #Renaming columns in $data, $resultid, $resultmean and $estimated objects to original names
     intdata[, id := NULL]
     if(!is.null(resultid)){resultid[, id := NULL]}
     if(!is.null(estimated)){setnames(estimated, c("id_tmp", "time"), c(id, time))
@@ -572,25 +588,29 @@ remi <- function(data,
         setnames(estimated,"signal_estimated",paste0(signal,"_estimated"))
       }}
 
-    for(idx in seq(doreminames))
-    {
-      colnew <- doreminames[idx]
-      colold <- originalnames[idx]
-      tochange <- grep(colnew, names(intdata), value = T) #Composed names
-      setnames(intdata, tochange, gsub(colnew, colold, tochange))
+    #Replacing names in $data
+    intdatanames <- names(intdata)
+    intdatanamesnew <- names(intdata)
+
+    rmeannames <- names(resultmean)
+    rmeannamesnew <- names(resultmean)
+
+    ridnames <- names(resultid)
+    ridnamesnew <- names(resultid)
+
+    for(idx in seq(doreminames)){
+      intdatanamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], intdatanamesnew, perl = T)
+      #Replacing names in $resultmean
       if(!is.null(resultid)){
-        if(colnew %in% c("id_tmp",doremiexc)){ #Only the id and the excitation columns need to change name
-          tochange <- grep(colnew, names(resultid), value = T) #Composed names
-          setnames(resultid, tochange, gsub(colnew,colold,tochange))
-        }
+        ridnamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], ridnamesnew, perl = T)
       }
       if(!is.null(resultmean)){
-        if(colnew %in% doremiexc){ #Only the excitation columns need to change name
-          tochange <- grep(colnew, names(resultmean), value = T) #Composed names
-          setnames(resultmean, tochange, gsub(colnew,colold,tochange))
-        }
+        rmeannamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], rmeannamesnew, perl = T)
       }
     }
+    setnames(intdata, intdatanames, intdatanamesnew)
+    if(!is.null(resultid)){setnames(resultid, ridnames, ridnamesnew)}
+    if(!is.null(resultmean)){setnames(resultmean, rmeannames, rmeannamesnew)}
   }
 
   # Regression for SINGLE individuals ----------------------------------------
@@ -704,23 +724,27 @@ remi <- function(data,
       estimated <- NULL
     }
     #Renaming columns in $data object to original names
-    if(!is.null(estimated)){#If there was no input, rename signal_estimated column in table estimated
-      if(noinput){setnames(estimated,"signal_estimated",paste0(signal,"_estimated"))}
+    if(!is.null(estimated)){setnames(estimated, "time", time)
+      if(noinput){#If there was no input, rename signal_estimated column in table estimated
+        setnames(estimated,"signal_estimated",paste0(signal,"_estimated"))}
     }
 
-    for(idx in seq(doreminames))
-    {
-      colnew <- doreminames[idx]
-      colold <- originalnames[idx]
-      tochange <- grep(colnew, names(intdata), value = T) #Composed names
-      setnames(intdata, tochange, gsub(colnew, colold, tochange))
-      if(!is.null(resultmean)){
-        if(colnew %in% doremiexc){ #Only the excitation columns need to change name
-          tochange <- grep(colnew, names(resultmean), value = T) #Composed names
-          setnames(resultmean, tochange, gsub(colnew,colold,tochange))
-        }
-      }
+    #Replacing names in $data
+    intdatanames <- names(intdata)
+    intdatanamesnew <- names(intdata)
+
+    rmeannames <- names(resultmean)
+    rmeannamesnew <- names(resultmean)
+
+    for(idx in seq(doreminames)){
+      intdatanamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], intdatanamesnew, perl = T)
+      #Replacing names in $resultmean
+       if(!is.null(resultmean)){
+         rmeannamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], rmeannamesnew, perl = T)
+       }
     }
+    setnames(intdata, intdatanames, intdatanamesnew)
+    if(!is.null(resultmean)){setnames(resultmean, rmeannames, rmeannamesnew)}
   }
 
 

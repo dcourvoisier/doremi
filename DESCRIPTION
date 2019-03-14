@@ -1,7 +1,7 @@
 Package: doremi
 Type: Package
-Title: Dynamics Of Return to Equilibrium during Multiple Inputs
-Version: 0.1.0
+Title: Dynamics of Return to Equilibrium During Multiple Inputs
+Version: 0.1.1
 Authors@R: c(
     person("Mongin", "Denis", email = "Denis.Mongin@hcuge.ch", role = "aut"),
     person("Uribe", "Adriana", email = "adriana.uribe@unige.ch", role = "aut"),

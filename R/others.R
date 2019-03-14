@@ -6,7 +6,7 @@ globalVariables(c("dampedsignalraw", "amplitudenorm", "dampedsignal", "excitatio
 globalVariables(c("exc_max", "exc_min", "intervals", "totalexc", "ymax", "ymin"))
 globalVariables(c("tmpsignal", "expfit_A", "signal_estimated"))
 globalVariables(c("value","variable"))
-globalVariables(c("dampingtime", "eqvalue", "quantile", "sd"))
+globalVariables(c("dampingtime", "eqvalue", "quantile", "sd","timedup"))
 
 # Call to classes and methods ---------------------------------------------
 # Classes documented directly in the analysis function (object "doremi")
@@ -352,7 +352,7 @@ errorcheck = function (data, col_var){
   col_str <- deparse(substitute(col_var)) # Stores the name of the variable
 
   #It is a string but doesnt find a column with that name in the data table provided
-  if(!(col_var %in% names(data)) && all(is.character(col_var))){
+  if(!(all(col_var %in% names(data))) & all(is.character(col_var))){
     stop("No column found in data with the parameter \"", col_str, "\" specified.\n")
   }
   #It is not a string
@@ -364,11 +364,14 @@ errorcheck = function (data, col_var){
     stop(col_str," argument should be a string containing the name of the column in data that contains the ", contents,".\n")
   }
   #Verifies if data associated to the variable column is of the type string or factor and converts it to numeric
+  #With the exception of id because for that case, the column is renamed and an extra column is created
   for (i in seq(col_var)){
-    if (is.character(data[[col_var[i]]]) | is.factor(data[[col_var[i]]])){
-      data[, col_var[i] := as.numeric(as.character(get(col_var[i])))]
-      contents <- col_var[i]
-      warning(contents," column was found to be of the factor/string type and was converted to numeric.\n")
+    if(col_str!="id"){
+      if (is.character(data[[col_var[i]]]) | is.factor(data[[col_var[i]]])){
+        data[, col_var[i] := as.numeric(as.character(get(col_var[i])))]
+        contents <- col_var[i]
+        warning(contents," column was found to be of the factor/string type and was converted to numeric.\n")
+      }
     }
   }
 }

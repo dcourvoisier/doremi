@@ -2,19 +2,16 @@
 title: "Introduction-to-doremi"
 author: "Adriana Uribe"
 date: "`r Sys.Date()`"
-output: pdf_document 
+output: rmarkdown::html_vignette 
 vignette: >
   %\VignetteIndexEntry{Introduction to doremi}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  %\VignetteDepends{ggplot2}
-  %\VignetteDepends{data.table}
 
-```{r}
-devtools::load_all("C:/Users/Alba/Documents/Unige/doremi")
-```
-  
-```{r setup, include = FALSE}
+```{r, include = FALSE}
+ library(ggplot2)
+ library(doremi)
+set.seed(1)
 knitr::opts_chunk$set(
   collapse = TRUE,
   warning = FALSE,
@@ -271,7 +268,7 @@ resultb1$regression
 
 Where we have the random and fixed effects and the residuals calculated by the function `lmer` or `lm` depending on if the sample had several or one individual respectively. 
 
-Beware that the standard errors coming for this regression are not entirely correct as the calculation of derivatives "smoothes" the fit and underestimates them. Please see (Mongin et al., under review) for more details.
+Beware that the standard errors coming for this regression are not entirely correct as the calculation of derivatives wil "smooth" the fit and underestimate them. Please see (Mongin et al., under review) for more details.
 
 
 The following table contains the average of these coefficients for all the individuals (result displayed by default when calling a doremi variable, as mentioned before):
@@ -537,7 +534,7 @@ plot(resultc1, id = 1:21)
 
 As can be seen, the model reproduces quite well the variation of the heart rate, and can be used to fully characterize the heart rate dynamics with three simple parameters: the resting heart rate (the equilibrium value), the characteristic time of heart rate change (the damping time), and the increase of heart rate for a given effort (the excitation coefficient).
 
-## C2 - Meaurements of response time of individuals when carrying out mental rotation tasks
+## C2 - Measurements of response time of individuals when carrying out mental rotation tasks
 
 Using the `rotation` dataset present in this package, we will apply the model to a case in which the excitation signal is not clearly defined.
 In brief, the data is from 17 individuals that carried out mental rotation tasks (identify if two figures, one of which is rotated, are the same or a mirror image) and the response time (in milliseconds) was measured [(Courvoisier et al., 2013)](https://doi.org/10.1016/j.yhbeh.2012.12.007). Each individual was measured every day for 60 days, though there can be missing data. To account for this, the time has been represented by the number of days since the beginning of the experiment (variable `days`). The signal is the mean response time (variable `meanRT`) over the ~200 stimuli done every day. The purpose of the study was to compare the performance between men and women.
