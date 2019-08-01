@@ -41,7 +41,8 @@ The damping time is the characteristic response time of the solution to equation
 exc <- rep(c(0,1,0),c(10,30,50))
 signal<- generate.remi(10, exc, seq(1:90))
 temp <- paste("theta")
-
+g<-10
+signal <- exp(-temp*g)
 ggplot2::ggplot(data = data.frame(signal)) +
 ggplot2::ggtitle( "Definition of damping time")+
   ggplot2::geom_line(ggplot2::aes(t,y, colour = "Signal"))+
