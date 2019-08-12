@@ -200,7 +200,8 @@ calculate.glla <-  function(signal,
     # Addition of NA so that the time rows are the same as those of signal
 
     returnobject <- list("dtime" = time_derivative,
-                         "dsignal" = derivative)
+                         "dsignal" = derivative,
+                         "embedding" = embedding)
     return(returnobject)
 
   })
@@ -234,45 +235,13 @@ calculate.glla <-  function(signal,
 #'
 #'@export
 calculate.fda <-  function(signal,
-                            time,
-                            order=4,
-                            knots=12,
-                            ){
-  #Create a spline basis, typical values for order are 4 and 12 knots
-  sbasis <- create.bspline.basis(rangeval=time,
-                                 norder=order,
-                                 breaks=seq(0,max(time),max(time)/12))
-
-  #Fit the data with the B-spline basis created
-  datasmoothed <- smooth.basis(argvals = test2$time, #time for a single individual (in this case all individuals are measured at the same times)
-                               y = test3,
-                               fdParobj = sbasis)
-  #Extract the fitted curves
-  fittedcurves <- datasmoothed$fd
-  temp <- as.data.frame(eval.fd(datam[id==1]$time,fittedcurves)) #Evaluating spline functions in the time points
-  temp_long<- melt(temp,measure.vars = 1:ncol(temp),variable.name = "id",value.name = "y_fda")
-
-  #Plot the fitted curves
-  plotfit.fd(test3,test2$time,fittedcurves) #One has to hit "enter" to visualize the different plots
-
-  #Calculate derivatives
-  dataderivs <- deriv.fd(fittedcurves) #First derivative is given by argyment Lfdobj and it is 1 by default
-  temp1 <- as.data.frame(eval.fd(datam[id==1]$time,dataderivs)) #Evaluating derivative functions in the time points
-  temp1_long<- melt(temp1,measure.vars = 1:ncol(temp1),variable.name = "id",value.name = "dy_fda")
-  #assuming that every individual was measured in the same time
-
-  #Calculate second derivatives
-  dataderivs2 <- deriv.fd(dataderivs) #First derivative is given by argyment Lfdobj and it is 1 by default
-  temp2 <- as.data.frame(eval.fd(datam[id==1]$time,dataderivs2)) #Evaluating derivative functions in the time points
-  temp2_long<- melt(temp2,measure.vars = 1:ncol(temp2),variable.name = "id",value.name = "dy2_fda")
-
-  #Result: time, spline, derivative, second derivative
-  result <- cbind(datam$time,temp_long,temp1_long[,2],temp2_long[,2])
-  names(result)<-c("time","id","y_fda","dy_fda","dy2_fda")
-
-  returnobject <- list("dtime" = time_derivative,
+                           time,
+                           spar){
+  f <- smooth.spline(time,signal,spar = spar)
+  derivative <- cbind(predict(f)$y,predict(f,deriv = 1)$y,predict(f,deriv = 2)$y)
+  returnobject <- list("dtime" = time,
                        "dsignal" = derivative,
-                       "embedding" = embedding)
+                       "spar" = spar)
   return(returnobject)
 }
 # generate.excitation -----------------------------------------------------
@@ -507,10 +476,131 @@ generate.2order <- function(time = 0:100,
   names(out)<-c("t","y","dy")
   out
 }
-# remi --------------------------------------------------------------------
+# generate.panel.1order ----------------------------------------------
+
+#' Simulation of various individual signals with intra and inter noise
+#'
+#' \code{generate.panel.1order} Generates signals with intra and inter individual noise for several individuals.
+
+#' In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
+#' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = k*u(t) + yeq}
+#' The analytical solution is generated with deSolve. From this
+#' signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
+#' intra-individual and inter-individual noise with normal distributions are added.
+
+#' @param nind  number of individuals.
+#' @param tau Signal damping time. It corresponds to the time needed to reach
+#' 37\% (1/e) of the difference between the equilibrium value and the amplitude of the signal reached when there is no excitation
+#' (or 63\% of the maximum value for a constant excitation). It should be positive (tau>0), otherwise solution diverges from the equilibrium value.
+#' @inheritParams generate.excitation
+#' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
+#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section).
+#' @param intranoise Is the noise added in each individual signal (dynamic noise). It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
+#' amplitude of the convolution when using an excitation containing a single pulse.
+
+#' @keywords simulation, first order, differential equation
+#' @return Returns a data frame with signal and time values starting at 0 and sampled at equal time steps deltatf in the time lapse tmax.
+#' It contains the following columns:
+#' \itemize{
+#'    \item id - individual identifier (from 1 to nind).
+#'    \item excitation - excitation signal generate through the generate.excitation
+#'    \item time - time values
+#'    \item dampedsignalraw - signal with no noise (inter noise added for each individual)
+#'    \item dampedsignal - signal with intra noise added
+#' }
+#' @details Used for simulations in the context of the package.
+#'
+#' The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
+#' and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
+#' distribution is truncated at 0.1*deltatf and values below are set to this limit. High values are symmetrically set at the upper percentile value
+#' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
+#' noise obtained after truncation.
+#' @seealso \code{\link{generate.1order}} for calculation of the analytical solution to the differential equation
+#' and \code{\link{generate.excitation}} for excitation signal generation
+#' @examples
+#' generate.panel.1order(nind = 5,
+#'               y0 = 0,
+#'               tau = 10,
+#'               k = 1,
+#'               yeq = 0,
+#'               amplitude = c(5,10),
+#'               nexc = 2,
+#'               duration = 20,
+#'               deltatf = 0.5,
+#'               tmax = 200,
+#'               minspacing = 0,
+#'               internoise = 0.2,
+#'               intranoise = 0.1)
+#'@export
+#'@importFrom data.table setDT
+#'@importFrom data.table copy
+#'@importFrom data.table :=
+#'@importFrom data.table .N
+#'@import stats
+generate.panel.1order <- function(nind = 1,
+                                  y0 = 0,
+                                  tau = 10,
+                                  k = 1,
+                                  yeq = 0,
+                                  amplitude = 1,
+                                  nexc = 1,
+                                  duration = 10,
+                                  deltatf = 0.5,
+                                  tmax,
+                                  minspacing = 10,
+                                  internoise = 0,
+                                  intranoise = 0){
+
+  #Calculating number of measurement points from parameters provided
+  npoints <- tmax / deltatf + 1
+
+  # Generating simulation data for a given excitation and parameters
+  # Generating id column (id being the individual number)with as many lines per individual as npoints
+
+  data <- setDT(list(id = unlist(lapply(c(1:nind), function(x){rep(x, npoints)}))))
+
+  #Creating a new excitation signal for each individual
+  data[, excitation := generate.excitation(amplitude, nexc, duration, deltatf, tmax, minspacing)$exc, by = id]
+  data[, time := generate.excitation(amplitude, nexc, duration, deltatf, tmax, minspacing)$t, by = id]
+
+  #Creating normal distributions for parameters
+  tauvec <- rnorm(nind, mean = tau, sd = internoise * tau)
+  y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
+  kvec <- rnorm(nind, mean = k, sd = internoise * k)
+  yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
+
+  #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
+  if (any(tauvec <= 0)){
+    a <- 0.1 * deltatf #Threshold to truncate the tau distribution
+    perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
+    b <- as.vector(quantile(tauvec, probs = 1 - perc)) #Calculation of the symmetrical threshold
+
+    #Truncating the normal distribution to these two thresholds
+    tauvec[tauvec < a] <- a
+    tauvec[tauvec > b] <- b
+
+    #Calculating new sd and internoise of the truncated distribution
+    nsd <- sd(tauvec)
+    ninternoise <- nsd / tau
+
+    warning("Some values for tau where negative when adding internoise. Negative damping times imply signals
+            that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
+            the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
+  }
+  #Addition of internoise
+  #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
+  #dampedsignalraw is the signal WITHOUT NOISE
+  data[, dampedsignalraw := generate.1order (time, excitation, y0vec[.GRP],tauvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+
+  #Addition of intra noise
+  data[, dampedsignal := dampedsignalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(dampedsignalraw))), by = id ]
+  return(data)
+}
+
+# analyze.1order --------------------------------------------------------------------
 #' DOREMI first order analysis function
 #'
-#' \code{remi}  estimates the coefficients of a first order differential equation of the form:
+#' \code{analyze.1order}  estimates the coefficients of a first order differential equation of the form:
 #' \deqn{\frac{1}{\gamma} \dot{y}(t) = - y(t) + \epsilon u(t) + yeq}
 #' using linear mixed-effect models.
 #' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
@@ -528,8 +618,11 @@ generate.2order <- function(time = 0:100,
 #' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
 #' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
-#' @param embedding Is a positive integer containing the number of points to be used for the calculation of the derivatives. Its value by default is 2 as at
-#' least two points are needed for the calculation of the first derivative.
+#' @param embedding Is a positive integer containing the number of points to be used for the calculation of the derivatives if dermethod "glla" or "gold" are chosen.
+#' (It will be ignored if method "fda" is chosen) Its value by default is 2 as at least two points are needed for the calculation of the first derivative.
+#' @param spar Related to the smoothing parameter lambda used in the penalization function of to estimate the derivatives via splines. If dermethod "glla" or "gold"
+#' are chosen, this parameter is ignored. For more details, see the documentation
+#' of \code{smooth.spline}
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @keywords analysis, first order, exponential
 #' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
@@ -575,11 +668,12 @@ generate.2order <- function(time = 0:100,
 #' }
 #' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding.
 #' @examples
-#' myresult <- remi(data = cardio,
+#' myresult <- analyze.1order(data = cardio,
 #'                   id = "id",
 #'                   input = "load",
 #'                   time = "time",
 #'                   signal = "hr",
+#'                   dermethod ="gold",
 #'                   embedding = 5)
 #'@export
 #'@import data.table
@@ -590,12 +684,14 @@ generate.2order <- function(time = 0:100,
 #'@importFrom stats lm
 #'@importFrom zoo rollmean
 #'@importFrom zoo na.locf
-remi <- function(data,
+analyze.1order <- function(data,
                  id = NULL,
                  input = NULL,
                  time = NULL,
                  signal,
+                 dermethod = "fda",
                  embedding = 2,
+                 spar = 1,
                  verbose = FALSE){
 
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
@@ -633,6 +729,9 @@ remi <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
+  if(!dermethod %in% c("fda","glla","gold")){
+    stop("Derivative method is not valid. Please choose method \"fda\",\"glla\" or \"gold\"")
+  }
 
   #After verification, extracting only relevant columns
   intdata <- intdata[,.SD,.SDcols = c(id, input, time, signal)]
@@ -669,11 +768,21 @@ remi <- function(data,
 
 
   #Calculation of the signal rollmean and first derivative of the signal column
-  #Paste is only used to generate new column names based on the orignal ones (concatenate strings)
-  intdata[, signal_rollmean := calculate.gold(signal, time, embedding)$dsignal[, 1], by = id]
-  intdata[, signal_derivate1 := calculate.gold(signal, time, embedding)$dsignal[, 2], by = id]
-  intdata[, time_derivate := calculate.gold(signal, time, embedding)$dtime, by = id]
-
+  if(dermethod=="gold"){
+    intdata[, signal_rollmean := calculate.gold(signal, time, embedding)$dsignal[, 1], by = id]
+    intdata[, signal_derivate1 := calculate.gold(signal, time, embedding)$dsignal[, 2], by = id]
+    intdata[, time_derivate := calculate.gold(signal, time, embedding)$dtime, by = id]
+  }
+  if(dermethod=="glla"){
+    intdata[, signal_rollmean := calculate.glla(signal, time, embedding)$dsignal[, 1], by = id]
+    intdata[, signal_derivate1 := calculate.glla(signal, time, embedding)$dsignal[, 2], by = id]
+    intdata[, time_derivate := calculate.glla(signal, time, embedding)$dtime, by = id]
+  }
+  if(dermethod=="fda"){
+    intdata[, signal_rollmean := calculate.fda(signal, time, embedding)$dsignal[, 1], by = id]
+    intdata[, signal_derivate1 := calculate.fda(signal, time, embedding)$dsignal[, 2], by = id]
+    intdata[, time_derivate := calculate.fda(signal, time, embedding)$dtime, by = id]
+  }
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
     myfun <- function(x){x[] <- c(rollmean(x, (embedding)), rep(NA, embedding - 1)); x}
@@ -735,7 +844,7 @@ remi <- function(data,
         # Offset in resultid ------------------------------------------------------
         resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
 
-        # Generation of the estimated signal for all id using remi generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
+        # Generation of the estimated signal for all id using analyze.1order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
         # Write a warning if any of the damping times calculated was negative
         if (any(is.na(resultid[, tau])) | any(resultid[, tau] < 0)){
           warning("Some of the damping times calculated were negative and thus, the estimated signal was not generated for these.
@@ -861,124 +970,4 @@ remi <- function(data,
   res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, embedding = embedding, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
   class(res)= "doremi" # Class definition
   return(res)
-}
-# generate.panel.1order ----------------------------------------------
-
-#' Simulation of various individual signals with intra and inter noise
-#'
-#' \code{generate.panel.1order} Generates signals with intra and inter individual noise for several individuals.
-
-#' In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
-#' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = k*u(t) + yeq}
-#' The analytical solution is generated with deSolve. From this
-#' signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
-#' intra-individual and inter-individual noise with normal distributions are added.
-
-#' @param nind  number of individuals.
-#' @param tau Signal damping time. It corresponds to the time needed to reach
-#' 37\% (1/e) of the difference between the equilibrium value and the amplitude of the signal reached when there is no excitation
-#' (or 63\% of the maximum value for a constant excitation). It should be positive (tau>0), otherwise solution diverges from the equilibrium value.
-#' @inheritParams generate.excitation
-#' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
-#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section).
-#' @param intranoise Is the noise added in each individual signal (dynamic noise). It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
-#' amplitude of the convolution when using an excitation containing a single pulse.
-
-#' @keywords simulation, first order, differential equation
-#' @return Returns a data frame with signal and time values starting at 0 and sampled at equal time steps deltatf in the time lapse tmax.
-#' It contains the following columns:
-#' \itemize{
-#'    \item id - individual identifier (from 1 to nind).
-#'    \item excitation - excitation signal generate through the generate.excitation
-#'    \item time - time values
-#'    \item dampedsignalraw - signal with no noise (inter noise added for each individual)
-#'    \item dampedsignal - signal with intra noise added
-#' }
-#' @details Used for simulations in the context of the package.
-#'
-#' The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
-#' and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
-#' distribution is truncated at 0.1*deltatf and values below are set to this limit. High values are symmetrically set at the upper percentile value
-#' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
-#' noise obtained after truncation.
-#' @seealso \code{\link{generate.1order}} for calculation of the analytical solution to the differential equation
-#' and \code{\link{generate.excitation}} for excitation signal generation
-#' @examples
-#' generate.panel.1order(nind = 5,
-#'               y0 = 0,
-#'               tau = 10,
-#'               k = 1,
-#'               yeq = 0,
-#'               amplitude = c(5,10),
-#'               nexc = 2,
-#'               duration = 20,
-#'               deltatf = 0.5,
-#'               tmax = 200,
-#'               minspacing = 0,
-#'               internoise = 0.2,
-#'               intranoise = 0.1)
-#'@export
-#'@importFrom data.table setDT
-#'@importFrom data.table copy
-#'@importFrom data.table :=
-#'@importFrom data.table .N
-#'@import stats
-generate.panel.1order <- function(nind = 1,
-                                   y0 = 0,
-                                   tau = 10,
-                                   k = 1,
-                                   yeq = 0,
-                                   amplitude = 1,
-                                   nexc = 1,
-                                   duration = 10,
-                                   deltatf = 0.5,
-                                   tmax,
-                                   minspacing = 10,
-                                   internoise = 0,
-                                   intranoise = 0){
-
-  #Calculating number of measurement points from parameters provided
-  npoints <- tmax / deltatf + 1
-
-  # Generating simulation data for a given excitation and parameters
-  # Generating id column (id being the individual number)with as many lines per individual as npoints
-
-  data <- setDT(list(id = unlist(lapply(c(1:nind), function(x){rep(x, npoints)}))))
-
-  #Creating a new excitation signal for each individual
-  data[, excitation := generate.excitation(amplitude, nexc, duration, deltatf, tmax, minspacing)$exc, by = id]
-  data[, time := generate.excitation(amplitude, nexc, duration, deltatf, tmax, minspacing)$t, by = id]
-
-  #Creating normal distributions for parameters
-  tauvec <- rnorm(nind, mean = tau, sd = internoise * tau)
-  y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
-  kvec <- rnorm(nind, mean = k, sd = internoise * k)
-  yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
-
-  #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
-  if (any(tauvec <= 0)){
-    a <- 0.1 * deltatf #Threshold to truncate the tau distribution
-    perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
-    b <- as.vector(quantile(tauvec, probs = 1 - perc)) #Calculation of the symmetrical threshold
-
-    #Truncating the normal distribution to these two thresholds
-    tauvec[tauvec < a] <- a
-    tauvec[tauvec > b] <- b
-
-    #Calculating new sd and internoise of the truncated distribution
-    nsd <- sd(tauvec)
-    ninternoise <- nsd / tau
-
-    warning("Some values for tau where negative when adding internoise. Negative damping times imply signals
-            that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
-            the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
-  }
-  #Addition of internoise
-  #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
-  #dampedsignalraw is the signal WITHOUT NOISE
-  data[, dampedsignalraw := generate.1order (time, excitation, y0vec[.GRP],tauvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
-
-  #Addition of intra noise
-  data[, dampedsignal := dampedsignalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(dampedsignalraw))), by = id ]
-  return(data)
 }
