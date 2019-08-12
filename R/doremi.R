@@ -124,6 +124,157 @@ calculate.gold <-  function(signal,
                        "embedding" = embedding)
   return(returnobject)
 }
+
+# calculate.glla ----------------------------------------------------------
+#' Calculation of derivatives using the GLLA method
+#'
+#' \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method
+#' described in \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}.
+#' This method allows to estimate the derivatives over a number of measurement points called the embedding number.
+#' @param signal is the input vector containing the data from which the derivatives are estimated.
+#' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
+#' @param embedding is an integer indicating the embedding dimension, that is the number of points to consider for derivative calculation.
+#' Embedding must be at least #' 2 for the calculation of the first derivative (first order models) and at least 3 for the calculation of
+#' the second derivative (second order models).
+#' @keywords derivative, embedding dimension, rollmean
+#' @return Returns a list containing three columns:
+#'
+#' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
+#'
+#' dsignal- is a data.frame containing three columns and the same number of rows as the signal.
+#' The first column is the moving average of the signal over embedding points, the second is the first derivative,
+#' and the third is the second derivative.
+#'
+#' embedding- contains the number of points used for the derivative calculation, which is constant.
+#'
+#' @examples
+#' #In the following example the derivatives for the function y(t) = t^2 are calculated.
+#' #The expected results are:
+#' #y'(t) = 2t and y''(t) = 2
+#' time <- c(1:500)/100
+#' signal <- time^2
+#' result <- calculate.glla(signal = signal, time = time, embedding = 5)
+#'
+#'@export
+#'@importFrom zoo rollmean
+calculate.glla <-  function(signal,
+                            time,
+                            embedding = 2){
+  #Error management
+  if (length(signal) != length(time)){
+    stop("signal and time vectors should have the same length.\n")
+  }
+  if (length(signal) <= embedding){
+    stop("Signal and time vectors should have a length greater than embedding.\n")
+  }
+  with(as.list(param),{
+    if (embedding > 2){
+      deltat <- diff(time)[1]
+
+      L1 <- rep(1,embedding)
+      L2 <- c(1:embedding)-mean(c(1:embedding))
+      L3 <- (L2^2)/2
+      L <- cbind(L1,L2,L3)
+      W <- L%*%solve(t(L)%*%L)
+
+      Xembed <- embed(signal, embedding)
+      Xembed <- Xembed[, ncol(Xembed):1]
+
+      derivative <- Xembed %*% W
+      derivative[,2] <- derivative[,2]/deltat
+      derivative[,3] <- derivative[,3]/deltat^2
+      derivative <- rbind(derivative, matrix(data = NA, ncol = 3, nrow = embedding - 1))
+
+    } else if (embedding == 2){
+      #warning("Only first derivative can be calculated with an embedding of 2.\n")
+      derivative <- cbind(rollmean(signal, embedding), diff(signal) / diff(time))
+      #Appends the two columns: 1. mean time values and 2. The span calculated as
+      #the difference of two signal values (going forward) divided by the time
+      #interval
+      derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
+      # Addition of NA so that the derivative rows are the same as those of signal
+    } else{
+      stop("Embedding should be >=2 for the calculation of derivatives.\n")
+    }
+    time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
+    # Addition of NA so that the time rows are the same as those of signal
+
+    returnobject <- list("dtime" = time_derivative,
+                         "dsignal" = derivative)
+    return(returnobject)
+
+  })
+}
+# calculate.fda ----------------------------------------------------------
+#' Calculation of derivatives using the FDA method (splines)
+#'
+#' \code{calculate.fda} estimates the derivatives of a variable using the Functional Data Analysis (FDA)
+#' method described in several sources, such as in \href{ISBN 978-0-387-98185-7}{Ramsay et al. (2009)}
+#' and  \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
+#' This method estimates a spline function that fits all the data points and then derivates this function to estimate derivatives at those points.
+#' In order for the derivatives to exist, the function must be smooth. A roughness penalty function controlled by a smoothing parameter is then used
+#' The estimations are done by using the R's "fda" package.
+#' @param signal is a vector containing the data from which the derivative is estimated.
+#' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
+#' @keywords derivative, embed, rollmean, fda, spline
+#' @return Returns a list containing three columns:
+#'
+#' dtime- contains the initial time values provided.
+#'
+#' dsignal- is a data.frame containing three columns and the same number of rows as the signal.
+#' The first column is the signal data points, the second is the first derivative evaluated at those points,
+#' and the third is the second derivative evaluated at those points.
+#' @examples
+#' #In the following example the derivatives for the function y(t) = t^2 are calculated.
+#' #The expected results are:
+#' #y'(t) = 2t and y''(t) = 2
+#' time <- c(1:500)/100
+#' signal <- time^2
+#' result <- calculate.fda(signal = signal, time = time)
+#'
+#'@export
+calculate.fda <-  function(signal,
+                            time,
+                            order=4,
+                            knots=12,
+                            ){
+  #Create a spline basis, typical values for order are 4 and 12 knots
+  sbasis <- create.bspline.basis(rangeval=time,
+                                 norder=order,
+                                 breaks=seq(0,max(time),max(time)/12))
+
+  #Fit the data with the B-spline basis created
+  datasmoothed <- smooth.basis(argvals = test2$time, #time for a single individual (in this case all individuals are measured at the same times)
+                               y = test3,
+                               fdParobj = sbasis)
+  #Extract the fitted curves
+  fittedcurves <- datasmoothed$fd
+  temp <- as.data.frame(eval.fd(datam[id==1]$time,fittedcurves)) #Evaluating spline functions in the time points
+  temp_long<- melt(temp,measure.vars = 1:ncol(temp),variable.name = "id",value.name = "y_fda")
+
+  #Plot the fitted curves
+  plotfit.fd(test3,test2$time,fittedcurves) #One has to hit "enter" to visualize the different plots
+
+  #Calculate derivatives
+  dataderivs <- deriv.fd(fittedcurves) #First derivative is given by argyment Lfdobj and it is 1 by default
+  temp1 <- as.data.frame(eval.fd(datam[id==1]$time,dataderivs)) #Evaluating derivative functions in the time points
+  temp1_long<- melt(temp1,measure.vars = 1:ncol(temp1),variable.name = "id",value.name = "dy_fda")
+  #assuming that every individual was measured in the same time
+
+  #Calculate second derivatives
+  dataderivs2 <- deriv.fd(dataderivs) #First derivative is given by argyment Lfdobj and it is 1 by default
+  temp2 <- as.data.frame(eval.fd(datam[id==1]$time,dataderivs2)) #Evaluating derivative functions in the time points
+  temp2_long<- melt(temp2,measure.vars = 1:ncol(temp2),variable.name = "id",value.name = "dy2_fda")
+
+  #Result: time, spline, derivative, second derivative
+  result <- cbind(datam$time,temp_long,temp1_long[,2],temp2_long[,2])
+  names(result)<-c("time","id","y_fda","dy_fda","dy2_fda")
+
+  returnobject <- list("dtime" = time_derivative,
+                       "dsignal" = derivative,
+                       "embedding" = embedding)
+  return(returnobject)
+}
 # generate.excitation -----------------------------------------------------
 #' Excitation signal generation
 #'
@@ -404,7 +555,7 @@ generate.2order <- function(time = 0:100,
 #'
 #'     signal_rollmean - calculation of the moving average of the signal over embedding points.
 #'
-#'     signal_derivate1 - calculation of the first derivative of the signal with the GOLD method in embedding points.
+#'     signal_derivate1 - calculation of the first derivative of the signal with the glla method in embedding points.
 #'
 #'     time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
@@ -422,7 +573,7 @@ generate.2order <- function(time = 0:100,
 #'  to access the regression summary by typing result$regression.
 #'  \item embedding - contains the embedding number used to generate the results (same as function input argument)
 #' }
-#' @seealso \code{\link{calculate.gold}} to compute the derivatives, for details on embedding.
+#' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding.
 #' @examples
 #' myresult <- remi(data = cardio,
 #'                   id = "id",
