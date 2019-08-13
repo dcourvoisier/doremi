@@ -478,21 +478,18 @@ generate.2order <- function(time = 0:100,
 }
 # generate.panel.1order ----------------------------------------------
 
-#' Simulation of various individual signals with intra and inter noise
+#' Generation of first order differential equation solutions for several individuals with intra and inter noise
 #'
-#' \code{generate.panel.1order} Generates signals with intra and inter individual noise for several individuals.
+#' \code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
 
-#' In order to do this, the function generates a pseudo-continuous signal per individual that is a solution to the first order differential equation:
+#' The signals generated are solution to the first order differential equation:
 #' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = k*u(t) + yeq}
 #' The analytical solution is generated with deSolve. From this
 #' signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
 #' intra-individual and inter-individual noise with normal distributions are added.
 
+#' @inheritParams generate.1order
 #' @param nind  number of individuals.
-#' @param tau Signal damping time. It corresponds to the time needed to reach
-#' 37\% (1/e) of the difference between the equilibrium value and the amplitude of the signal reached when there is no excitation
-#' (or 63\% of the maximum value for a constant excitation). It should be positive (tau>0), otherwise solution diverges from the equilibrium value.
-#' @inheritParams generate.excitation
 #' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
 #' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section).
 #' @param intranoise Is the noise added in each individual signal (dynamic noise). It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
@@ -505,7 +502,7 @@ generate.2order <- function(time = 0:100,
 #'    \item id - individual identifier (from 1 to nind).
 #'    \item excitation - excitation signal generate through the generate.excitation
 #'    \item time - time values
-#'    \item dampedsignalraw - signal with no noise (inter noise added for each individual)
+#'    \item signalraw - signal with no noise (inter noise added for each individual)
 #'    \item dampedsignal - signal with intra noise added
 #' }
 #' @details Used for simulations in the context of the package.
@@ -518,50 +515,37 @@ generate.2order <- function(time = 0:100,
 #' @seealso \code{\link{generate.1order}} for calculation of the analytical solution to the differential equation
 #' and \code{\link{generate.excitation}} for excitation signal generation
 #' @examples
-#' generate.panel.1order(nind = 5,
-#'               y0 = 0,
-#'               tau = 10,
-#'               k = 1,
-#'               yeq = 0,
-#'               amplitude = c(5,10),
-#'               nexc = 2,
-#'               duration = 20,
-#'               deltatf = 0.5,
-#'               tmax = 200,
-#'               minspacing = 0,
-#'               internoise = 0.2,
-#'               intranoise = 0.1)
+#' generate.panel.1order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
+#'                       excitation = generate.excitation(3, 6, 2, 1, 200, 2)$exc,
+#'                       y0 = 0,
+#'                       tau = 10,
+#'                       k = 1,
+#'                       yeq = 0,
+#'                       nind = 5,
+#'                       internoise = 0.2,
+#'                       intranoise = 0.1)
 #'@export
 #'@importFrom data.table setDT
 #'@importFrom data.table copy
 #'@importFrom data.table :=
 #'@importFrom data.table .N
 #'@import stats
-generate.panel.1order <- function(nind = 1,
+generate.panel.1order <- function(time,
+                                  excitation = NULL,
                                   y0 = 0,
                                   tau = 10,
                                   k = 1,
                                   yeq = 0,
-                                  amplitude = 1,
-                                  nexc = 1,
-                                  duration = 10,
-                                  deltatf = 0.5,
-                                  tmax,
-                                  minspacing = 10,
+                                  nind = 1,
                                   internoise = 0,
                                   intranoise = 0){
-
-  #Calculating number of measurement points from parameters provided
-  npoints <- tmax / deltatf + 1
-
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number)with as many lines per individual as npoints
+  data <- data.table(id = rep(1:nind,each = length(time)))
 
-  data <- setDT(list(id = unlist(lapply(c(1:nind), function(x){rep(x, npoints)}))))
-
-  #Creating a new excitation signal for each individual
-  data[, excitation := generate.excitation(amplitude, nexc, duration, deltatf, tmax, minspacing)$exc, by = id]
-  data[, time := generate.excitation(amplitude, nexc, duration, deltatf, tmax, minspacing)$t, by = id]
+  #Adding 3excitation and time to the data frame
+  data[, time := time, by = id]
+  data[, excitation := excitation, by = id]
 
   #Creating normal distributions for parameters
   tauvec <- rnorm(nind, mean = tau, sd = internoise * tau)
@@ -587,13 +571,142 @@ generate.panel.1order <- function(nind = 1,
             that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
             the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
   }
-  #Addition of internoise
+  #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
-  #dampedsignalraw is the signal WITHOUT NOISE
-  data[, dampedsignalraw := generate.1order (time, excitation, y0vec[.GRP],tauvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+  #signalraw is the signal WITHOUT NOISE
+  data[, signalraw := generate.1order (time, excitation, y0vec[.GRP],tauvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
 
-  #Addition of intra noise
-  data[, dampedsignal := dampedsignalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(dampedsignalraw))), by = id ]
+  #Addition of intra-noise
+  data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
+  return(data)
+}
+
+# generate.panel.2order ----------------------------------------------
+
+#' Generation of first order differential equation solutions for several individuals with intra and inter noise
+#'
+#' \code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
+
+#' The signals are solution to the second order differential equation:
+#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
+#' Where:
+#' \itemize{
+#'    \item{\eqn{\omega_{n} = \frac{2\pi}{T}} that is the system's natural frequency, corresponding to a period of T.
+#'    The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
+#'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
+#'    }
+#'    \item{\zeta is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
+#'    The term 2\zeta\omega_n thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium.
+#'    The value of \zeta determines the shape of the system time response, which can be:
+#'    \zeta<0	Unstable, oscillations of increasing magnitude
+#'    \zeta=0	Undamped, oscillating
+#'    0<\zeta<1	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
+#'    \zeta=1	Critically damped
+#'    \zeta>1	Over-damped, no oscillations in the return to equilibrium
+#'    }
+
+#' The analytical solution is generated with deSolve. From this
+#' signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
+#' intra-individual and inter-individual noise with normal distributions are added.
+
+#' @inheritParams generate.2order
+#' #' @param nind  number of individuals.
+#' @param internoise Is the inter-individual noise added. The damping ratio across individuals follows a normal distribution centered on the input parameter damping ratio
+#' with a standard deviation of internoise*damping ratio, except if any damping time is negative (see Details section).
+#' @param intranoise Is the noise added in each individual signal (dynamic noise). It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
+#' amplitude of the convolution when using an excitation containing a single pulse.
+
+#' @keywords simulation, second order, differential equation
+#' @return Returns a data frame with signal and time values for the time and excitation vectore provided.
+#' It contains the following columns:
+#' \itemize{
+#'    \item id - individual identifier (from 1 to nind).
+#'    \item excitation - excitation signal provided as input
+#'    \item time - time values provided as input
+#'    \item signalraw - signal with no noise (inter noise added for each individual)
+#'    \item signal - signal with intra noise added
+#' }
+#' @details Used for simulations in the context of the package.
+#'
+#' The function currently simulates only positive damping factors corresponding to a self-regulated system. When the damping factor is low
+#' and the inter individual noise is high, some individuals' damping factor could be negative. In that case, the damping factor
+#' distribution is truncated at 0.1*min_deltat (calculated from the time vector) and values below are set to this limit.
+#' High values are symmetrically set at the upper percentile value
+#' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
+#' noise obtained after truncation.
+#' @seealso \code{\link{generate.2order}} for calculation of the analytical solution to the second order differential equation
+#' and \code{\link{generate.excitation}} for excitation signal generation
+#' @examples
+#' generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
+#'                       excitation = generate.excitation(3, 6, 2, 1, 200, 2)$exc,
+#'                       y0 = 0,
+#'                       v0 = 0,
+#'                       xi = 0.1,
+#'                       wn = 0.5,
+#'                       k = 1,
+#'                       yeq = 0,
+#'                       nind = 5,
+#'                       internoise = 0.2,
+#'                       intranoise = 0.1)
+#'@export
+#'@importFrom data.table data.table
+#'@importFrom data.table copy
+#'@importFrom data.table :=
+#'@importFrom data.table .N
+#'@import stats
+generate.panel.2order <- function(time,
+                                  excitation = NULL,
+                                  y0 = 0,
+                                  v0 = 0,
+                                  xi = 0.1,
+                                  wn = 0.5,
+                                  k = 1,
+                                  yeq = 0,
+                                  nind = 1,
+                                  internoise = 0,
+                                  intranoise = 0){
+  # Generating simulation data for a given excitation and parameters
+  # Generating id column (id being the individual number)with as many lines per individual as npoints
+  data <- data.table(id = rep(1:nind,each = length(time)))
+
+  #Adding excitation and time input vectors to the data frame
+  data[, time := time, by = id]
+  data[, excitation := excitation, by = id]
+
+
+  #Creating normal distributions for parameters
+  y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
+  v0vec <- rnorm(nind, mean = y0, sd = internoise * v0)
+  xivec <- rnorm(nind, mean = xi, sd = internoise * xi)
+  wnvec <- rnorm(nind, mean = y0, sd = internoise * wn)
+  kvec <- rnorm(nind, mean = k, sd = internoise * k)
+  yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
+
+  #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
+  if (any(xivec <= 0)){
+    a <- 0.1 * min(diff(time)) #Threshold to truncate the xi distribution
+    perc <- as.vector(prop.table(table(xivec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
+    b <- as.vector(quantile(xivec, probs = 1 - perc)) #Calculation of the symmetrical threshold
+
+    #Truncating the normal distribution to these two thresholds
+    xivec[xivec < a] <- a
+    xivec[xivec > b] <- b
+
+    #Calculating new sd and internoise of the truncated distribution
+    nsd <- sd(xivec)
+    ninternoise <- nsd / xi
+
+    warning("Some values for xi where negative when adding internoise. Negative damping factors imply signals
+            which oscillations increase exponentially (diverge). This function is intended to generate signals that are self-regulated and thus,
+            the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
+  }
+  #Addition of inter-noise
+  #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
+  #signalraw is the signal WITHOUT NOISE
+  data[, signalraw := generate.1order (time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],wnvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+
+  #Addition of intra-noise
+  data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
   return(data)
 }
 
@@ -665,8 +778,9 @@ generate.panel.1order <- function(nind = 1,
 #'  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
 #'  to access the regression summary by typing result$regression.
 #'  \item embedding - contains the embedding number used to generate the results (same as function input argument)
+#'  \item spar - contains the smoothing parameter used for the estimation of the derivatives using splines (method "fda")
 #' }
-#' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding.
+#' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
 #' @examples
 #' myresult <- analyze.1order(data = cardio,
 #'                   id = "id",
@@ -779,9 +893,9 @@ analyze.1order <- function(data,
     intdata[, time_derivate := calculate.glla(signal, time, embedding)$dtime, by = id]
   }
   if(dermethod=="fda"){
-    intdata[, signal_rollmean := calculate.fda(signal, time, embedding)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.fda(signal, time, embedding)$dsignal[, 2], by = id]
-    intdata[, time_derivate := calculate.fda(signal, time, embedding)$dtime, by = id]
+    intdata[, signal_rollmean := calculate.fda(signal, time, spar)$dsignal[, 1], by = id]
+    intdata[, signal_derivate1 := calculate.fda(signal, time, spar)$dsignal[, 2], by = id]
+    intdata[, time_derivate := calculate.fda(signal, time, spar)$dtime, by = id]
   }
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
@@ -980,9 +1094,11 @@ analyze.1order <- function(data,
 #' DOREMI second order analysis function
 #'
 #' \code{analyze.2order}  estimates the coefficients of a second order differential equation of the form:
-#' \deqn{\frac{1}{\gamma} \dot{y}(t) = - y(t) + \epsilon u(t) + yeq}
-#' using linear mixed-effect models.
+#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t) + y_{eq}}
 #' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
+#' The function estimates the coefficients \zeta, \omega_{n}, k and y_{eq} using a two step procedure in
+#' which the user can choose the derivative estimation method (through the parameter dermethod) and then the
+#' coefficients are then estimated via linear mixed-effect models.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
 #' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
@@ -1003,23 +1119,12 @@ analyze.1order <- function(data,
 #' are chosen, this parameter is ignored. For more details, see the documentation
 #' of \code{smooth.spline}
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
-#' @keywords analysis, first order, exponential
-#' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
-#' @details The analysis performs the following linear mixed-effects regression:
-#' \deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
-#' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
-#' \eqn{y_{ij}'} is the derivative calculated on embedding points and
-#' y and E are the signal and the excitation averaged on embedding points.
-#' The coefficients estimated to characterize the signal are calculated as follows:
-#' \itemize{
-#'   \item Damping time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
-#'   \item Gain, k: \eqn{\epsilon _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
-#'   difference between the maximum value reached by the signal and its initial value.
-#'   \item Equilibrium value, yeq: \eqn{yeq _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
-#' }
+#' @keywords analysis, second order
+
+#' @return Returns a summary of the fixed components for the coefficients: damping factor, natural frenquency, gain and equilibrium value.
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
-#' With the above estimated parameters, the estimated signal can be reconstructed for
-#' each individual by using the generate.1order function on this package (based on deSolve's ode function).
+#' With the above estimated parameters, the estimated signal is reconstructed for
+#' each individual by using the generate.2order function on this package (based on deSolve's ode function).
 #' The function returns five objects:
 #' \enumerate{
 #'  \item data- A data.frame including the input data, the intermediate calculations used to prepare the variables for
@@ -1027,23 +1132,26 @@ analyze.1order <- function(data,
 #'
 #'     signal_rollmean - calculation of the moving average of the signal over embedding points.
 #'
-#'     signal_derivate1 - calculation of the first derivative of the signal with the glla method in embedding points.
+#'     signal_derivate1 - calculation of the first derivative of the signal with the chosen method in embedding points/with smoothing parameter spar
+#'
+#'     signal_derivate2 - calculation of the second derivative of the signal with the chosen method in embedding points/with smoothing parameter spar
 #'
 #'     time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
 #'     input_rollmean - calculation of the moving average of the excitation vector over embedding points.
 #'
-#'     estimated- the estimated signal calculated using deSolve's ode function with a first order model, the excitation provided as input and the damping time,
-#'     excitation coefficient and equilibrium value obtained from the fit.
-#'  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
-#'  equilibrium value (see variables presented in the Details section).
-#'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above.
+#'     estimated- the estimated signal calculated using deSolve's ode function with a second order model, the excitation provided as input and the
+#'     coefficients obtained from the fit.
+#'  \item resultid- A data.frame including for each individual, listed by id number, the coefficients calculated (thus fixed + random component)
+#'  \item resultmean- A data.frame including the fixed effects of the coefficients mentioned above.
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
 #'  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
 #'  to access the regression summary by typing result$regression.
-#'  \item embedding - contains the embedding number used to generate the results (same as function input argument)
+#'  \item embedding - contains the embedding number used to generate the results (same as function input argument). Will only appear in the output if the
+#'  derivative estimation method chosen is "glla" or "gold".
+#'  \item spar -
 #' }
 #' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding.
 #' @examples
@@ -1150,16 +1258,19 @@ analyze.2order <- function(data,
   if(dermethod=="gold"){
     intdata[, signal_rollmean := calculate.gold(signal, time, embedding)$dsignal[, 1], by = id]
     intdata[, signal_derivate1 := calculate.gold(signal, time, embedding)$dsignal[, 2], by = id]
+    intdata[, signal_derivate2 := calculate.gold(signal, time, embedding)$dsignal[, 3], by = id]
     intdata[, time_derivate := calculate.gold(signal, time, embedding)$dtime, by = id]
   }
   if(dermethod=="glla"){
     intdata[, signal_rollmean := calculate.glla(signal, time, embedding)$dsignal[, 1], by = id]
     intdata[, signal_derivate1 := calculate.glla(signal, time, embedding)$dsignal[, 2], by = id]
+    intdata[, signal_derivate2 := calculate.glla(signal, time, embedding)$dsignal[, 3], by = id]
     intdata[, time_derivate := calculate.glla(signal, time, embedding)$dtime, by = id]
   }
   if(dermethod=="fda"){
     intdata[, signal_rollmean := calculate.fda(signal, time, embedding)$dsignal[, 1], by = id]
     intdata[, signal_derivate1 := calculate.fda(signal, time, embedding)$dsignal[, 2], by = id]
+    intdata[, signal_derivate2 := calculate.fda(signal, time, embedding)$dsignal[, 3], by = id]
     intdata[, time_derivate := calculate.fda(signal, time, embedding)$dtime, by = id]
   }
   #Calculation of the roll mean of the excitation columns if there is at least one input column
@@ -1171,23 +1282,23 @@ analyze.2order <- function(data,
   #Linear mixed-effect regression MULTIPLE INDIVIDUALS
   if(nind>1){
     if (noinput){ # if there is no excitation signal
-      model <- tryCatch({lmer(signal_derivate1 ~ signal_rollmean + (1 + signal_rollmean |id),
+      model <- tryCatch({lmer(signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 + signal_rollmean |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
     }else{ # if there is one OR SEVERAL excitation signals
-      model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
+      model <- tryCatch({lmer(paste0("signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
                                      " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
-                              data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
+                                     data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       if (verbose){print("Status: One or several excitations. Linear mixed-effect model calculated.")}
     }
   }else{ #SINGLE individual
     if(noinput){ # if there is no excitation signal
-      model <- tryCatch({lm(signal_derivate1 ~ signal_rollmean, data = intdata)}, error = function(e) e)
+      model <- tryCatch({lm(signal_derivate2 ~ signal_derivate1 + signal_rollmean, data = intdata)}, error = function(e) e)
       if (verbose){print("Status: Unknown excitation. Linear regression calculated")}
 
     }
     else{ # if there is one or several excitation signals
-      model <- tryCatch({lm(paste0("signal_derivate1 ~ signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
+      model <- tryCatch({lm(paste0("signal_derivate2 ~ signal_derivate1 + signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
                             data = intdata)}, error = function(e) e)
       if (verbose){print("Status: One or several excitations. Linear regression calculated")}
     }
@@ -1203,16 +1314,20 @@ analyze.2order <- function(data,
 
     #The second table contains the mean values for gamma and thao for all the individuals (single line)
     #Generate mean results with convergence criterions
-    resultmean <- setDT(list(id = "All"))
+    resultmean <- data.table(omega2 = -1*summary$coefficients["signal_rollmean","Estimate"],
+                             omega2_std = summary$coefficients["signal_rollmean","Std. Error"],
+                             Komega2 = summary$coefficients["excitation_rollmean","Estimate"],
+                             Komega2_std = summary$coefficients["excitation_rollmean","Std. Error"],
+                             esp2omega = -1*summary$coefficients["signal_derivate1","Estimate"],
+                             esp2omega_std = summary$coefficients["signal_derivate1","Std. Error"],
+                             yeqomega2 = summary$coefficients["(Intercept)","Estimate"],
+                             yeqomega2_std = summary$coefficients["(Intercept)","Std. Error"])
 
-    # calculate the damping time for all signal columns: -1/damping_coeff
-    resultmean[, tau := -1L/summary$coefficients["signal_rollmean", "Estimate"]]
-
-    # Extract the intercept coeff (equilibrium value)
-    resultmean[, yeq := summary$coefficients["(Intercept)","Estimate"] * resultmean[, tau]]
+    resultmean[omega2 > 0,period := 2*pi/sqrt(omega2)]
+    resultmean[omega2 > 0,amort_fact := esp2omega/(2*sqrt(omega2))]
 
     if(nind > 1){
-      #The third table contains the results for gamma and thao for each individual (one line per individual)
+      #The third table contains the results for the coefficients for each individual (one line per individual)
       resultid <- setDT(list(id = unique(intdata$id), id_tmp = unique(intdata$id_tmp)))
       setkey(resultid, id) #sorts the data table by id
 
