@@ -236,7 +236,7 @@ calculate.glla <-  function(signal,
 #'@export
 calculate.fda <-  function(signal,
                            time,
-                           spar){
+                           spar = NULL){
   f <- smooth.spline(time,signal,spar = spar)
   derivative <- cbind(predict(f)$y,predict(f,deriv = 1)$y,predict(f,deriv = 2)$y)
   returnobject <- list("dtime" = time,
@@ -591,7 +591,7 @@ generate.panel.1order <- function(time,
 #' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
 #' Where:
 #' \itemize{
-#'    \item{\eqn{\omega_{n} = \frac{2\pi}{T}} that is the system's natural frequency, corresponding to a period of T.
+#'    \item{\eqn{\omega_{n} = \frac{2\pi}{period}} that is the system's natural frequency, corresponding to a period of period.
 #'    The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
 #'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
 #'    }
@@ -1024,14 +1024,14 @@ analyze.1order <- function(data,
         if(nind > 1){
           intdata[, signal_estimated := generate.1order(time = time,
                                                  excitation = totalexc,
-                                                 y0 = resultid[.GRP, yeq],
+                                                 y0 = signal_rollmean[1],
                                                  tau = resultid[.GRP, tau],
                                                  k = 1,
                                                  yeq = resultid[.GRP, yeq])$y,by = id]
         }else{
           intdata[, signal_estimated := generate.1order(time = time,
                                                         excitation = totalexc,
-                                                        y0 = resultmean[, yeq],
+                                                        y0 = signal_rollmean[1],
                                                         tau = resultmean[, tau],
                                                         k = 1,
                                                         yeq = resultmean[, yeq])$y]
@@ -1316,15 +1316,14 @@ analyze.2order <- function(data,
     #Generate mean results with convergence criterions
     resultmean <- data.table(omega2 = -1*summary$coefficients["signal_rollmean","Estimate"],
                              omega2_std = summary$coefficients["signal_rollmean","Std. Error"],
-                             Komega2 = summary$coefficients["excitation_rollmean","Estimate"],
-                             Komega2_std = summary$coefficients["excitation_rollmean","Std. Error"],
                              esp2omega = -1*summary$coefficients["signal_derivate1","Estimate"],
                              esp2omega_std = summary$coefficients["signal_derivate1","Std. Error"],
                              yeqomega2 = summary$coefficients["(Intercept)","Estimate"],
                              yeqomega2_std = summary$coefficients["(Intercept)","Std. Error"])
-
     resultmean[omega2 > 0,period := 2*pi/sqrt(omega2)]
-    resultmean[omega2 > 0,amort_fact := esp2omega/(2*sqrt(omega2))]
+    resultmean[, wn := sqrt(omega2)]
+    resultmean[omega2 > 0,xi := esp2omega/(2*sqrt(omega2))]
+    resultmean[omega2 > 0, yeq := yeqomega2/(omega2)]
 
     if(nind > 1){
       #The third table contains the results for the coefficients for each individual (one line per individual)
@@ -1332,90 +1331,71 @@ analyze.2order <- function(data,
       setkey(resultid, id) #sorts the data table by id
 
       # Damping time in resultid
-      resultid[, tau := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
+      resultid[, omega2 := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
+      resultid[, esp2omega2 := -1L/(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
+      resultid[, yeqomega2 := summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"], by = id]
 
-      # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
-      # Offset in resultid
-      resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
+      resultid[omega2 > 0,period := 2*pi/sqrt(omega2)]
+      resultid[, wn := sqrt(omega2)]
+      resultid[omega2 > 0, xi := esp2omega/(2*sqrt(omega2))]
+      resultid[omega2 > 0, yeq := yeqomega2/(omega2)]
 
       # Generation of the estimated signal for all id using analyze.2order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
       # Write a warning if any of the damping times calculated was negative
-      if (any(is.na(resultid[, tau])) | any(resultid[, tau] < 0)){
-        warning("Some of the damping times calculated were negative and thus, the estimated signal was not generated for these.
-                  Damping times can be negative for some individuals for the following reasons: 1. The signal of
+      if (any(is.na(resultid[, xi])) | any(resultid[, xi] < 0)){
+        warning("Some of the damping factors calculated were negative and thus, the estimated signal was not generated for these.
+                  Damping factors can be negative for some individuals for the following reasons: 1. The signal of
                   the individual doesn't go back to equilibrium. 2.The linear mixed-effects model estimating the random
                   effect showed some error messages/warnings. 3.Model misspecification.\n")
       }
     }else{resultid <- NULL} #Single individual will not have resultid table
 
-    if (noinput){ #There is no excitation signal as input: exponential fit
-      if (verbose){print("Status: Unknown excitation. Calculation of estimated signal through exponential fit.")}
-      #Exponential model is assumed when no input is provided and thus a new fit is necessary BY INDIVIDUAL
-      #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
-      #B is known, it is the intercept*tau, from the model fit with the derivative inside the analysis function
-      #A is unknown. It can be found by fitting log(y-B)~ t
-      #We'll call the coefficients resulting from this new fit Ap and Bp: Ap=gamma, Bp=log(A)
-      if(nind > 1){ # Several individuals
-        intdata[, expfit_A := lm(log(abs(signal - resultid[.GRP, yeq])) ~ time)$coefficients[1], by = id]
-        intdata[, signal_estimated :=
-                  if(!is.na(resultid[.GRP, tau]) && resultid[.GRP, tau] > 0){
-                    # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
-                    #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
-                    #expmodel comes from fitting log(y-B)~t. Calculated above
-                    exp(expfit_A) * exp(-1L / resultid[.GRP, tau] * time) + resultid[.GRP, yeq]
-                  }else{NaN}, by = id]
-      }else{ #Single individual
-        intdata[, expfit_A := lm(log(abs(signal - resultmean[, yeq])) ~ time)$coefficients[1]]
-        intdata[, signal_estimated :=
-                  if(!is.na(resultmean[, tau]) && resultmean[, tau] > 0){
-                    # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
-                    #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
-                    #expmodel comes from fitting log(y-B)~t. Calculated above
-                    exp(expfit_A) * exp(-1L / resultmean[, tau] * time) + resultmean[, yeq]
-                  }else{NaN}]
-      }
-      #Removing temporary column "expfit_A" from table "intdata"
-      intdata <- intdata[, c("expfit_A") := NULL]
+    # Extract the excitation coeff for each excitation
+    intdata[, totalexc := 0]
+    if(!is.null(excitation)){ #if there is no excitation, k will be set to 0
+        for (i in 1:length(input)){ #For loop to go through all the inputs
+          resultmean[, paste0(doremiexc[i],"_komega2") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]]
 
-    }else{
-      if (verbose){print("Status: One or several excitation terms. Calculation of estimated signal with deSolve")}
-      # Extract the excitation coeff for each excitation
-      intdata[, totalexc := 0]
-      for (i in 1:length(input)){ #For loop to go through all the inputs
-        resultmean[, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau]]
-
-        #If variation of the excitation coefficient across individuals needed:
-        #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
-        #Excitation coefficient in resultid
-        if(nind > 1){  #Several individuals
-          resultid[, paste0(doremiexc[i],"_k") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                     random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau], by = id]
-          intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                               random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau]* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
-          #ponderated with their corresponding gains
-        }else{ #Single individual
-          intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau] * get(doremiexc[i])]
+          #If variation of the excitation coefficient across individuals needed:
+          #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
+          #Excitation coefficient in resultid
+          if(nind > 1){  #Several individuals
+            resultid[, paste0(doremiexc[i],"_komega2") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                                       random$id[.GRP,paste0(doremiexc[i], "_rollmean")]), by = id]
+            intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")])]* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
+            #ponderated with their corresponding gains
+          }else{ #Single individual
+            intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * get(doremiexc[i])]
+          }
         }
-      }
-      #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
-      #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
-      #k=1, total gain is already included in totalexc)
-      #Assuming initial value is equilibrium value
-      if(nind > 1){
-        intdata[, signal_estimated := generate.1order(time = time,
+    }else{
+      resultmean[, Komega2 := 0]
+      if(nind>1){resultid[, Komega2 := 0]}
+    }
+
+    #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
+    #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
+    #k=1, total gain is already included in totalexc)
+    #Assuming initial value is equilibrium value
+    if(nind > 1){
+        intdata[, signal_estimated := generate.2order(time = time,
                                                       excitation = totalexc,
-                                                      y0 = resultid[.GRP, yeq],
-                                                      tau = resultid[.GRP, tau],
+                                                      y0 = signal_rollmean[1],
+                                                      v0 = signal_derivate1[1],
+                                                      xi = resultid[.GRP, xi],
+                                                      wn = resultid[.GRP, wn],
                                                       k = 1,
                                                       yeq = resultid[.GRP, yeq])$y,by = id]
       }else{
-        intdata[, signal_estimated := generate.1order(time = time,
+        intdata[, signal_estimated := generate.2order(time = time,
                                                       excitation = totalexc,
-                                                      y0 = resultmean[, yeq],
-                                                      tau = resultmean[, tau],
+                                                      y0 = signal_rollmean[1],
+                                                      v0 = signal_derivate1[1],
+                                                      xi = resultmean[, xi],
+                                                      wn = resultmean[, wn],
                                                       k = 1,
                                                       yeq = resultmean[, yeq])$y]
-
       }
     }
 
@@ -1468,4 +1448,39 @@ analyze.2order <- function(data,
   }
   class(res)= "doremi" # Class definition
   return(res)
+}
+# calculate.R2 --------------------------------------------------------------------
+#' Calculation of R2 by providing real data and estimated data (any method)
+#' \code{calculate.R2}  Calculation of R2 by providing real data and estimated data (any method)
+#' @param data Is a data frame containing at least the original real data points and their estimation, either for a single individual or by id (id column needed).
+#' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual
+#' If this parameter is not entered when calling the function, a single individual is assumed.
+#' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
+#' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
+#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
+#' @param estimated Is a STRING containing the NAME of the column of the data frame containing the ESTIMATED DATA VALUES
+#' @keywords error, R2
+#' @return Returns the R2 calculated for each individual
+#' @examples
+#' rescardio <- analyze.1order(data = cardio,
+#'                             id = "id",
+#'                             input = "load",
+#'                             time = "time",
+#'                             signal = "hr",
+#'                             dermethod = "fda",
+#'                             )
+#' data_w_error <- calculate.R2 (data = rescardio,
+#'                   id = "id",
+#'                   time = "time",
+#'                   signal = "hr",
+#'                   estimated = "hr_estimated")
+#'@export
+calculate.R2<-function(data,
+                       signal,
+                       estimate){
+if(is.null(id)){ #Single individual
+  data[, id:=1] #Adding id so that statements below are valid
+}
+data[, R2 := 1 - sum((get(signal) - get(estimate))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
+data[, R2_mean := 1 - sum((get(signal) - mean(get(estimate)))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
 }
