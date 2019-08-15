@@ -167,7 +167,6 @@ calculate.glla <-  function(signal,
   if (length(signal) <= embedding){
     stop("Signal and time vectors should have a length greater than embedding.\n")
   }
-  with(as.list(param),{
     if (embedding > 2){
       deltat <- diff(time)[1]
 
@@ -203,8 +202,6 @@ calculate.glla <-  function(signal,
                          "dsignal" = derivative,
                          "embedding" = embedding)
     return(returnobject)
-
-  })
 }
 # calculate.fda ----------------------------------------------------------
 #' Calculation of derivatives using the FDA method (splines)
@@ -703,7 +700,7 @@ generate.panel.2order <- function(time,
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
   #signalraw is the signal WITHOUT NOISE
-  data[, signalraw := generate.1order (time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],wnvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+  data[, signalraw := generate.2order (time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],wnvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
   data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
@@ -1363,7 +1360,7 @@ analyze.2order <- function(data,
             resultid[, paste0(doremiexc[i],"_komega2") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
                                                        random$id[.GRP,paste0(doremiexc[i], "_rollmean")]), by = id]
             intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")])]* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
+                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")])* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
             #ponderated with their corresponding gains
           }else{ #Single individual
             intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * get(doremiexc[i])]
@@ -1397,9 +1394,7 @@ analyze.2order <- function(data,
                                                       k = 1,
                                                       yeq = resultmean[, yeq])$y]
       }
-    }
-
-  }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
+    }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
     if (verbose){print("Status: Linear mixed-effect model produced errors.")}
     warning("Linear mixed-effect regression produced an error. Verify the regression object of the result.\n")
     resultid <- NULL
@@ -1477,10 +1472,90 @@ analyze.2order <- function(data,
 #'@export
 calculate.R2<-function(data,
                        signal,
-                       estimate){
+                       estimated){
+dataint <- copy(data)
 if(is.null(id)){ #Single individual
-  data[, id:=1] #Adding id so that statements below are valid
+  dataint[, id:=1] #Adding id so that statements below are valid
 }
-data[, R2 := 1 - sum((get(signal) - get(estimate))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
-data[, R2_mean := 1 - sum((get(signal) - mean(get(estimate)))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
+dataint[, R2 := 1 - sum((get(signal) - get(estimate))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
+dataint[, R2_mean := 1 - sum((get(signal) - mean(get(estimate)))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
+return(dataint)
 }
+
+
+# Optimization loop for embedding dimension/spar --------------------------
+#
+optimum_param <- function(data,
+                          id,
+                          signal,
+                          model = 1,
+                          dermethod = "fda",
+                          emin = 3,
+                          emax = 21,
+                          estep = 2,
+                          smin = -1,
+                          smax = 2,
+                          sstep = 0.5){
+  if(!dermethod %in% c("fda","glla","gold")){
+    stop("Invalid derivative estimation method. Please change to \"fda\",\"glla\" or \"gold\"")
+  }
+  #according to ethod chosen, default parameters, if not specified in the inputs, will be different for embedding than spar
+  if(dermethod!="fda"){
+    parseq <- seq(emin,emax,estep)
+    res <- lapply(embedseq, function(d){
+      if(model==1){ #first order model
+        res2 <- analyze.1order(data = data,
+                                 id = id,
+                                 input = input,
+                                 time = time,
+                                 signal = signal,
+                                 dermethod = dermethod,
+                                 embedding = d)$data
+      }else{
+        res2 <- analyze.2order(data = data,
+                             id = id,
+                             input = input,
+                             time = time,
+                             signal = signal,
+                             dermethod = dermethod,
+                             embedding = d)$data
+      }
+      resdet <- calculate.R2(data = res2,
+                             signal = signal,
+                             estimate = paste0(signal,"_estimated"))
+      data.table(resdet[,.(d,R2), by = id]) #Add dermethod in table?
+    })%>% rbindlist()
+  }else{
+    parseq <- seq(smin,smax,sstep)
+    res <- lapply(embedseq, function(s){
+      if(model==1){ #first order model
+        res2 <- analyze.1order(data = data,
+                               id = id,
+                               input = input,
+                               time = time,
+                               signal = signal,
+                               dermethod = dermethod,
+                               spar = s)$data
+      }else{
+        res2 <- analyze.2order(data = data,
+                               id = id,
+                               input = input,
+                               time = time,
+                               signal = signal,
+                               dermethod = dermethod,
+                               spar = s)$data
+      }
+      resdet <- calculate.R2(data = res2,
+                             signal = signal,
+                             estimate = paste0(signal,"_estimated"))
+      data.table(resdet[,.(d,R2), by = id]) #Add dermethod in table?
+    })%>% rbindlist()
+  }
+  ressum <- resdet[,.(R2max):=max(R2), by = id]
+  return(ressum)
+}
+
+
+
+
+
