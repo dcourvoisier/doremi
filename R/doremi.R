@@ -439,7 +439,7 @@ generate.2order <- function(time = 0:100,
                             y0 = 0,
                             v0 = 0,
                             xi = 0.1,
-                            wn = 0.5,
+                            period = 0.5,
                             k = 1,
                             yeq = 0){
   #Error management
@@ -457,15 +457,16 @@ generate.2order <- function(time = 0:100,
 
   #Initial values
   state <- c(y1 = y0, y2 = v0)
-  parameters<-c(xi,wn,k,yeq)
+  parameters<-c(xi,period,k,yeq)
 
   #Model
   model2<-function(t, state, parameters)
   {   with(as.list(c(state, parameters)),
            { # equations of the state space model (two first oder coupled ODEs)
              u <- excf(t)
+             wn <- 2*pi/period
              dy1 <- y2
-             dy2 <- -wn^2*y1-2*xi*wn*y2 + k*wn^2*u + yeq
+             dy2 <- -wn^2*y1-2*xi*wn*y2 + k*wn^2*u + wn^2*yeq
              # return latent variables
              list(c(dy1,dy2))})
   }
@@ -639,7 +640,7 @@ generate.panel.1order <- function(time,
 #'                       y0 = 0,
 #'                       v0 = 0,
 #'                       xi = 0.1,
-#'                       wn = 0.5,
+#'                       period = 0.5,
 #'                       k = 1,
 #'                       yeq = 0,
 #'                       nind = 5,
@@ -656,7 +657,7 @@ generate.panel.2order <- function(time,
                                   y0 = 0,
                                   v0 = 0,
                                   xi = 0.1,
-                                  wn = 0.5,
+                                  period = 1,
                                   k = 1,
                                   yeq = 0,
                                   nind = 1,
@@ -673,9 +674,9 @@ generate.panel.2order <- function(time,
 
   #Creating normal distributions for parameters
   y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
-  v0vec <- rnorm(nind, mean = y0, sd = internoise * v0)
+  v0vec <- rnorm(nind, mean = v0, sd = internoise * v0)
   xivec <- rnorm(nind, mean = xi, sd = internoise * xi)
-  wnvec <- rnorm(nind, mean = y0, sd = internoise * wn)
+  periodvec <- rnorm(nind, mean = period, sd = internoise * period)
   kvec <- rnorm(nind, mean = k, sd = internoise * k)
   yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
 
@@ -700,7 +701,7 @@ generate.panel.2order <- function(time,
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
   #signalraw is the signal WITHOUT NOISE
-  data[, signalraw := generate.2order (time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],wnvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+  data[, signalraw := generate.2order(time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],periodvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
   data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
@@ -1091,7 +1092,7 @@ analyze.1order <- function(data,
 #' DOREMI second order analysis function
 #'
 #' \code{analyze.2order}  estimates the coefficients of a second order differential equation of the form:
-#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t) + y_{eq}}
+#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
 #' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
 #' The function estimates the coefficients \zeta, \omega_{n}, k and y_{eq} using a two step procedure in
 #' which the user can choose the derivative estimation method (through the parameter dermethod) and then the
