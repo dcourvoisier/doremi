@@ -785,7 +785,7 @@ generate.panel.2order <- function(time,
 #'                   input = "load",
 #'                   time = "time",
 #'                   signal = "hr",
-#'                   dermethod ="gold",
+#'                   dermethod ="calculate.gold",
 #'                   embedding = 5)
 #'@export
 #'@import data.table
@@ -801,9 +801,8 @@ analyze.1order <- function(data,
                  input = NULL,
                  time = NULL,
                  signal,
-                 dermethod = "fda",
-                 embedding = 2,
-                 spar = 1,
+                 dermethod = "calculate.fda",
+                 param = 2,
                  verbose = FALSE){
 
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
@@ -832,7 +831,7 @@ analyze.1order <- function(data,
     intdata[, input := 0]
     input = "input"
     noinput <- TRUE #This flag will be needed later as if there is no input, coefficients for the excitation term will not be calculated in the regression
-    warning("No excitation signal introduced as input. Input was set to 0. Adjustment will consist on exponential fit.\n")
+    warning("No excitation signal introduced as input. Input was set to 0.\n")
   }
   if (!is.null(time)){errorcheck(intdata, time)
   }else{
@@ -841,8 +840,8 @@ analyze.1order <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
-  if(!dermethod %in% c("fda","glla","gold")){
-    stop("Derivative method is not valid. Please choose method \"fda\",\"glla\" or \"gold\"")
+  if(!dermethod %in% c("calculate.fda","calculate.glla","calculate.gold")){
+    stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
   }
 
   #After verification, extracting only relevant columns
@@ -880,24 +879,14 @@ analyze.1order <- function(data,
 
 
   #Calculation of the signal rollmean and first derivative of the signal column
-  if(dermethod=="gold"){
-    intdata[, signal_rollmean := calculate.gold(signal, time, embedding)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.gold(signal, time, embedding)$dsignal[, 2], by = id]
-    intdata[, time_derivate := calculate.gold(signal, time, embedding)$dtime, by = id]
-  }
-  if(dermethod=="glla"){
-    intdata[, signal_rollmean := calculate.glla(signal, time, embedding)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.glla(signal, time, embedding)$dsignal[, 2], by = id]
-    intdata[, time_derivate := calculate.glla(signal, time, embedding)$dtime, by = id]
-  }
-  if(dermethod=="fda"){
-    intdata[, signal_rollmean := calculate.fda(signal, time, spar)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.fda(signal, time, spar)$dsignal[, 2], by = id]
-    intdata[, time_derivate := calculate.fda(signal, time, spar)$dtime, by = id]
-  }
+  derivate <-get(dermethod)
+  intdata[, signal_rollmean := derivate(signal, time, param)$dsignal[, 1], by = id]
+  intdata[, signal_derivate1 := derivate(signal, time, param)$dsignal[, 2], by = id]
+  intdata[, time_derivate := derivate(signal, time, param)$dtime, by = id]
+
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
-    myfun <- function(x){x[] <- c(rollmean(x, (embedding)), rep(NA, embedding - 1)); x}
+    myfun <- function(x){x[] <- c(rollmean(x, (param)), rep(NA, param - 1)); x}
     intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
   }
 
@@ -1078,12 +1067,7 @@ analyze.1order <- function(data,
   #If there is no excitation term
   if (noinput){str_exc <- 0
   }else{str_exc <- input} # If there is one OR SEVERAL excitation columns
-  if(dermethod %in% c("glla","gold")){
-    res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, embedding = embedding, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
-  }
-  if(dermethod %in% c("fda")){
-    res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, spar = spar, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
-  }
+  res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, param = param, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
   class(res)= "doremi" # Class definition
   return(res)
 }
@@ -1158,7 +1142,7 @@ analyze.1order <- function(data,
 #'                   input = "load",
 #'                   time = "time",
 #'                   signal = "hr",
-#'                   dermethod ="gold",
+#'                   dermethod = "calculate.gold",
 #'                   embedding = 5)
 #'@export
 #'@import data.table
@@ -1174,9 +1158,8 @@ analyze.2order <- function(data,
                            input = NULL,
                            time = NULL,
                            signal,
-                           dermethod = "fda",
-                           embedding = 3,
-                           spar = 1,
+                           dermethod = "calculate.gold",
+                           param = 3,
                            verbose = FALSE){
 
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
@@ -1205,7 +1188,7 @@ analyze.2order <- function(data,
     intdata[, input := 0]
     input = "input"
     noinput <- TRUE #This flag will be needed later as if there is no input, coefficients for the excitation term will not be calculated in the regression
-    warning("No excitation signal introduced as input. Input was set to 0. Adjustment will consist on exponential fit.\n")
+    warning("No excitation signal introduced as input. Input was set to 0.\n")
   }
   if (!is.null(time)){errorcheck(intdata, time)
   }else{
@@ -1214,8 +1197,8 @@ analyze.2order <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
-  if(!dermethod %in% c("fda","glla","gold")){
-    stop("Derivative method is not valid. Please choose method \"fda\",\"glla\" or \"gold\"")
+  if(!dermethod %in% c("calculate.fda","calculate.glla","calculate.gold")){
+    stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
   }
 
   #After verification, extracting only relevant columns
@@ -1253,27 +1236,15 @@ analyze.2order <- function(data,
 
 
   #Calculation of the signal rollmean and first derivative of the signal column
-  if(dermethod=="gold"){
-    intdata[, signal_rollmean := calculate.gold(signal, time, embedding)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.gold(signal, time, embedding)$dsignal[, 2], by = id]
-    intdata[, signal_derivate2 := calculate.gold(signal, time, embedding)$dsignal[, 3], by = id]
-    intdata[, time_derivate := calculate.gold(signal, time, embedding)$dtime, by = id]
-  }
-  if(dermethod=="glla"){
-    intdata[, signal_rollmean := calculate.glla(signal, time, embedding)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.glla(signal, time, embedding)$dsignal[, 2], by = id]
-    intdata[, signal_derivate2 := calculate.glla(signal, time, embedding)$dsignal[, 3], by = id]
-    intdata[, time_derivate := calculate.glla(signal, time, embedding)$dtime, by = id]
-  }
-  if(dermethod=="fda"){
-    intdata[, signal_rollmean := calculate.fda(signal, time, embedding)$dsignal[, 1], by = id]
-    intdata[, signal_derivate1 := calculate.fda(signal, time, embedding)$dsignal[, 2], by = id]
-    intdata[, signal_derivate2 := calculate.fda(signal, time, embedding)$dsignal[, 3], by = id]
-    intdata[, time_derivate := calculate.fda(signal, time, embedding)$dtime, by = id]
-  }
+  derivate<-get(dermethod)
+  intdata[, signal_rollmean := derivate(signal, time, param)$dsignal[, 1], by = id]
+  intdata[, signal_derivate1 := derivate(signal, time, param)$dsignal[, 2], by = id]
+  intdata[, signal_derivate2 := derivate(signal, time, param)$dsignal[, 3], by = id]
+  intdata[, time_derivate := derivate(signal, time, param)$dtime, by = id]
+
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
-    myfun <- function(x){x[] <- c(rollmean(x, (embedding)), rep(NA, embedding - 1)); x}
+    myfun <- function(x){x[] <- c(rollmean(x, (param)), rep(NA, param - 1)); x}
     intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
   }
 
@@ -1281,11 +1252,12 @@ analyze.2order <- function(data,
   if(nind>1){
     if (noinput){ # if there is no excitation signal
       model <- tryCatch({lmer(signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 + signal_rollmean |id),
+      model <- tryCatch({lmer(signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 + signal_rollmean + signal_derivate1 |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0("signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
-                                     " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
+                                     " + signal_rollmean + signal_derivate1 |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                                      data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       if (verbose){print("Status: One or several excitations. Linear mixed-effect model calculated.")}
     }
@@ -1328,9 +1300,8 @@ analyze.2order <- function(data,
       resultid <- setDT(list(id = unique(intdata$id), id_tmp = unique(intdata$id_tmp)))
       setkey(resultid, id) #sorts the data table by id
 
-      # Damping time in resultid
-      resultid[, omega2 := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
       resultid[, esp2omega2 := -1L/(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
+      resultid[, esp2omega := -(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
       resultid[, yeqomega2 := summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"], by = id]
 
       resultid[omega2 > 0,period := 2*pi/sqrt(omega2)]
@@ -1351,6 +1322,7 @@ analyze.2order <- function(data,
     # Extract the excitation coeff for each excitation
     intdata[, totalexc := 0]
     if(!is.null(excitation)){ #if there is no excitation, k will be set to 0
+    if(!noinput){ #if there is no excitation, k will be set to 0
         for (i in 1:length(input)){ #For loop to go through all the inputs
           resultmean[, paste0(doremiexc[i],"_komega2") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]]
 
@@ -1382,7 +1354,7 @@ analyze.2order <- function(data,
                                                       y0 = signal_rollmean[1],
                                                       v0 = signal_derivate1[1],
                                                       xi = resultid[.GRP, xi],
-                                                      wn = resultid[.GRP, wn],
+                                                      period = resultid[.GRP, period],
                                                       k = 1,
                                                       yeq = resultid[.GRP, yeq])$y,by = id]
       }else{
@@ -1391,7 +1363,7 @@ analyze.2order <- function(data,
                                                       y0 = signal_rollmean[1],
                                                       v0 = signal_derivate1[1],
                                                       xi = resultmean[, xi],
-                                                      wn = resultmean[, wn],
+                                                      period = resultmean[, period],
                                                       k = 1,
                                                       yeq = resultmean[, yeq])$y]
       }
@@ -1436,12 +1408,7 @@ analyze.2order <- function(data,
   #If there is no excitation term
   if (noinput){str_exc <- 0
   }else{str_exc <- input} # If there is one OR SEVERAL excitation columns
-  if(dermethod %in% c("glla","gold")){
-    res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, embedding = embedding, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
-  }
-  if(dermethod %in% c("fda")){
-    res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, spar = spar, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
-  }
+  res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, param = param, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
   class(res)= "doremi" # Class definition
   return(res)
 }
@@ -1472,91 +1439,64 @@ analyze.2order <- function(data,
 #'                   estimated = "hr_estimated")
 #'@export
 calculate.R2<-function(data,
+                       id = NULL,
                        signal,
                        estimated){
-dataint <- copy(data)
+intdata <- copy(data)
 if(is.null(id)){ #Single individual
-  dataint[, id:=1] #Adding id so that statements below are valid
+  intdata[, id := 1] #Adding id so that statements below are valid
+  id <- "id"
 }
-dataint[, R2 := 1 - sum((get(signal) - get(estimate))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
-dataint[, R2_mean := 1 - sum((get(signal) - mean(get(estimate)))^2,na.rm = T)/sum((get(signal) - mean(get(signal),na.rm = T))^2,na.rm = T), by = id]
-return(dataint)
-}
+#renaming columns
+  originalnames <- c(id, signal, estimated)
+  doreminames <- c("id", "signal", "estimated")
+  setnames(intdata, originalnames, doreminames)
 
+intdata[, R2 := 1 - sum((signal - estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T), by = id]
+intdata[, R2_mean := 1 - sum((signal - mean(estimated))^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T), by = id]
+
+#rename back to original names
+setnames(intdata, doreminames, originalnames)
+
+return(intdata)
+}
 
 # Optimization loop for embedding dimension/spar --------------------------
 #
 optimum_param <- function(data,
                           id,
+                          input= NULL,
+                          time,
                           signal,
-                          model = 1,
-                          dermethod = "fda",
-                          emin = 3,
-                          emax = 21,
-                          estep = 2,
-                          smin = -1,
-                          smax = 2,
-                          sstep = 0.5){
-  if(!dermethod %in% c("fda","glla","gold")){
-    stop("Invalid derivative estimation method. Please change to \"fda\",\"glla\" or \"gold\"")
-  }
-  #according to ethod chosen, default parameters, if not specified in the inputs, will be different for embedding than spar
-  if(dermethod!="fda"){
-    parseq <- seq(emin,emax,estep)
-    res <- lapply(embedseq, function(d){
-      if(model==1){ #first order model
-        res2 <- analyze.1order(data = data,
-                                 id = id,
-                                 input = input,
-                                 time = time,
-                                 signal = signal,
-                                 dermethod = dermethod,
-                                 embedding = d)$data
-      }else{
-        res2 <- analyze.2order(data = data,
+                          model = "analyze.1order",
+                          dermethod = "calculate.gold", #string containing function name, beware!
+                          pmin = 3,
+                          pmax = 21,
+                          pstep = 2){
+  parseq <- seq(pmin,pmax,pstep)
+  res <- lapply(parseq, function(par){
+      analyze <- get(model)
+      res2 <- analyze(data = data,
+                               id = id,
+                               input = input,
+                               time = time,
+                               signal = signal,
+                               dermethod = dermethod,
+                               param = par)$data
+      resdet <- calculate.R2(data = res2,
                              id = id,
-                             input = input,
-                             time = time,
                              signal = signal,
-                             dermethod = dermethod,
-                             embedding = d)$data
-      }
-      resdet <- calculate.R2(data = res2,
-                             signal = signal,
-                             estimate = paste0(signal,"_estimated"))
-      data.table(resdet[,.(d,R2), by = id]) #Add dermethod in table?
+                             estimated = paste0(signal,"_estimated"))
+      data.table(resdet)
+      resdet[, model := model]
+      resdet[, dermethod := dermethod]
+      resdet[, param := par]
     })%>% rbindlist()
-  }else{
-    parseq <- seq(smin,smax,sstep)
-    res <- lapply(embedseq, function(s){
-      if(model==1){ #first order model
-        res2 <- analyze.1order(data = data,
-                               id = id,
-                               input = input,
-                               time = time,
-                               signal = signal,
-                               dermethod = dermethod,
-                               spar = s)$data
-      }else{
-        res2 <- analyze.2order(data = data,
-                               id = id,
-                               input = input,
-                               time = time,
-                               signal = signal,
-                               dermethod = dermethod,
-                               spar = s)$data
-      }
-      resdet <- calculate.R2(data = res2,
-                             signal = signal,
-                             estimate = paste0(signal,"_estimated"))
-      data.table(resdet[,.(d,R2), by = id]) #Add dermethod in table?
-    })%>% rbindlist()
-  }
-  ressum <- resdet[,.(R2max):=max(R2), by = id]
-  return(ressum)
+  res2<-res[res[, .I[R2 == max(R2)], by=id]$V1]
+  res3 <-res2[,.(R2max = R2[1], paramopt = param[1], dermethod = dermethod[1], model = model[1]),by =id]
+
+  return(list(details = res, selection = res2, summary = res3))
 }
-
-
 
 
 
