@@ -729,11 +729,9 @@ generate.panel.2order <- function(time,
 #' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
 #' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
-#' @param embedding Is a positive integer containing the number of points to be used for the calculation of the derivatives if dermethod "glla" or "gold" are chosen.
-#' (It will be ignored if method "fda" is chosen) Its value by default is 2 as at least two points are needed for the calculation of the first derivative.
-#' @param spar Related to the smoothing parameter lambda used in the penalization function of to estimate the derivatives via splines. If dermethod "glla" or "gold"
-#' are chosen, this parameter is ignored. For more details, see the documentation
-#' of \code{smooth.spline}
+#' @param derparam If dermethod "glla" or "gold" are chosen, it is the embedding number, a positive integer containing the number of points to be used for the calculation of the derivatives.
+#' Its value by default is 2 as at least two points are needed for the calculation of the first derivative. If dermethod "fda" is chosen,
+#' it is spar, the parameter related to the smoothing parameter lambda used in the penalization function of to estimate the derivatives via splines of \code{smooth.spline}
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @keywords analysis, first order, exponential
 #' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
@@ -786,7 +784,7 @@ generate.panel.2order <- function(time,
 #'                   time = "time",
 #'                   signal = "hr",
 #'                   dermethod ="calculate.gold",
-#'                   embedding = 5)
+#'                   derparam = 5)
 #'@export
 #'@import data.table
 #'@importFrom lmerTest lmer
@@ -802,7 +800,7 @@ analyze.1order <- function(data,
                  time = NULL,
                  signal,
                  dermethod = "calculate.fda",
-                 param = 2,
+                 derparam = 2,
                  verbose = FALSE){
 
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
@@ -880,14 +878,16 @@ analyze.1order <- function(data,
 
   #Calculation of the signal rollmean and first derivative of the signal column
   derivate <-get(dermethod)
-  intdata[, signal_rollmean := derivate(signal, time, param)$dsignal[, 1], by = id]
-  intdata[, signal_derivate1 := derivate(signal, time, param)$dsignal[, 2], by = id]
-  intdata[, time_derivate := derivate(signal, time, param)$dtime, by = id]
+  intdata[, signal_rollmean := derivate(signal, time, derparam)$dsignal[, 1], by = id]
+  intdata[, signal_derivate1 := derivate(signal, time, derparam)$dsignal[, 2], by = id]
+  intdata[, time_derivate := derivate(signal, time, derparam)$dtime, by = id]
 
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
-    myfun <- function(x){x[] <- c(rollmean(x, (param)), rep(NA, param - 1)); x}
-    intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
+    #myfun <- function(x){x[] <- c(rollmean(x, (derparam)), rep(NA, derparam - 1)); x}
+    #intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
+    myfun<-
+    intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, function(x){x[] <- derivate(excitation,time,derparam)$dsignal[,1];x}), .SDcols = doremiexc, by = id]
   }
 
   #Linear mixed-effect regression MULTIPLE INDIVIDUALS
@@ -1067,7 +1067,7 @@ analyze.1order <- function(data,
   #If there is no excitation term
   if (noinput){str_exc <- 0
   }else{str_exc <- input} # If there is one OR SEVERAL excitation columns
-  res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, param = param, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
+  res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, derparam = derparam, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
   class(res)= "doremi" # Class definition
   return(res)
 }
@@ -1143,7 +1143,7 @@ analyze.1order <- function(data,
 #'                   time = "time",
 #'                   signal = "hr",
 #'                   dermethod = "calculate.gold",
-#'                   embedding = 5)
+#'                   derparam = 5)
 #'@export
 #'@import data.table
 #'@importFrom lmerTest lmer
@@ -1159,7 +1159,7 @@ analyze.2order <- function(data,
                            time = NULL,
                            signal,
                            dermethod = "calculate.gold",
-                           param = 3,
+                           derparam = 3,
                            verbose = FALSE){
 
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
@@ -1237,21 +1237,20 @@ analyze.2order <- function(data,
 
   #Calculation of the signal rollmean and first derivative of the signal column
   derivate<-get(dermethod)
-  intdata[, signal_rollmean := derivate(signal, time, param)$dsignal[, 1], by = id]
-  intdata[, signal_derivate1 := derivate(signal, time, param)$dsignal[, 2], by = id]
-  intdata[, signal_derivate2 := derivate(signal, time, param)$dsignal[, 3], by = id]
-  intdata[, time_derivate := derivate(signal, time, param)$dtime, by = id]
+  intdata[, signal_rollmean := derivate(signal, time, derparam)$dsignal[, 1], by = id]
+  intdata[, signal_derivate1 := derivate(signal, time, derparam)$dsignal[, 2], by = id]
+  intdata[, signal_derivate2 := derivate(signal, time, derparam)$dsignal[, 3], by = id]
+  intdata[, time_derivate := derivate(signal, time, derparam)$dtime, by = id]
 
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
-    myfun <- function(x){x[] <- c(rollmean(x, (param)), rep(NA, param - 1)); x}
+    myfun <- function(x){x[] <- c(rollmean(x, (derparam)), rep(NA, derparam - 1)); x}
     intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
   }
 
   #Linear mixed-effect regression MULTIPLE INDIVIDUALS
   if(nind>1){
     if (noinput){ # if there is no excitation signal
-      model <- tryCatch({lmer(signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 + signal_rollmean |id),
       model <- tryCatch({lmer(signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 + signal_rollmean + signal_derivate1 |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
@@ -1300,7 +1299,7 @@ analyze.2order <- function(data,
       resultid <- setDT(list(id = unique(intdata$id), id_tmp = unique(intdata$id_tmp)))
       setkey(resultid, id) #sorts the data table by id
 
-      resultid[, esp2omega2 := -1L/(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
+      resultid[, omega2 := -(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
       resultid[, esp2omega := -(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
       resultid[, yeqomega2 := summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"], by = id]
 
@@ -1321,7 +1320,6 @@ analyze.2order <- function(data,
 
     # Extract the excitation coeff for each excitation
     intdata[, totalexc := 0]
-    if(!is.null(excitation)){ #if there is no excitation, k will be set to 0
     if(!noinput){ #if there is no excitation, k will be set to 0
         for (i in 1:length(input)){ #For loop to go through all the inputs
           resultmean[, paste0(doremiexc[i],"_komega2") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]]
@@ -1339,7 +1337,7 @@ analyze.2order <- function(data,
             intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * get(doremiexc[i])]
           }
         }
-    }else{
+    }else{ #there is no input
       resultmean[, Komega2 := 0]
       if(nind>1){resultid[, Komega2 := 0]}
     }
@@ -1408,7 +1406,7 @@ analyze.2order <- function(data,
   #If there is no excitation term
   if (noinput){str_exc <- 0
   }else{str_exc <- input} # If there is one OR SEVERAL excitation columns
-  res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, param = param, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
+  res = list(data = intdata, resultid = resultid, resultmean = resultmean, regression = regression, dermethod = dermethod, derparam = derparam, str_time = time, str_exc = str_exc, str_signal = signal, str_id = id)
   class(res)= "doremi" # Class definition
   return(res)
 }
@@ -1482,7 +1480,8 @@ optimum_param <- function(data,
                                time = time,
                                signal = signal,
                                dermethod = dermethod,
-                               param = par)$data
+                               derparam = par)$data
+      #Result details
       resdet <- calculate.R2(data = res2,
                              id = id,
                              signal = signal,
@@ -1492,7 +1491,7 @@ optimum_param <- function(data,
       resdet[, dermethod := dermethod]
       resdet[, param := par]
     })%>% rbindlist()
-  res2<-res[res[, .I[R2 == max(R2)], by=id]$V1]
+  res2<-res[res[, .I[R2 == max(R2)], by=id]$V1] #Maximum R2 by id
   res3 <-res2[,.(R2max = R2[1], paramopt = param[1], dermethod = dermethod[1], model = model[1]),by =id]
 
   return(list(details = res, selection = res2, summary = res3))
