@@ -681,7 +681,8 @@ generate.panel.2order <- function(time,
   yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
 
   #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
-  if (any(xivec <= 0)){
+  #this is because we are only interested in self-regulated signals, or oscillating but not divergent signals.
+  if (any(xivec < 0)){
     a <- 0.1 * min(diff(time)) #Threshold to truncate the xi distribution
     perc <- as.vector(prop.table(table(xivec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
     b <- as.vector(quantile(xivec, probs = 1 - perc)) #Calculation of the symmetrical threshold
@@ -704,7 +705,14 @@ generate.panel.2order <- function(time,
   data[, signalraw := generate.2order(time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],periodvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
-  data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
+  #intranoise is the Signal to Noise ratio (SNR)
+  #rnorm(signal) generates errors with mean 0 ans sd 1 then we need to calculate a scaling value
+  #taken from https://stats.stackexchange.com/questions/31158/how-to-simulate-signal-noise-ratio
+  if(intranoise!=0){
+    data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
+  }else{
+    data[, signal := signalraw, by = id]
+  }
   return(data)
 }
 
@@ -870,7 +878,6 @@ analyze.1order <- function(data,
   doremiexc <- paste0("input", seq(input)) # Doremi excitation vector ("input1","input2","input3"...)
   doreminames <- c("id_tmp", "time", "signal", doremiexc)
   setnames(intdata, originalnames, doreminames)
-
   #Rename id column to "id_tmp" and create an extra column "id" that is numeric
   #Regression works better with numeric id (comes from definition of lmer)
   intdata[, id := rep(1:length(unique(id_tmp)), intdata[, .N, by = id_tmp]$N)]
@@ -886,8 +893,7 @@ analyze.1order <- function(data,
   if (!noinput){
     #myfun <- function(x){x[] <- c(rollmean(x, (derparam)), rep(NA, derparam - 1)); x}
     #intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
-    myfun<-
-    intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, function(x){x[] <- derivate(excitation,time,derparam)$dsignal[,1];x}), .SDcols = doremiexc, by = id]
+    intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, function(x){x[] <- derivate(x,time,derparam)$dsignal[,1];x}), .SDcols = doremiexc, by = id]
   }
 
   #Linear mixed-effect regression MULTIPLE INDIVIDUALS
@@ -1244,8 +1250,9 @@ analyze.2order <- function(data,
 
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
-    myfun <- function(x){x[] <- c(rollmean(x, (derparam)), rep(NA, derparam - 1)); x}
-    intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
+    # myfun <- function(x){x[] <- c(rollmean(x, (derparam)), rep(NA, derparam - 1)); x}
+    # intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
+    intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, function(x){x[] <- derivate(x,time,derparam)$dsignal[,1];x}), .SDcols = doremiexc, by = id]
   }
 
   #Linear mixed-effect regression MULTIPLE INDIVIDUALS
@@ -1323,18 +1330,20 @@ analyze.2order <- function(data,
     if(!noinput){ #if there is no excitation, k will be set to 0
         for (i in 1:length(input)){ #For loop to go through all the inputs
           resultmean[, paste0(doremiexc[i],"_komega2") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]]
-
+          resultmean[omega2>0, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]/resultmean$omega2]
           #If variation of the excitation coefficient across individuals needed:
           #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
           #Excitation coefficient in resultid
           if(nind > 1){  #Several individuals
             resultid[, paste0(doremiexc[i],"_komega2") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
                                                        random$id[.GRP,paste0(doremiexc[i], "_rollmean")]), by = id]
-            intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")])* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
+            resultid[omega2>0, paste0(doremiexc[i],"_k") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")])/omega2, by=id]
+
+            intdata[, totalexc := totalexc +  resultid[[.GRP,paste0(doremiexc[i],"_k")]] * get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
             #ponderated with their corresponding gains
           }else{ #Single individual
-            intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * get(doremiexc[i])]
+            intdata[, totalexc := totalexc + resultmean[[paste0(doremiexc[i],"_k")]] * get(doremiexc[i])]
           }
         }
     }else{ #there is no input
@@ -1347,6 +1356,7 @@ analyze.2order <- function(data,
     #k=1, total gain is already included in totalexc)
     #Assuming initial value is equilibrium value
     if(nind > 1){
+        if(verbose){print("Status: estimating signal for several individuals")}
         intdata[, signal_estimated := generate.2order(time = time,
                                                       excitation = totalexc,
                                                       y0 = signal_rollmean[1],
@@ -1356,6 +1366,7 @@ analyze.2order <- function(data,
                                                       k = 1,
                                                       yeq = resultid[.GRP, yeq])$y,by = id]
       }else{
+        if(verbose){print("Status: estimating signal for single individuals")}
         intdata[, signal_estimated := generate.2order(time = time,
                                                       excitation = totalexc,
                                                       y0 = signal_rollmean[1],
