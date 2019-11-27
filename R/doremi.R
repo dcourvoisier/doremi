@@ -1332,9 +1332,9 @@ analyze.2order <- function(data,
 
       # Generation of the estimated signal for all id using analyze.2order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
       # Write a warning if any of the damping times calculated was negative
-      if (any(is.na(resultid[, xi])) | any(resultid[, xi] < 0)){
-        warning("Some of the damping factors calculated were negative and thus, the estimated signal was not generated for these.
-                  Damping factors can be negative for some individuals for the following reasons: 1. The signal of
+      if (any(is.na(resultid[, xi])) | any(resultid[, xi] < 0) | any(is.na(resultid[, period])) | any(resultid[, period] < 0)){
+        warning("Some of the parameters estimated were negative and thus, the estimated signal was not generated for these.
+                  This can be due to one of the following reasons: 1. The signal of
                   the individual doesn't go back to equilibrium. 2.The linear mixed-effects model estimating the random
                   effect showed some error messages/warnings. 3.Model misspecification.\n")
       }
@@ -1386,7 +1386,6 @@ analyze.2order <- function(data,
         #Building time vector that had the first point of rollmean time and rollmean signal
         timecomp<-c(time[time<time_derivate[1]],time_derivate[1],time[time>time_derivate[1]])
         exccomp<-c(totalexc[time<time_derivate[1]],totalexcroll[1],totalexc[time>time_derivate[1]])
-
         #Position of the rollmean time in the original time vector
         i <- length(time[time<time_derivate[1]]) + 1
         droite <- generate.2order(time = timecomp[i:length(timecomp)], #includes original time and the first element of the rollmean time
@@ -1409,6 +1408,10 @@ analyze.2order <- function(data,
         }else{gauche <-NULL}
         #putting the two solutions together
         sol<-c(gauche$y[i:2],droite$y)
+        if(length(sol)>length(time)){
+          #If the generated solution is larger than the initial time vector (meaning pair embedding number), extract the added point
+          sol<-sol[!timecomp==time_derivate[1]]
+        }
        }else{
         if(verbose){print("Status: Solution wasn't generated as one of the parameters was NaN")}
         sol<-rep(NaN,length(time))
@@ -1487,6 +1490,11 @@ optimum_param <- function(data,
                           pmax = 21,
                           pstep = 2,
                           verbose= F){
+  #Error management
+  Npoints<-data[,.N,by=id]$N
+  if(any(pmax>Npoints)){
+    stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
+  }
   analyze <- get(model)
   analysis <- rbindlist(lapply(seq(pmin,pmax,pstep),function(embedding){
     if(verbose){print(paste0("Analyzing for embedding=",embedding))}
