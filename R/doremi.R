@@ -1311,10 +1311,10 @@ analyze.2order <- function(data,
                              esp2omega_std = summary$coefficients["signal_derivate1","Std. Error"],
                              yeqomega2 = summary$coefficients["(Intercept)","Estimate"],
                              yeqomega2_std = summary$coefficients["(Intercept)","Std. Error"])
-    resultmean[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NA)]
-    resultmean[, wn := ifelse(omega2>0,sqrt(omega2),NA)]
-    resultmean[, xi := ifelse(omega2>0,esp2omega/(2*sqrt(omega2)),NA)]
-    resultmean[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NA)]
+    resultmean[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NaN)]
+    resultmean[, wn := ifelse(omega2>0,sqrt(omega2),NaN)]
+    resultmean[, xi := ifelse(omega2>0,esp2omega/(2*sqrt(omega2)),NaN)]
+    resultmean[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NaN)]
 
     if(nind > 1){
       #The third table contains the results for the coefficients for each individual (one line per individual)
@@ -1324,11 +1324,11 @@ analyze.2order <- function(data,
       resultid[, omega2 := -(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
       resultid[, esp2omega := -(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
       resultid[, yeqomega2 := summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"], by = id]
-      print(resultid$omega2)
-      resultid[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NA)]
-      resultid[, wn := ifelse(omega2>0,sqrt(omega2),NA)]
-      resultid[, xi := ifelse(omega2>0,esp2omega/(2*sqrt(omega2)),NA)]
-      resultid[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NA)]
+
+      resultid[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NaN)]
+      resultid[, wn := ifelse(omega2>0,sqrt(omega2),NaN)]
+      resultid[, xi := ifelse(omega2>0,esp2omega/(2*sqrt(omega2)),NaN)]
+      resultid[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NaN)]
 
       # Generation of the estimated signal for all id using analyze.2order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
       # Write a warning if any of the damping times calculated was negative
@@ -1338,7 +1338,7 @@ analyze.2order <- function(data,
                   the individual doesn't go back to equilibrium. 2.The linear mixed-effects model estimating the random
                   effect showed some error messages/warnings. 3.Model misspecification.\n")
       }
-    }else{resultid <- NULL} #Single individual will not have resultid table
+     }else{resultid <- NULL} #Single individual will not have resultid table
 
     # Extract the excitation coeff for each excitation
     intdata[, totalexc := 0]
@@ -1382,43 +1382,46 @@ analyze.2order <- function(data,
     #Assuming initial value is equilibrium value
 
     generate_solution<- function(time,time_derivate,totalexc,totalexcroll,signal_rollmean,signal_derivate1,xi,period,yeq){
-    if (!(is.na(xi) | is.na(period) | is.na(yeq))){
-      #Building time vector that had the first point of rollmean time and rollmean signal
-      timecomp<-c(time[time<time_derivate[1]],time_derivate[1],time[time>time_derivate[1]])
-      exccomp<-c(totalexc[time<time_derivate[1]],totalexcroll[1],totalexc[time>time_derivate[1]])
+      if (!(is.na(xi) | is.na(period) | is.na(yeq))){
+        #Building time vector that had the first point of rollmean time and rollmean signal
+        timecomp<-c(time[time<time_derivate[1]],time_derivate[1],time[time>time_derivate[1]])
+        exccomp<-c(totalexc[time<time_derivate[1]],totalexcroll[1],totalexc[time>time_derivate[1]])
 
-      #Position of the rollmean time in the original time vector
-      i <- length(time[time<time_derivate[1]]) + 1
-      droite <- generate.2order(time = timecomp[i:length(timecomp)], #includes original time and the first element of the rollmean time
-                                excitation = exccomp[i:length(exccomp)],
-                                y0 = signal_rollmean[1],
-                                v0 = signal_derivate1[1],
-                                xi = xi,
-                                period = period,
-                                k = 1,
-                                yeq = yeq)
-      if(!dermethod == "calculate.fda"){ #with fda the initial condition will be on t=0 as we are building functions
-        gauche <- generate.2order(time = timecomp[i:1],
-                                excitation = exccomp[i:1],
-                                y0 = signal_rollmean[1],
-                                v0 = signal_derivate1[1],
-                                xi = xi,
-                                period = period,
-                                k = 1,
-                                yeq = yeq)
-      }else{gauche <-NULL}
-      #putting the two solutions together
-      sol<-c(gauche$y[i:2],droite$y)
-    }else{sol<-rep(NA,length(time))}
+        #Position of the rollmean time in the original time vector
+        i <- length(time[time<time_derivate[1]]) + 1
+        droite <- generate.2order(time = timecomp[i:length(timecomp)], #includes original time and the first element of the rollmean time
+                                  excitation = exccomp[i:length(exccomp)],
+                                  y0 = signal_rollmean[1],
+                                  v0 = signal_derivate1[1],
+                                  xi = xi,
+                                  period = period,
+                                  k = 1,
+                                  yeq = yeq)
+        if(!dermethod == "calculate.fda"){ #with fda the initial condition will be on t=0 as we are building functions
+          gauche <- generate.2order(time = timecomp[i:1],
+                                  excitation = exccomp[i:1],
+                                  y0 = signal_rollmean[1],
+                                  v0 = signal_derivate1[1],
+                                  xi = xi,
+                                  period = period,
+                                  k = 1,
+                                  yeq = yeq)
+        }else{gauche <-NULL}
+        #putting the two solutions together
+        sol<-c(gauche$y[i:2],droite$y)
+       }else{
+        if(verbose){print("Status: Solution wasn't generated as one of the parameters was NaN")}
+        sol<-rep(NaN,length(time))
+       }
       sol
     }
     if(nind > 1){
       if(verbose){print("Status: estimating signal for several individuals")}
       intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,signal_derivate1,resultid[.GRP, xi],
                                           resultid[.GRP, period], resultid[.GRP, yeq]),by =id]
+
     }else{
-      if(verbose){print("Status: estimating signal for single individuals")}
-      #print(intdata)
+      if(verbose){print("Status: estimating signal for single individual")}
       intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,signal_derivate1,resultmean[, xi],
                                           resultmean[, period], resultmean[, yeq])]
     }
@@ -1497,27 +1500,29 @@ optimum_param <- function(data,
     res2 <- res$data
     res2[, xi_est:= res$resultmean$xi]
     res2[, period_est:= res$resultmean$period]
-    res2[, embedding:= embedding]
+    res2[, D:= embedding]
     res2
   }))
 
   #Calculation of R2 max et Dopt
   R2opt <- max(analysis[!is.na(period_est),R2])
-  Dopt <-analysis[R2==R2opt,embedding[1]]
+  Dopt <-analysis[R2==R2opt,D[1]]
   #Summary table for plotting
-  summ<-analysis[,.(R2=R2[1],xi_est=xi_est[1],period_est=period_est[1]),by="embedding"]
+  summ<-analysis[,.(R2=R2[1],xi_est=xi_est[1],period_est=period_est[1]),by="D"]
+  summ_opt<-summ[R2==R2opt]
+  summ_opt[,method:=dermethod]
+  names(summ_opt)[1]<-"Dopt"
   #Plotting estimated parameters and R2 versus embedding
-  estvsembed<-ggplot(summ) + geom_point(aes(embedding,R2,color="R^2")) +
-    geom_point(aes(embedding,xi_est,color="estimated damping factor, xi")) +
-    geom_point(aes(embedding,period_est,color="estimated period, T"))+
+  estvsembed<-ggplot(summ) + geom_point(aes(D,R2,color="R^2")) +
+    geom_point(aes(D,xi_est,color="estimated damping factor, xi")) +
+    geom_point(aes(D,period_est,color="estimated period, T"))+
     labs(x = "Embedding dimension, D",
          y = "",
          colour = "") +
     ggtitle("Evolution of estimated parameters and R^2 with embedding")+
     theme(legend.position = "top",
           plot.title = element_text(hjust = 0.5))
-  print(estvsembed)
-  return(list(R2opt=R2opt,Dopt=Dopt,analysis=analysis,summary=summ))
+  return(list(analysis=analysis,summary=summ,summary_opt=summ_opt))
 }
 
 
