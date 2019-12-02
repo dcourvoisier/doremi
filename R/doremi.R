@@ -1437,7 +1437,10 @@ analyze.2order <- function(data,
     regression <- model
   }
   #Calculating R2
-  intdata[, R2:= 1 - sum((signal - signal_estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T)]
+  if(!(is.na(resultmean[,xi]) | is.na(resultmean[,period]) | is.na(resultmean[,yeq]))){
+    intdata[, R2:= 1 - sum((signal - signal_estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T)]
+  }else{ intdata[, R2:= NaN]}
+  intdata[R2 < 0, R2 := 0]
 
   #Renaming columns in $data, $resultid, $resultmean objects to original names
   intdata[, id := NULL]
@@ -1520,16 +1523,19 @@ optimum_param <- function(data,
   summ_opt<-summ[R2==R2opt]
   summ_opt[,method:=dermethod]
   names(summ_opt)[1]<-"Dopt"
+  #Temporary long data table containing parameter name
+  toplot<-melt(summ,id.vars="D")
   #Plotting estimated parameters and R2 versus embedding
-  estvsembed<-ggplot(summ) + geom_point(aes(D,R2,color="R^2")) +
-    geom_point(aes(D,xi_est,color="estimated damping factor, xi")) +
-    geom_point(aes(D,period_est,color="estimated period, T"))+
+  estvsembed<-ggplot(toplot) + geom_point(aes(D,value,color=variable)) +
     labs(x = "Embedding dimension, D",
          y = "",
          colour = "") +
-    ggtitle("Evolution of estimated parameters and R^2 with embedding")+
+    ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension: ",dermethod))+
     theme(legend.position = "top",
-          plot.title = element_text(hjust = 0.5))
+          plot.title = element_text(hjust = 0.5)) +
+    facet_wrap(~variable,scale = "free")
+  print(estvsembed)
+
   return(list(analysis=analysis,summary=summ,summary_opt=summ_opt))
 }
 
