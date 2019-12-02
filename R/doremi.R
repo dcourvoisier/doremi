@@ -51,15 +51,15 @@ calculate.gold <-  function(signal,
     #these values so that the matrix contain the groups by line and from left to
     #right.
     tembed <- tembed[, ncol(tembed):1]
-
+    
     #Creation of the D matrix for estimation of derivatives up to second
     #derivative. According to the paper mentioned, equations (11) and (12) this
     #is "...the diagonal matrix with scaling constants that convert the
     #polynomial estimates to derivative estimates".
     D <- cbind(c(1, 0, 0), c(0, 1, 0), c(0, 0, 0.5))
     #Cbind does a column binding of the vectors
-
-
+    
+    
     #Creation of the empty derivative matrix Lines: It will have as many lines
     #as groups of time points the embed function gives (thus, the number of lines
     #of the tembed matrix) Columns: It will have 3 columns because: First column
@@ -68,15 +68,15 @@ calculate.gold <-  function(signal,
     #time points. Third column will contain the signal second derivative in those
     #same time points
     derivative <- matrix(NA, nrow = nrow(tembed), ncol = 3)
-
-
+    
+    
     #Xembed is a matrix containing the values of the signal in the time points
     #considered in "embedding" (no mean calculated yet) As for tembed, it
     #contains in each line the groups of "n" points of the function with n being
     #the embedding value to PREPARE for the calculation of the roll mean
     Xembed <- embed(signal, embedding)
     Xembed <- Xembed[, ncol(Xembed):1]
-
+    
     for (k in 1:nrow(tembed)){
       # Loop repeated in each tembed line (each group of time values)
       # To take into account variable delta t.
@@ -104,7 +104,7 @@ calculate.gold <-  function(signal,
     }
     derivative <- rbind(derivative, matrix(data = NA, ncol = 3, nrow = embedding - 1))
     # Addition of NA so that the derivative rows are the same as those of signal
-
+    
   } else if (embedding == 2){
     #warning("Only first derivative can be calculated with an embedding of 2.\n")
     derivative <- cbind(rollmean(signal, embedding), diff(signal) / diff(time))
@@ -118,7 +118,7 @@ calculate.gold <-  function(signal,
   }
   time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
   # Addition of NA so that the time rows are the same as those of signal
-
+  
   returnobject <- list("dtime" = time_derivative,
                        "dsignal" = derivative,
                        "embedding" = embedding)
@@ -167,41 +167,41 @@ calculate.glla <-  function(signal,
   if (length(signal) <= embedding){
     stop("Signal and time vectors should have a length greater than embedding.\n")
   }
-    if (embedding > 2){
-      deltat <- diff(time)[1]
-
-      L1 <- rep(1,embedding)
-      L2 <- c(1:embedding)-mean(c(1:embedding))
-      L3 <- (L2^2)/2
-      L <- cbind(L1,L2,L3)
-      W <- L%*%solve(t(L)%*%L)
-
-      Xembed <- embed(signal, embedding)
-      Xembed <- Xembed[, ncol(Xembed):1]
-
-      derivative <- Xembed %*% W
-      derivative[,2] <- derivative[,2]/deltat
-      derivative[,3] <- derivative[,3]/deltat^2
-      derivative <- rbind(derivative, matrix(data = NA, ncol = 3, nrow = embedding - 1))
-
-    } else if (embedding == 2){
-      #warning("Only first derivative can be calculated with an embedding of 2.\n")
-      derivative <- cbind(rollmean(signal, embedding), diff(signal) / diff(time))
-      #Appends the two columns: 1. mean time values and 2. The span calculated as
-      #the difference of two signal values (going forward) divided by the time
-      #interval
-      derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
-      # Addition of NA so that the derivative rows are the same as those of signal
-    } else{
-      stop("Embedding should be >=2 for the calculation of derivatives.\n")
-    }
-    time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
-    # Addition of NA so that the time rows are the same as those of signal
-
-    returnobject <- list("dtime" = time_derivative,
-                         "dsignal" = derivative,
-                         "embedding" = embedding)
-    return(returnobject)
+  if (embedding > 2){
+    deltat <- diff(time)[1]
+    
+    L1 <- rep(1,embedding)
+    L2 <- c(1:embedding)-mean(c(1:embedding))
+    L3 <- (L2^2)/2
+    L <- cbind(L1,L2,L3)
+    W <- L%*%solve(t(L)%*%L)
+    
+    Xembed <- embed(signal, embedding)
+    Xembed <- Xembed[, ncol(Xembed):1]
+    
+    derivative <- Xembed %*% W
+    derivative[,2] <- derivative[,2]/deltat
+    derivative[,3] <- derivative[,3]/deltat^2
+    derivative <- rbind(derivative, matrix(data = NA, ncol = 3, nrow = embedding - 1))
+    
+  } else if (embedding == 2){
+    #warning("Only first derivative can be calculated with an embedding of 2.\n")
+    derivative <- cbind(rollmean(signal, embedding), diff(signal) / diff(time))
+    #Appends the two columns: 1. mean time values and 2. The span calculated as
+    #the difference of two signal values (going forward) divided by the time
+    #interval
+    derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
+    # Addition of NA so that the derivative rows are the same as those of signal
+  } else{
+    stop("Embedding should be >=2 for the calculation of derivatives.\n")
+  }
+  time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
+  # Addition of NA so that the time rows are the same as those of signal
+  
+  returnobject <- list("dtime" = time_derivative,
+                       "dsignal" = derivative,
+                       "embedding" = embedding)
+  return(returnobject)
 }
 # calculate.fda ----------------------------------------------------------
 #' Calculation of derivatives using the FDA method (splines)
@@ -306,7 +306,7 @@ generate.excitation = function(amplitude = 1,
   if (nexc < length(duration) | nexc < length(amplitude)){
     stop("The number of excitations nexc is smaller than the number of elements in amplitude and/or duration.\n")
   }
-
+  
   if (nexc > length(duration)){
     if (length(duration) > 1){
       warning("The number of excitations nexc was higher than the durations defined. Durations were recycled.\n")
@@ -322,24 +322,24 @@ generate.excitation = function(amplitude = 1,
     amplitude <- amplitude[1:nexc]
   }
   if(tmax < (sum(duration) + minspacing * (nexc-1))){stop("Invalid input parameters. tmax should be greater than (duration + minspacing) * nexc.\n")}
-
+  
   #Generation of time vector
   tim <- seq(0, tmax, deltatf)
-
+  
   found <- FALSE #indicates final distribution of pulses has not been found yet
   while (!found){
     tal <- c(sort(sample(0:tmax, nexc, replace = F)), tmax) #initial sampling. tal is a vector of time values in which the pulses will start
     if(all(diff(tal) >= (minspacing + duration))){found <- TRUE} #means all the pulses fitted and we exit the loop
   }
-
+  
   #Generation of excitation
   E <- rep(0,length(tim)) #initialize excitation vector with 0
-
+  
   for (i in 1:nexc){
     E[(tim >= tal[i]) & (tim <= (tal[i] + duration[i]))] <- amplitude[i] #fill vector with the amplitudes for the corresponding pulse in the lapses
     #of time defined by tal and tal+duration
   }
-
+  
   data <- list(exc = E, t = tim)
   return(data)
 }
@@ -351,7 +351,8 @@ generate.excitation = function(amplitude = 1,
 #' will be a decreasing exponential)
 #' @param time Is a vector containing the time values corresponding to the excitation signal.
 #' @param excitation Is a vector containing the values of the excitation signal.
-#' @param y0 Signal initial value y(t=0)
+#' @param y0 Signal initial value y(t=t0)
+#' @param t0 Time for the signal initial value y(t=t0)
 #' @param tau Signal damping time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
 #' @param k Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
@@ -365,44 +366,67 @@ generate.excitation = function(amplitude = 1,
 #'   \item  t is a vector containing the corresponding time values
 #' }
 #' @examples
+#' generate.1order()
+#' generate.1order(t0 = 2.5,y0 = 2)
 #' generate.1order(time = 0:49, excitation = c(rep(0,10),rep(1,40)))
 #'@export
 #'@importFrom deSolve ode
 generate.1order <- function(time = 0:100,
-                            excitation = NULL,
+                            excitation = as.numeric(0:100>50),
                             y0 = 0,
+                            t0 = 0,
                             tau = 10,
                             k = 1,
                             yeq = 0){
   #Error management
   #If excitation is not supplied, then creation of an empty vector
   if(is.null(excitation)){excitation <- rep(0,length(time))}
-
+  
   #If excitation is a scalar, the function warns the user that it should be a vector containing the values of the excitation signal
   if (length(excitation) <= 1 | length(excitation) != length(time)) {
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
   }
+  
+  if (t0 < min(time,na.rm = T) | t0 > max(time,na.rm = T)) {
+    stop("Initial condition should be given for a time contained within the the time vector boundaries\n")
+  }
+  
   #if excitation is a character or a matrix, the function stops
   if (is.matrix(excitation) | is.character(excitation)) stop("Excitation should be a vector.")
-
+  
   #Interpolating excitation function so that it can be evaluated in the time points required by deSolve. Rule 2 means constant interpolation.
   excf <- approxfun(time, excitation, rule = 2)
-
+  
+  time_init <- time
   #Initial values
   state <- c(y = y0)
+  # integrate time of initial value
+  time <- c(time,t0)
   #Parameters
   parameters <- c(tau,k,yeq)
-
+  
   #Model
   model1<-function(t, state, parameters)
   {   with(as.list(c(state, parameters)),
            { u <- excf(t)
            # return latent variable
            list(-(1/tau)*y + k/tau*u + yeq/tau)})
-
+    
   }
-  out <- as.data.frame(ode(y = state, times = time, func = model1, parms = parameters))
+  # do the integration for time before t0
+  time <- time[order(-time)]
+  out_left <- as.data.frame(ode(y = state, times = time[time <= t0], func = model1, parms = parameters))
+  # do the integration for time after t0
+  time <- time[order(time)]
+  out_right <- as.data.frame(ode(y = state, times = time[time >= t0], func = model1, parms = parameters))
+  # bind the two
+  out <- rbind(out_left,out_right)
+  # setneames
   names(out)<-c("t","y")
+  # take initial times only
+  out <- out[out$t %in% time_init,]
+  # remove duplicated initial value
+  out <- out[!duplicated(out),]
   out
 }
 # generate.2order ----------------------------------------------------
@@ -814,7 +838,7 @@ analyze.1order <- function(data,
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
 
 # Error management
-    errorcheck(intdata,signal)
+  errorcheck(intdata,signal)
   if (!is.null(id)){ #Several individuals
       errorcheck(intdata,id)
       nind <- length(unique(intdata[[id]]))
@@ -1038,7 +1062,8 @@ analyze.1order <- function(data,
                                     k = 1,
                                     yeq = yeq)
           #putting the two solutions together
-          sol<-c(gauche$y[i:2],droite$y)
+          sol<-c(gauche$y[(i-1):1],droite$y)
+          # faux!
           sol
         }
         if(nind > 1){
