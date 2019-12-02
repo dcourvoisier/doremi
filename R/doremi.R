@@ -1048,16 +1048,14 @@ analyze.1order <- function(data,
         #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
         #k=1, total gain is already included in totalexc)
         
-        if(nind > 1){
+        
           intdata[, signal_estimated := generate.1order(time = time,
                                                         excitation = totalexc,
                                                         y0 = signal_rollmean[1],
                                                         t0 = time_derivate[1],
                                                         tau = resultid[.GRP, tau],
                                                         yeq = resultid[.GRP, yeq])$y,by =id]
-        }else{
-          intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,resultmean[, tau],resultmean[, yeq])]
-        }
+      
       }
 
     }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
