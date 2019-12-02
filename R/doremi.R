@@ -595,7 +595,12 @@ generate.panel.1order <- function(time,
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
   #signalraw is the signal WITHOUT NOISE
-  data[, signalraw := generate.1order (time, excitation, y0vec[.GRP],tauvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+  data[, signalraw := generate.1order (time = time,
+                                       excitation =  excitation,
+                                       y0 =  y0vec[.GRP],
+                                       tau = tauvec[.GRP],
+                                       k = kvec[.GRP],
+                                       yeq = yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
   data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
@@ -1042,32 +1047,14 @@ analyze.1order <- function(data,
         #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
         #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
         #k=1, total gain is already included in totalexc)
-        #Assuming initial value is equilibrium value
-        generate_solution<- function(time,time_derivate,totalexc,totalexcroll,signal_rollmean,tau,yeq){
-          #Building time vector that had the first point of rollmean time and rollmean signal
-          timecomp<-c(time[time<time_derivate[1]],time_derivate[1],time[time>time_derivate[1]])
-          exccomp<-c(totalexc[time<time_derivate[1]],totalexcroll[1],totalexc[time>time_derivate[1]])
-          #Position of the rollmean time in the original time vector
-          i <- length(time[time<time_derivate[1]])+1
-          droite <- generate.1order(time = timecomp[i:length(timecomp)], #includes original time and the first element of the rollmean time
-                                    excitation = exccomp[i:length(exccomp)],
-                                    y0 = signal_rollmean[1],
-                                    tau = tau,
-                                    k = 1,
-                                    yeq = yeq)
-          gauche <- generate.1order(time = timecomp[i:1],
-                                    excitation = exccomp[i:1],
-                                    y0 = signal_rollmean[1],
-                                    tau = tau,
-                                    k = 1,
-                                    yeq = yeq)
-          #putting the two solutions together
-          sol<-c(gauche$y[(i-1):1],droite$y)
-          # faux!
-          sol
-        }
+        
         if(nind > 1){
-          intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,resultid[.GRP, tau],resultid[.GRP, yeq]),by =id]
+          intdata[, signal_estimated := generate.1order(time = time,
+                                                        excitation = totalexc,
+                                                        y0 = signal_rollmean[1],
+                                                        t0 = time_derivate[1],
+                                                        tau = resultid[.GRP, tau],
+                                                        yeq = resultid[.GRP, yeq])$y,by =id]
         }else{
           intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,resultmean[, tau],resultmean[, yeq])]
         }
