@@ -1066,6 +1066,13 @@ analyze.1order <- function(data,
       regression <- model
     }
 
+  #Calculating R2
+  if(!(is.na(resultmean[,tau]) | is.na(resultmean[,yeq]))){
+    resultmean$R2 <-  intdata[,  1 - sum((signal - signal_estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T)]
+  }else{ resultmean$R2 <- NaN}
+  resultmean[R2 < 0, R2 := 0]
+  
+  
     #Renaming columns in $data, $resultid, $resultmean objects to original names
     intdata[, id := NULL]
     if(!is.null(resultid)){resultid[, id := NULL]}
@@ -1526,11 +1533,10 @@ optimum_param <- function(data,
   }))
 
   #Calculation of R2 max et Dopt
-  # R2opt <- max(analysis[!is.na(period_est),R2])
-  Dopt <-analysis[R2==max(R2,na.rm = T),D[1]]
+  Dopt <-analysis$resultmean[R2==max(R2,na.rm = T),D[1]]
   #Summary table for plotting
   
-  summ_opt<-checkTypos[R2==max(R2,na.rm = T)]
+  summ_opt <- analysis$resultmean[R2==max(R2,na.rm = T)]
   summ_opt[,method:=dermethod]
   # names(summ_opt)[1]<-"Dopt"
   #Temporary long data table containing parameter name
