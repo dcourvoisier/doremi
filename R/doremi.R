@@ -1518,25 +1518,26 @@ optimum_param <- function(data,
                       signal = signal,
                       dermethod = dermethod,
                       derparam = embedding)
-    res2 <- res$data
-    res2[, xi_est:= res$resultmean$xi]
-    res2[, period_est:= res$resultmean$period]
-    res2[, D:= embedding]
-    res2
+    # res2 <- res$data
+    # res2[, xi_est:= res$resultmean$xi]
+    # res2[, period_est:= res$resultmean$period]
+    res[, D:= embedding]
+    res
   }))
 
   #Calculation of R2 max et Dopt
-  R2opt <- max(analysis[!is.na(period_est),R2])
-  Dopt <-analysis[R2==R2opt,D[1]]
+  # R2opt <- max(analysis[!is.na(period_est),R2])
+  Dopt <-analysis[R2==max(R2,na.rm = T),D[1]]
   #Summary table for plotting
-  summ<-analysis[,.(R2=R2[1],xi_est=xi_est[1],period_est=period_est[1]),by="D"]
-  summ_opt<-summ[R2==R2opt]
+  
+  summ_opt<-checkTypos[R2==max(R2,na.rm = T)]
   summ_opt[,method:=dermethod]
-  names(summ_opt)[1]<-"Dopt"
+  # names(summ_opt)[1]<-"Dopt"
   #Temporary long data table containing parameter name
-  toplot<-melt(summ,id.vars="D")
+  toplot<-melt(analysis,id.vars="D")
   #Plotting estimated parameters and R2 versus embedding
-  estvsembed<-ggplot(toplot) + geom_point(aes(D,value,color=variable)) +
+  estvsembed<-ggplot(toplot) + 
+    geom_point(aes(D,value,color=variable)) +
     labs(x = "Embedding dimension, D",
          y = "",
          colour = "") +
