@@ -459,9 +459,10 @@ generate.1order <- function(time = 0:100,
 #'@export
 #'@importFrom deSolve ode
 generate.2order <- function(time = 0:100,
-                            excitation = NULL,
+                            excitation = as.numeric(0:100>50),
                             y0 = 0,
                             v0 = 0,
+                            t0 = 0,
                             xi = 0.1,
                             period = 0.5,
                             k = 1,
@@ -479,6 +480,7 @@ generate.2order <- function(time = 0:100,
   excf <- approxfun(time, excitation, rule = 2)
 
   #Initial values
+  time_init <- time
   state <- c(y1 = y0, y2 = v0)
   parameters<-c(xi,period,k,yeq)
 
@@ -493,7 +495,20 @@ generate.2order <- function(time = 0:100,
              # return latent variables
              list(c(dy1,dy2))})
   }
-  out <- as.data.frame(ode(y = state, times = time, func = model2, parms = parameters))
+  # do the integration for time before t0
+  time <- time[order(-time)]
+  out_left <- as.data.frame(ode(y = state, times = time[time <= t0], func = model2, parms = parameters))
+  # do the integration for time after t0
+  time <- time[order(time)]
+  out_right <- as.data.frame(ode(y = state, times = time[time >= t0], func = model2, parms = parameters))
+  # bind the two
+  out <- rbind(out_left,out_right)
+  # setneames
+  names(out)<-c("t","y")
+  # take initial times only
+  out <- out[out$t %in% time_init,]
+  # remove duplicated initial value
+  out <- out[!duplicated(out),]
   names(out)<-c("t","y","dy")
   out
 }
@@ -1546,12 +1561,13 @@ optimum_param <- function(data,
          y = "",
          colour = "") +
     ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension: ",dermethod))+
+    theme_bw()+
     theme(legend.position = "top",
           plot.title = element_text(hjust = 0.5)) +
     facet_wrap(~variable,scale = "free")
   print(estvsembed)
 
-  return(list(analysis=analysis,summary_opt=summ_opt))
+  return(list(analysis=analysis,summary_opt=summ_opt,d = Dopt))
 }
 
 
