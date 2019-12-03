@@ -470,7 +470,7 @@ generate.2order <- function(time = 0:100,
   #Error management
   #If excitation is not supplied, then creation of an empty vector
   if(is.null(excitation)){excitation <- rep(0,length(time))}
-
+  
   #If excitation is a scalar, the function warns the user that it should be a vector containing the values of the excitation signal
   if (length(excitation) <= 1 | length(excitation) != length(time)) {
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
@@ -478,12 +478,12 @@ generate.2order <- function(time = 0:100,
   #if excitation is a character or a matrix, the function stops
   if (!is.vector(excitation)) stop("Excitation should be a vector.")
   excf <- approxfun(time, excitation, rule = 2)
-
+  
   #Initial values
   time_init <- time
   state <- c(y1 = y0, y2 = v0)
   parameters<-c(xi,period,k,yeq)
-
+  
   # integrate time of initial value
   time <- c(time,t0)
   
@@ -508,7 +508,7 @@ generate.2order <- function(time = 0:100,
   # do the integration for time after t0
   time <- time[order(time)]
   out_right <- as.data.frame(ode(y = state, times = time[time >= t0], func = model2, parms = parameters))
-
+  
   # bind the two
   out <- rbind(out_left,out_right)
   # setneames
@@ -586,31 +586,31 @@ generate.panel.1order <- function(time,
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number)with as many lines per individual as npoints
   data <- data.table(id = rep(1:nind,each = length(time)))
-
+  
   #Adding 3excitation and time to the data frame
   data[, time := time, by = id]
   data[, excitation := excitation, by = id]
-
+  
   #Creating normal distributions for parameters
   tauvec <- rnorm(nind, mean = tau, sd = internoise * tau)
   y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
   kvec <- rnorm(nind, mean = k, sd = internoise * k)
   yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
-
+  
   #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
   if (any(tauvec <= 0)){
     a <- 0.1 * deltatf #Threshold to truncate the tau distribution
     perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
     b <- as.vector(quantile(tauvec, probs = 1 - perc)) #Calculation of the symmetrical threshold
-
+    
     #Truncating the normal distribution to these two thresholds
     tauvec[tauvec < a] <- a
     tauvec[tauvec > b] <- b
-
+    
     #Calculating new sd and internoise of the truncated distribution
     nsd <- sd(tauvec)
     ninternoise <- nsd / tau
-
+    
     warning("Some values for tau where negative when adding internoise. Negative damping times imply signals
             that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
             the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
@@ -625,7 +625,7 @@ generate.panel.1order <- function(time,
                                        tau = tauvec[.GRP],
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
-
+  
   #Addition of intra-noise
   data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
   return(data)
@@ -718,12 +718,12 @@ generate.panel.2order <- function(time,
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number)with as many lines per individual as npoints
   data <- data.table(id = rep(1:nind,each = length(time)))
-
+  
   #Adding excitation and time input vectors to the data frame
   data[, time := time, by = id]
   data[, excitation := excitation, by = id]
-
-
+  
+  
   #Creating normal distributions for parameters
   y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
   v0vec <- rnorm(nind, mean = v0, sd = internoise * v0)
@@ -731,22 +731,22 @@ generate.panel.2order <- function(time,
   periodvec <- rnorm(nind, mean = period, sd = internoise * period)
   kvec <- rnorm(nind, mean = k, sd = internoise * k)
   yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
-
+  
   #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
   #this is because we are only interested in self-regulated signals, or oscillating but not divergent signals.
   if (any(xivec < 0)){
     a <- 0.1 * min(diff(time)) #Threshold to truncate the xi distribution
     perc <- as.vector(prop.table(table(xivec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
     b <- as.vector(quantile(xivec, probs = 1 - perc)) #Calculation of the symmetrical threshold
-
+    
     #Truncating the normal distribution to these two thresholds
     xivec[xivec < a] <- a
     xivec[xivec > b] <- b
-
+    
     #Calculating new sd and internoise of the truncated distribution
     nsd <- sd(xivec)
     ninternoise <- nsd / xi
-
+    
     warning("Some values for xi where negative when adding internoise. Negative damping factors imply signals
             which oscillations increase exponentially (diverge). This function is intended to generate signals that are self-regulated and thus,
             the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
@@ -763,7 +763,7 @@ generate.panel.2order <- function(time,
                                       period = periodvec[.GRP],
                                       k = kvec[.GRP],
                                       yeq = yeqvec[.GRP])$y, by = id ]
-
+  
   #Addition of intra-noise
   #intranoise is the Signal to Noise ratio (SNR)
   #rnorm(signal) generates errors with mean 0 ans sd 1 then we need to calculate a scaling value
@@ -863,26 +863,26 @@ generate.panel.2order <- function(time,
 #'@importFrom zoo rollmean
 #'@importFrom zoo na.locf
 analyze.1order <- function(data,
-                 id = NULL,
-                 input = NULL,
-                 time = NULL,
-                 signal,
-                 dermethod = "calculate.fda",
-                 derparam = 2,
-                 verbose = FALSE){
-
+                           id = NULL,
+                           input = NULL,
+                           time = NULL,
+                           signal,
+                           dermethod = "calculate.fda",
+                           derparam = 2,
+                           verbose = FALSE){
+  
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
-
-# Error management
+  
+  # Error management
   errorcheck(intdata,signal)
   if (!is.null(id)){ #Several individuals
-      errorcheck(intdata,id)
-      nind <- length(unique(intdata[[id]]))
+    errorcheck(intdata,id)
+    nind <- length(unique(intdata[[id]]))
   }else{#Single individual. Create id column anyways (needed for the rest of the data processing)
-      nind <-1
-      intdata[, id:=1]
-      id<- "id"
+    nind <-1
+    intdata[, id:=1]
+    id<- "id"
   }
   if (!is.null(input)){
     errorcheck(intdata, input)
@@ -909,30 +909,30 @@ analyze.1order <- function(data,
   if(!dermethod %in% c("calculate.fda","calculate.glla","calculate.gold")){
     stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
   }
-
+  
   #After verification, extracting only relevant columns
   intdata <- intdata[,.SD,.SDcols = c(id, input, time, signal)]
-
+  
   #Sorting table
   setkeyv(intdata,c(id,time))
-
+  
   #Find time duplicates and display error message if it is the case
   intdata[,timedup:=lapply(.SD,duplicated),.SDcols = time,by = id]
   if(any(intdata$timedup)){stop("Input data.table contains duplicated time points.\n")}
-    else  intdata[, timedup := NULL]
-
+  else  intdata[, timedup := NULL]
+  
   #Verifying column names repeated in data table.
   if(any(duplicated(colnames(intdata)))){stop("Input datatable contains duplicated column names.\n")}
-
+  
   #Suppress NA elements if there is an NA in time or in signal
   #This suppresses the entire row of the intdata table
   intdata <- intdata[!is.na(time) & !is.na(signal)]
-
+  
   #If in the intdata left, there are some NA values in the excitation vector, set them to zero.
   #This is to avoid losing intdata from signal and time vectors, as sometimes when people fill in the signal intdata they put NA to mean no excitation, thus 0.
   na.to.0 <- function(x){x[is.na(x)] <- 0; x}
   intdata[, (input) := lapply(.SD, na.to.0), .SDcols = input]
-
+  
   #Saving original names and then renaming data table to internal names
   originalnames <- c(id, time, signal, input)
   doremiexc <- paste0("input", seq(input)) # Doremi excitation vector ("input1","input2","input3"...)
@@ -941,21 +941,21 @@ analyze.1order <- function(data,
   #Rename id column to "id_tmp" and create an extra column "id" that is numeric
   #Regression works better with numeric id (comes from definition of lmer)
   intdata[, id := rep(1:length(unique(id_tmp)), intdata[, .N, by = id_tmp]$N)]
-
-
+  
+  
   #Calculation of the signal rollmean and first derivative of the signal column
   derivate <-get(dermethod)
   intdata[, signal_rollmean := derivate(signal, time, derparam)$dsignal[, 1], by = id]
   intdata[, signal_derivate1 := derivate(signal, time, derparam)$dsignal[, 2], by = id]
   intdata[, time_derivate := derivate(signal, time, derparam)$dtime, by = id]
-
+  
   #Calculation of the roll mean of the excitation columns if there is at least one input column
   if (!noinput){
     #myfun <- function(x){x[] <- c(rollmean(x, (derparam)), rep(NA, derparam - 1)); x}
     #intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, myfun), .SDcols = doremiexc, by = id]
     intdata[, (paste0(doremiexc,"_rollmean")) := lapply(.SD, function(x){x[] <- derivate(x,time,derparam)$dsignal[,1];x}), .SDcols = doremiexc, by = id]
   }
-
+  
   #Linear mixed-effect regression MULTIPLE INDIVIDUALS
   if(nind>1){
     if (noinput){ # if there is no excitation signal
@@ -964,7 +964,7 @@ analyze.1order <- function(data,
       if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
-                              " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
+                                     " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
       if (verbose){print("Status: One or several excitations. Linear mixed-effect model calculated.")}
     }
@@ -972,7 +972,7 @@ analyze.1order <- function(data,
     if(noinput){ # if there is no excitation signal
       model <- tryCatch({lm(signal_derivate1 ~ signal_rollmean, data = intdata)}, error = function(e) e)
       if (verbose){print("Status: Unknown excitation. Linear regression calculated")}
-
+      
     }
     else{ # if there is one or several excitation signals
       model <- tryCatch({lm(paste0("signal_derivate1 ~ signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
@@ -980,124 +980,132 @@ analyze.1order <- function(data,
       if (verbose){print("Status: One or several excitations. Linear regression calculated")}
     }
   }
-    if (!inherits(model,"error")){ # if the regression worked
-      if (verbose){print("Status: Linear mixed-effect model had no errors.")}
-      summary <- summary(model) # Summary of the regression
-      if(nind > 1){random <- ranef(model)} # Variation of the estimated coefficients over the individuals. Only for data with several individuals
-      if(nind > 1){regression <- list(summary, random)}else{regression <- summary} # list to output both results: summary, and the table from ranef
-
-      #Create tables with results
-      #The first table contains the input data
-
-      #The second table contains the mean values for gamma and thao for all the individuals (single line)
-      #Generate mean results with convergence criterions
-      resultmean <- setDT(list(id = "All"))
-
-      # calculate the damping time for all signal columns: -1/damping_coeff
-      resultmean[, tau := -1L/summary$coefficients["signal_rollmean", "Estimate"]]
-
-      # Extract the intercept coeff (equilibrium value)
-      resultmean[, yeq := summary$coefficients["(Intercept)","Estimate"] * resultmean[, tau]]
-
-      if(nind > 1){
-        #The third table contains the results for gamma and thao for each individual (one line per individual)
-        resultid <- setDT(list(id = unique(intdata$id), id_tmp = unique(intdata$id_tmp)))
-        setkey(resultid, id) #sorts the data table by id
-
-        # Damping time in resultid
-        resultid[, tau := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
-
-        # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
-        # Offset in resultid
-        resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
-
-        # Generation of the estimated signal for all id using analyze.1order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
-        # Write a warning if any of the damping times calculated was negative
-        if (any(is.na(resultid[, tau])) | any(resultid[, tau] < 0)){
-          warning("Some of the damping times calculated were negative and thus, the estimated signal was not generated for these.
+  if (!inherits(model,"error")){ # if the regression worked
+    if (verbose){print("Status: Linear mixed-effect model had no errors.")}
+    summary <- summary(model) # Summary of the regression
+    if(nind > 1){random <- ranef(model)} # Variation of the estimated coefficients over the individuals. Only for data with several individuals
+    if(nind > 1){regression <- list(summary, random)}else{regression <- summary} # list to output both results: summary, and the table from ranef
+    
+    #Create tables with results
+    #The first table contains the input data
+    
+    #The second table contains the mean values for gamma and thao for all the individuals (single line)
+    #Generate mean results with convergence criterions
+    resultmean <- setDT(list(id = "All"))
+    
+    # calculate the damping time for all signal columns: -1/damping_coeff
+    resultmean[, tau := -1L/summary$coefficients["signal_rollmean", "Estimate"]]
+    
+    # Extract the intercept coeff (equilibrium value)
+    resultmean[, yeq := summary$coefficients["(Intercept)","Estimate"] * resultmean[, tau]]
+    
+    if(nind > 1){
+      #The third table contains the results for gamma and thao for each individual (one line per individual)
+      resultid <- setDT(list(id = unique(intdata$id), id_tmp = unique(intdata$id_tmp)))
+      setkey(resultid, id) #sorts the data table by id
+      
+      # Damping time in resultid
+      resultid[, tau := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
+      
+      # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
+      # Offset in resultid
+      resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
+      
+      # Generation of the estimated signal for all id using analyze.1order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
+      # Write a warning if any of the damping times calculated was negative
+      if (any(is.na(resultid[, tau])) | any(resultid[, tau] < 0)){
+        warning("Some of the damping times calculated were negative and thus, the estimated signal was not generated for these.
                   Damping times can be negative for some individuals for the following reasons: 1. The signal of
                   the individual doesn't go back to equilibrium. 2.The linear mixed-effects model estimating the random
                   effect showed some error messages/warnings. 3.Model misspecification.\n")
-        }
-      }else{resultid <- NULL} #Single individual will not have resultid table
-
-      if (noinput){ #There is no excitation signal as input: exponential fit
-        if (verbose){print("Status: Unknown excitation. Calculation of estimated signal through exponential fit.")}
-        #Exponential model is assumed when no input is provided and thus a new fit is necessary BY INDIVIDUAL
-        #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
-        #B is known, it is the intercept*tau, from the model fit with the derivative inside the analysis function
-        #A is unknown. It can be found by fitting log(y-B)~ t
-        #We'll call the coefficients resulting from this new fit Ap and Bp: Ap=gamma, Bp=log(A)
-        if(nind > 1){ # Several individuals
-          intdata[, expfit_A := lm(log(abs(signal - resultid[.GRP, yeq])) ~ time)$coefficients[1], by = id]
-          intdata[, signal_estimated :=
-                    if(!is.na(resultid[.GRP, tau]) && resultid[.GRP, tau] > 0){
-                      # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
-                      #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
-                      #expmodel comes from fitting log(y-B)~t. Calculated above
-                      exp(expfit_A) * exp(-1L / resultid[.GRP, tau] * time) + resultid[.GRP, yeq]
-                    }else{NaN}, by = id]
-        }else{ #Single individual
-          intdata[, expfit_A := lm(log(abs(signal - resultmean[, yeq])) ~ time)$coefficients[1]]
-          intdata[, signal_estimated :=
-                    if(!is.na(resultmean[, tau]) && resultmean[, tau] > 0){
-                      # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
-                      #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
-                      #expmodel comes from fitting log(y-B)~t. Calculated above
-                      exp(expfit_A) * exp(-1L / resultmean[, tau] * time) + resultmean[, yeq]
-                    }else{NaN}]
-        }
-        #Removing temporary column "expfit_A" from table "intdata"
-        intdata <- intdata[, c("expfit_A") := NULL]
-
-      }else{
-        if (verbose){print("Status: One or several excitation terms. Calculation of estimated signal with deSolve")}
-        # Extract the excitation coeff for each excitation
-        intdata[, totalexc := 0]
-        intdata[, totalexcroll := 0]
-        for (i in 1:length(input)){ #For loop to go through all the inputs
-          resultmean[, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau]]
-
-          #If variation of the excitation coefficient across individuals needed:
-          #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
-          #Excitation coefficient in resultid
-          if(nind > 1){  #Several individuals
-            resultid[, paste0(doremiexc[i],"_k") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                           random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau], by = id]
-            intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau]* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
-            intdata[, totalexcroll := totalexcroll +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
-                                                 random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau]* get(paste0(doremiexc[i],"_rollmean")), by = id]
-
-            #ponderated with their corresponding gains
-          }else{ #Single individual
-            intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau] * get(doremiexc[i])]
-            intdata[, totalexcroll := totalexcroll + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau] * get(paste0(doremiexc[i],"_rollmean"))]
-
-          }
-        }
-        #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
-        #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
-        #k=1, total gain is already included in totalexc)
-        
-        
-          intdata[, signal_estimated := generate.1order(time = time,
-                                                        excitation = totalexc,
-                                                        y0 = signal_rollmean[1],
-                                                        t0 = time_derivate[1],
-                                                        tau = resultid[.GRP, tau],
-                                                        yeq = resultid[.GRP, yeq])$y,by =id]
-      
       }
-
-    }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
-      if (verbose){print("Status: Linear mixed-effect model produced errors.")}
-      warning("Linear mixed-effect regression produced an error. Verify the regression object of the result.\n")
-      resultid <- NULL
-      resultmean <- NULL
-      regression <- model
+    }else{resultid <- NULL} #Single individual will not have resultid table
+    
+    if (noinput){ #There is no excitation signal as input: exponential fit
+      if (verbose){print("Status: Unknown excitation. Calculation of estimated signal through exponential fit.")}
+      #Exponential model is assumed when no input is provided and thus a new fit is necessary BY INDIVIDUAL
+      #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
+      #B is known, it is the intercept*tau, from the model fit with the derivative inside the analysis function
+      #A is unknown. It can be found by fitting log(y-B)~ t
+      #We'll call the coefficients resulting from this new fit Ap and Bp: Ap=gamma, Bp=log(A)
+      if(nind > 1){ # Several individuals
+        intdata[, expfit_A := lm(log(abs(signal - resultid[.GRP, yeq])) ~ time)$coefficients[1], by = id]
+        intdata[, signal_estimated :=
+                  if(!is.na(resultid[.GRP, tau]) && resultid[.GRP, tau] > 0){
+                    # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
+                    #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
+                    #expmodel comes from fitting log(y-B)~t. Calculated above
+                    exp(expfit_A) * exp(-1L / resultid[.GRP, tau] * time) + resultid[.GRP, yeq]
+                  }else{NaN}, by = id]
+      }else{ #Single individual
+        intdata[, expfit_A := lm(log(abs(signal - resultmean[, yeq])) ~ time)$coefficients[1]]
+        intdata[, signal_estimated :=
+                  if(!is.na(resultmean[, tau]) && resultmean[, tau] > 0){
+                    # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
+                    #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
+                    #expmodel comes from fitting log(y-B)~t. Calculated above
+                    exp(expfit_A) * exp(-1L / resultmean[, tau] * time) + resultmean[, yeq]
+                  }else{NaN}]
+      }
+      #Removing temporary column "expfit_A" from table "intdata"
+      intdata <- intdata[, c("expfit_A") := NULL]
+      
+    }else{
+      if (verbose){print("Status: One or several excitation terms. Calculation of estimated signal with deSolve")}
+      # Extract the excitation coeff for each excitation
+      intdata[, totalexc := 0]
+      intdata[, totalexcroll := 0]
+      for (i in 1:length(input)){ #For loop to go through all the inputs
+        resultmean[, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau]]
+        
+        #If variation of the excitation coefficient across individuals needed:
+        #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
+        #Excitation coefficient in resultid
+        if(nind > 1){  #Several individuals
+          resultid[, paste0(doremiexc[i],"_k") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                                     random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau], by = id]
+          intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                               random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau]* get(doremiexc[i]), by = id] #total excitation is the sum of all the excitations
+          intdata[, totalexcroll := totalexcroll +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                                       random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau]* get(paste0(doremiexc[i],"_rollmean")), by = id]
+          
+          #ponderated with their corresponding gains
+        }else{ #Single individual
+          intdata[, totalexc := totalexc + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau] * get(doremiexc[i])]
+          intdata[, totalexcroll := totalexcroll + summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau] * get(paste0(doremiexc[i],"_rollmean"))]
+          
+        }
+      }
+      #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
+      #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
+      #k=1, total gain is already included in totalexc)
+      
+      if(nind > 1){
+        intdata[, signal_estimated := generate.1order(time = time,
+                                                      excitation = totalexc,
+                                                      y0 = signal_rollmean[1],
+                                                      t0 = time_derivate[1],
+                                                      tau = resultid[.GRP, tau],
+                                                      yeq = resultid[.GRP, yeq])$y,by =id]
+      }else{
+        intdata[, signal_estimated := generate.1order(time = time,
+                                                      excitation = totalexc,
+                                                      y0 = signal_rollmean[1],
+                                                      t0 = time_derivate[1],
+                                                      tau = resultmean[,tau],
+                                                      yeq = resultmean[, yeq])$y]
+      }
+      
     }
-
+    
+  }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
+    if (verbose){print("Status: Linear mixed-effect model produced errors.")}
+    warning("Linear mixed-effect regression produced an error. Verify the regression object of the result.\n")
+    resultid <- NULL
+    resultmean <- NULL
+    regression <- model
+  }
+  
   #Calculating R2
   if(!(is.na(resultmean[,tau]) | is.na(resultmean[,yeq]))){
     resultmean$R2 <-  intdata[,  1 - sum((signal - signal_estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T)]
@@ -1105,22 +1113,22 @@ analyze.1order <- function(data,
   resultmean[R2 < 0, R2 := 0]
   
   
-    #Renaming columns in $data, $resultid, $resultmean objects to original names
-    intdata[, id := NULL]
-    if(!is.null(resultid)){resultid[, id := NULL]}
-
-    #Replacing names in $data
-    intdatanames <- names(intdata)
-    intdatanamesnew <- names(intdata)
-
-    rmeannames <- names(resultmean)
-    rmeannamesnew <- names(resultmean)
-
-    ridnames <- names(resultid)
-    ridnamesnew <- names(resultid)
-
-    for(idx in seq(doreminames)){
-      intdatanamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], intdatanamesnew, perl = T)
+  #Renaming columns in $data, $resultid, $resultmean objects to original names
+  intdata[, id := NULL]
+  if(!is.null(resultid)){resultid[, id := NULL]}
+  
+  #Replacing names in $data
+  intdatanames <- names(intdata)
+  intdatanamesnew <- names(intdata)
+  
+  rmeannames <- names(resultmean)
+  rmeannamesnew <- names(resultmean)
+  
+  ridnames <- names(resultid)
+  ridnamesnew <- names(resultid)
+  
+  for(idx in seq(doreminames)){
+    intdatanamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], intdatanamesnew, perl = T)
       #Replacing names in $resultmean
       if(!is.null(resultid)){
         ridnamesnew <-gsub(paste0("^",doreminames[idx],"(?![0-9])"), originalnames[idx], ridnamesnew, perl = T)
