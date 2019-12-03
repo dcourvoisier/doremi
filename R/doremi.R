@@ -1415,57 +1415,34 @@ analyze.2order <- function(data,
       if(nind>1){resultid[, Komega2 := 0]}
     }
 
-    #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
+    #The estimated signal is calculated by calling ode function in deSolve (through function "generate.2order"). As we will have a decomposition
     #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
     #k=1, total gain is already included in totalexc)
     #Assuming initial value is equilibrium value
-
-    generate_solution<- function(time,time_derivate,totalexc,totalexcroll,signal_rollmean,signal_derivate1,xi,period,yeq){
-      if (!(is.na(xi) | is.na(period) | is.na(yeq))){
-        #Building time vector that had the first point of rollmean time and rollmean signal
-        timecomp<-c(time[time<time_derivate[1]],time_derivate[1],time[time>time_derivate[1]])
-        exccomp<-c(totalexc[time<time_derivate[1]],totalexcroll[1],totalexc[time>time_derivate[1]])
-        #Position of the rollmean time in the original time vector
-        i <- length(time[time<time_derivate[1]]) + 1
-        droite <- generate.2order(time = timecomp[i:length(timecomp)], #includes original time and the first element of the rollmean time
-                                  excitation = exccomp[i:length(exccomp)],
-                                  y0 = signal_rollmean[1],
-                                  v0 = signal_derivate1[1],
-                                  xi = xi,
-                                  period = period,
-                                  k = 1,
-                                  yeq = yeq)
-        if(!dermethod == "calculate.fda"){ #with fda the initial condition will be on t=0 as we are building functions
-          gauche <- generate.2order(time = timecomp[i:1],
-                                  excitation = exccomp[i:1],
-                                  y0 = signal_rollmean[1],
-                                  v0 = signal_derivate1[1],
-                                  xi = xi,
-                                  period = period,
-                                  k = 1,
-                                  yeq = yeq)
-        }else{gauche <-NULL}
-        #putting the two solutions together
-        sol<-c(gauche$y[i:2],droite$y)
-        if(length(sol)>length(time)){
-          #If the generated solution is larger than the initial time vector (meaning pair embedding number), extract the added point
-          sol<-sol[!timecomp==time_derivate[1]]
-        }
-       }else{
-        if(verbose){print("Status: Solution wasn't generated as one of the parameters was NaN")}
-        sol<-rep(NaN,length(time))
-       }
-      sol
-    }
+    
     if(nind > 1){
       if(verbose){print("Status: estimating signal for several individuals")}
-      intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,signal_derivate1,resultid[.GRP, xi],
-                                          resultid[.GRP, period], resultid[.GRP, yeq]),by =id]
+      intdata[, signal_estimated :=     generate.2order(time = time, #includes original time and the first element of the rollmean time
+                                                        excitation = totalexc,
+                                                        y0 = signal_rollmean[1],
+                                                        v0 = signal_derivate1[1],
+                                                        t0 = time_derivate[1],
+                                                        xi = resultid[.GRP, xi],
+                                                        period = resultid[.GRP, period],
+                                                        k = 1,
+                                                        yeq = resultid[.GRP, yeq]),by =id]
 
     }else{
       if(verbose){print("Status: estimating signal for single individual")}
-      intdata[, signal_estimated := generate_solution(time,time_derivate,totalexc,totalexcroll,signal_rollmean,signal_derivate1,resultmean[, xi],
-                                          resultmean[, period], resultmean[, yeq])]
+      intdata[, signal_estimated :=     generate.2order(time = time, #includes original time and the first element of the rollmean time
+                                                        excitation = totalexc,
+                                                        y0 = signal_rollmean[1],
+                                                        v0 = signal_derivate1[1],
+                                                        t0 = time_derivate[1],
+                                                        xi = resultmean[, xi],
+                                                        period = resultmean[, period],
+                                                        k = 1,
+                                                        yeq = resultmean[, yeq])]
     }
 
     }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
