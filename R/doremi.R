@@ -1448,9 +1448,9 @@ analyze.2order <- function(data,
   }
   #Calculating R2
   if(!(is.na(resultmean[,xi]) | is.na(resultmean[,period]) | is.na(resultmean[,yeq]))){
-    intdata[, R2:= 1 - sum((signal - signal_estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T)]
-  }else{ intdata[, R2:= NaN]}
-  intdata[R2 < 0, R2 := 0]
+    resultmean$R2 <-  intdata[,  1 - sum((signal - signal_estimated)^2,na.rm = T)/sum((signal - mean(signal,na.rm = T))^2,na.rm = T)]
+  }else{ resultmean$R2 <- NaN}
+  resultmean[R2 < 0, R2 := 0]
 
   #Renaming columns in $data, $resultid, $resultmean objects to original names
   intdata[, id := NULL]
