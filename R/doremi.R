@@ -1525,22 +1525,20 @@ optimum_param <- function(data,
                       signal = signal,
                       dermethod = dermethod,
                       derparam = embedding)
-    # res2 <- res$data
-    # res2[, xi_est:= res$resultmean$xi]
-    # res2[, period_est:= res$resultmean$period]
-    res[, D:= embedding]
-    res
+    res2 <- res$resultmean
+    res2[, D:= embedding]
+    res2
   }))
 
   #Calculation of R2 max et Dopt
-  Dopt <-analysis$resultmean[R2==max(R2,na.rm = T),D[1]]
+  Dopt <-analysis[R2==max(R2,na.rm = T),D[1]]
   #Summary table for plotting
   
-  summ_opt <- analysis$resultmean[R2==max(R2,na.rm = T)]
+  summ_opt <- analysis[R2==max(R2,na.rm = T)]
   summ_opt[,method:=dermethod]
   # names(summ_opt)[1]<-"Dopt"
   #Temporary long data table containing parameter name
-  toplot<-melt(analysis,id.vars="D")
+  toplot<-melt(analysis[,-c("id")],id.vars="D")
   #Plotting estimated parameters and R2 versus embedding
   estvsembed<-ggplot(toplot) + 
     geom_point(aes(D,value,color=variable)) +
@@ -1553,7 +1551,7 @@ optimum_param <- function(data,
     facet_wrap(~variable,scale = "free")
   print(estvsembed)
 
-  return(list(analysis=analysis,summary=summ,summary_opt=summ_opt))
+  return(list(analysis=analysis,summary_opt=summ_opt))
 }
 
 
