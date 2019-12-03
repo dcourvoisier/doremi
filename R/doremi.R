@@ -464,7 +464,7 @@ generate.2order <- function(time = 0:100,
                             v0 = 0,
                             t0 = 0,
                             xi = 0.1,
-                            period = 0.5,
+                            period = 10,
                             k = 1,
                             yeq = 0){
   #Error management
@@ -476,7 +476,7 @@ generate.2order <- function(time = 0:100,
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
   }
   #if excitation is a character or a matrix, the function stops
-  if (is.matrix(excitation) | is.character(excitation)) stop("Excitation should be a vector.")
+  if (!is.vector(excitation)) stop("Excitation should be a vector.")
   excf <- approxfun(time, excitation, rule = 2)
 
   #Initial values
@@ -484,6 +484,9 @@ generate.2order <- function(time = 0:100,
   state <- c(y1 = y0, y2 = v0)
   parameters<-c(xi,period,k,yeq)
 
+  # integrate time of initial value
+  time <- c(time,t0)
+  
   #Model
   model2<-function(t, state, parameters)
   {   with(as.list(c(state, parameters)),
@@ -498,9 +501,14 @@ generate.2order <- function(time = 0:100,
   # do the integration for time before t0
   time <- time[order(-time)]
   out_left <- as.data.frame(ode(y = state, times = time[time <= t0], func = model2, parms = parameters))
+  # if(t0 != last(time)){
+  #   
+  #   }else{out_left <- NULL}
+  
   # do the integration for time after t0
   time <- time[order(time)]
   out_right <- as.data.frame(ode(y = state, times = time[time >= t0], func = model2, parms = parameters))
+
   # bind the two
   out <- rbind(out_left,out_right)
   # setneames
@@ -613,6 +621,7 @@ generate.panel.1order <- function(time,
   data[, signalraw := generate.1order (time = time,
                                        excitation =  excitation,
                                        y0 =  y0vec[.GRP],
+                                       t0 = min(time,na.rm = T),
                                        tau = tauvec[.GRP],
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
@@ -700,7 +709,7 @@ generate.panel.2order <- function(time,
                                   y0 = 0,
                                   v0 = 0,
                                   xi = 0.1,
-                                  period = 1,
+                                  period = 10,
                                   k = 1,
                                   yeq = 0,
                                   nind = 1,
@@ -749,6 +758,7 @@ generate.panel.2order <- function(time,
                                       excitation = excitation, 
                                       y0 = y0vec[.GRP],
                                       v0 = v0vec[.GRP],
+                                      t0 = min(time,na.rm = T),
                                       xi = xivec[.GRP],
                                       period = periodvec[.GRP],
                                       k = kvec[.GRP],
@@ -1270,8 +1280,8 @@ analyze.2order <- function(data,
 
   #Find time duplicates and display error message if it is the case
   intdata[,timedup:=lapply(.SD,duplicated),.SDcols = time,by = id]
-  if(any(intdata$timedup)){stop("Input data.table contains duplicated time points.\n")}
-  else  intdata[, timedup := NULL]
+  if(any(intdata$timedup)){stop("Input data.table contains duplicated time points.\n")
+    } else  {intdata[, timedup := NULL]}
 
   #Verifying column names repeated in data table.
   if(any(duplicated(colnames(intdata)))){stop("Input datatable contains duplicated column names.\n")}
@@ -1430,7 +1440,7 @@ analyze.2order <- function(data,
                                                         xi = resultid[.GRP, xi],
                                                         period = resultid[.GRP, period],
                                                         k = 1,
-                                                        yeq = resultid[.GRP, yeq]),by =id]
+                                                        yeq = resultid[.GRP, yeq])$y,by =id]
 
     }else{
       if(verbose){print("Status: estimating signal for single individual")}
@@ -1442,7 +1452,7 @@ analyze.2order <- function(data,
                                                         xi = resultmean[, xi],
                                                         period = resultmean[, period],
                                                         k = 1,
-                                                        yeq = resultmean[, yeq])]
+                                                        yeq = resultmean[, yeq])$y]
     }
 
     }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
