@@ -745,7 +745,14 @@ generate.panel.2order <- function(time,
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
   #signalraw is the signal WITHOUT NOISE
-  data[, signalraw := generate.2order(time, excitation, y0vec[.GRP],v0vec[.GRP],xivec[.GRP],periodvec[.GRP],kvec[.GRP],yeqvec[.GRP])$y, by = id ]
+  data[, signalraw := generate.2order(time = time,
+                                      excitation = excitation, 
+                                      y0 = y0vec[.GRP],
+                                      v0 = v0vec[.GRP],
+                                      xi = xivec[.GRP],
+                                      period = periodvec[.GRP],
+                                      k = kvec[.GRP],
+                                      yeq = yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
   #intranoise is the Signal to Noise ratio (SNR)
