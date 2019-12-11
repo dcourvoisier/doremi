@@ -94,9 +94,17 @@ calculate.gold <-  function(signal,
         E[1, i] <- 1
         E[2, i] <- t[i]
       }
-      for(q in 2:n){
-        for (i in 1:length(t)){
-          E[q+1, i] <- t[i] ^ q - sum(t ^ q) / (sum(E[q-1, ])) - t[i] * sum(t ^ (q+1)) / sum(t ^ q)
+      #Intermediate terms
+      if(n>1){
+        tmp<-0
+        for(q in 2:n){
+          for (i in 1:length(t)){
+            #E[q+1, i] <- t[i] ^ q - sum(t ^ q) / (sum(E[q-1, ])) - t[i] * sum(t ^ (q+1)) / sum(t ^ q)
+            for(p in 0:(q-1)){
+              tmp <- tmp + E[p+1,i] * sum(E[p+1,] * t^q) / sum(E[p+1,] * t^p)
+            }
+            E[q+1, i] <- t[i] ^ q - tmp
+          }
         }
       }
       # And with E (Theta) and D it is possible to calculate the orthogonal
