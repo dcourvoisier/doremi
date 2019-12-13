@@ -266,3 +266,26 @@ errorcheck = function (data, col_var){
     }
   }
 }
+#plots parameter evolution of a "doremiparam" object resulting from the function "optimum_param"
+plot.doremiparam = function (x, ...,
+                        id = NULL){
+  analysis <- x$analysis
+  dermethod <-x$summary_opt$method
+
+  #Temporary long data table containing parameter name
+  toplot<-melt(analysis[,-c("id")],id.vars="D")
+  #Plotting estimated parameters and R2 versus embedding
+  estvsembed<-ggplot(toplot) +
+    geom_point(aes(D,value,color=variable)) +
+    labs(x = "Embedding dimension, D",
+         y = "",
+         colour = "") +
+    ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension: ",dermethod))+
+    theme_bw()+
+    theme(legend.position = "top",
+          plot.title = element_text(hjust = 0.5)) +
+    facet_wrap(~variable,scale = "free")
+
+  return(estvsembed)
+
+}

@@ -2,15 +2,15 @@
 #' Calculation of derivatives using the GOLD method
 #'
 #' \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
-#' method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}.
+#' method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
 #' This method allows calculating over a number of measurement points (called the embedding number) the first derivative with errors uncorrelated with the signal.
-#' It was generalized for non-equidistant time points (variable time steps), in order to account for missing observations.
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param embedding is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
 #' two points are needed for the calculation of the first derivative and at least 3 for the calculation of the second derivative.
+#' @param n is the maximum order of derivative to estimate ("m" in the cited paper)
 #' @keywords derivative, embed, rollmean
-#' @return Returns a list containing three columns:
+#' @return Returns a list containing the following columns:
 #'
 #' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 #'
@@ -19,6 +19,8 @@
 #' and the third is the second derivative.
 #'
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
+#'
+#' order - contains the order of the maximum derivative
 #'
 #' @examples
 #' #In the following example the derivatives for the function y(t) = t^2 are calculated.
@@ -50,71 +52,43 @@ calculate.gold <-  function(signal,
     #"n" points with n being the embedding value from which to calculate the
     #roll means For instance if time=1:10 and embedding=3, the matrix tembed
     #will have: row1: 1 2 3; row2: 2 3 4...row8:8 9 10).
+    #Xembed is a matrix containing the values of the signal in the time points
+    #considered in "embedding"
     tembed <- embed(time, embedding)
-    #The "stats" library "embed" function provides a matrix in which the groups
-    #of values are inversed by column and thus the next operation is to format
-    #these values so that the matrix contain the groups by line and from left to
-    #right.
     tembed <- tembed[, ncol(tembed):1]
 
-    #Creation of the D matrix for estimation of derivatives up to second
-    #derivative. According to the paper mentioned, equations (11) and (12) this
-    #is "...the diagonal matrix with scaling constants that convert the
-    #polynomial estimates to derivative estimates".
-    D <- diag(lapply(c(1,1:n),function(x){1/factorial(x)}),n+1)
-
-    #Creation of the empty derivative matrix Lines: It will have as many lines
-    #as groups of time points the embed function gives (thus, the number of lines
-    #of the tembed matrix) Columns: It will have n+1 columns because: First column
-    #will contain the signal mean value in the time points considered in
-    #"embedding". Second column will contain the signal derivative in those same
-    #time points. Third column will contain the signal second derivative in those
-    #same time points and so on.
-    derivative <- matrix(NA, nrow = nrow(tembed), ncol = n+1)
-
-
-    #Xembed is a matrix containing the values of the signal in the time points
-    #considered in "embedding" (no mean calculated yet) As for tembed, it
-    #contains in each line the groups of "n" points of the function with n being
-    #the embedding value to PREPARE for the calculation of the roll mean
     Xembed <- embed(signal, embedding)
     Xembed <- Xembed[, ncol(Xembed):1]
 
+    #Creation of the D matrix: in paper, equations (11) and (12) this
+    #is "...the diagonal matrix with scaling constants that convert the
+    #polynomial estimates to derivative estimates".
+    D <- diag(1/factorial(c(0:n)))
+
+    #Matrix of derivative estimates
+    derivative <- matrix(NA, nrow = nrow(tembed), ncol = n+1)
+    #Matrix Xi containing the coefficients of the orthogonal polynomials
+    Xi <- matrix(NA,n+1,ncol(tembed))
     for (k in 1:nrow(tembed)){
-      # Loop repeated in each tembed line (each group of time values)
-      # To take into account variable delta t.
+      # Loop repeated in each tembed line (each group of time values).Time vector, containing deltat, centered in 0
       t <- tembed[k, ] - tembed[k, (embedding + 1) / 2]
-      #time vector, containing deltat, centered in 0
-      E <- matrix(NA, nrow = n+1, ncol = length(t))
-      #Construction of the empty Theta matrix, equation (10) But will be filled
-      #from the polynomials calculated in equation (9). It has 3 rows as we are
-      #calculating up to the second derivative. The two for loops resolve the
-      #paper's equation (9) (polynomial's coefficients)
-      for (i in 1:length(t)){
-        E[1, i] <- 1
-        E[2, i] <- t[i]
-      }
-      #Intermediate terms
-      if(n>1){
-        tmp<-0
-        for(q in 2:n){
-          for (i in 1:length(t)){
-            #E[q+1, i] <- t[i] ^ q - sum(t ^ q) / (sum(E[q-1, ])) - t[i] * sum(t ^ (q+1)) / sum(t ^ q)
-            for(p in 0:(q-1)){
-              tmp <- tmp + E[p+1,i] * sum(E[p+1,] * t^q) / sum(E[p+1,] * t^p)
-            }
-            E[q+1, i] <- t[i] ^ q - tmp
+      for(q in 0:n) {
+        Xi[q+1,] <- (t^q)
+        if(q>0) {
+          for(p in 0:(q-1)) {
+            Xi[q+1,] <- Xi[q+1,] -
+              (Xi[p+1,]*(sum(Xi[p+1,]*(t^q)))/(sum(Xi[p+1,]*(t^p))))
           }
         }
       }
       # And with E (Theta) and D it is possible to calculate the orthogonal
       # matrix W, equation (14)
-      L <- D %*% E
+      L <- D %*% Xi
       W <- t(L) %*% solve(L %*% t(L))
       #And with this matrix, solve the differential equation as Y=X*W
-      derivative[k, ] <- Xembed[k, ] %*% W
-      #Derivative calculated in the time row k
-    }
+      derivative[k,] <- Xembed[k,] %*% W
+  }
+    #Derivative calculated in the time row k
     derivative <- rbind(derivative, matrix(data = NA, ncol = n+1, nrow = embedding - 1))
     # Addition of NA so that the derivative rows are the same as those of signal
 
@@ -134,7 +108,8 @@ calculate.gold <-  function(signal,
 
   returnobject <- list("dtime" = time_derivative,
                        "dsignal" = derivative,
-                       "embedding" = embedding)
+                       "embedding" = embedding,
+                       "order" = n)
   return(returnobject)
 }
 
@@ -175,6 +150,7 @@ calculate.glla <-  function(signal,
                             time,
                             embedding = 3,
                             n = 2){
+
   #Error management
   if (length(signal) != length(time)){
     stop("signal and time vectors should have the same length.\n")
@@ -185,17 +161,15 @@ calculate.glla <-  function(signal,
   if (n >= embedding){
     stop("The embedding dimension should be higher than the maximum order of the derivative, n.\n")
   }
+  deltat<-min(diff(time)) #Assuming an equally spaced time series
   if (embedding > 2){
-    deltat <- diff(time)[1]
-  #Initialize matrix
-    L <-matrix(0,embedding,n+1)
-    L[,1] <- rep(1,embedding)
-    L[,2] <- c(1:embedding)-mean(c(1:embedding))
-    # L[,2] <- c(1:embedD)*theTau*deltaT-mean(c(1:embedD)*theTau*deltaT)
-    for(i in 2:n){
-      L[,i+1] <- L[,2]^i/factorial(i)
+    #Initialize L matrix
+    L <- rep(1,embedding)
+    for(i in 1:n) {
+      #L <- cbind(L,((c(1:embedding)-mean(c(1:embedding)*deltat)))^i/factorial(i))
+      L <- cbind(L,((c(1:embedding)-mean(c(1:embedding))))^i/factorial(i))
     }
-
+    #print(L)
     W <- L%*%solve(t(L)%*%L)
 
     Xembed <- embed(signal, embedding)
@@ -1574,138 +1548,8 @@ optimum_param <- function(data,
 
   summ_opt <- analysis[R2==max(R2,na.rm = T)]
   summ_opt[,method:=dermethod]
-  # names(summ_opt)[1]<-"Dopt"
-  #Temporary long data table containing parameter name
-  toplot<-melt(analysis[,-c("id")],id.vars="D")
-  #Plotting estimated parameters and R2 versus embedding
-  estvsembed<-ggplot(toplot) +
-    geom_point(aes(D,value,color=variable)) +
-    labs(x = "Embedding dimension, D",
-         y = "",
-         colour = "") +
-    ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension: ",dermethod))+
-    theme_bw()+
-    theme(legend.position = "top",
-          plot.title = element_text(hjust = 0.5)) +
-    facet_wrap(~variable,scale = "free")
-  print(estvsembed)
 
-  return(list(analysis=analysis,summary_opt=summ_opt,d = Dopt))
-}
-
-
-
-# calculate.lde -----------------------------------------------------------
-#Calculates LDE (any order) using code from Boker et al. 2019
-# theTau - The time delay between embedding columns is theTau*s with s being the fixed deltat of the time series.
-# embedD - is the embedding idmension
-calculate.lde <- function(signal,
-                          time,
-                          n = 4,
-                          embedD = 5,
-                          theTau = 1,
-                          etaini = -0.2,
-                          zetaini= -0.1,
-                          varini = 0.8,
-                          covini = 0.1,
-                          s_bound = 0.00000001,
-                          u_ini = 0.8,
-                          u_bound = 0.000001){
-
-  # Embed data
-  deltaT <- min(diff(time))
-  Xembed <- embed(signal,embedD)
-  Xembed <- Xembed[, ncol(Xembed):1]
-  dimnames(Xembed) <- list(NULL, paste0("x", 1:embedD))
-
-  #L matrix-------------------------------
-  L <-matrix(0,embedD,n+1)
-  L[,1] <- rep(1,embedD)
-  L[,2] <- c(1:embedD)*theTau*deltaT-mean(c(1:embedD)*theTau*deltaT)
-
-  for(i in 2:n){
-    L[,i+1] <- L[,2]^i/factorial(i)
-  }
-  #A matrix-------------------------------
-  #Labels
-  Alabel <-matrix(NA,n+1,n+1)
-  for(x in 1:(n-1)){
-    Alabel[x+2,x]<-"eta"
-    Alabel[x+2,x+1]<-"zeta"
-  }
-  #Degrees of freedom (eta,zeta are free parameters)
-  Afree<-!is.na(Alabel)
-  #Initial values
-  Aini<-Alabel
-  Aini[Aini=="eta"]<-etaini
-  Aini[Aini=="zeta"]<-zetaini
-  Aini[is.na(Aini)]<-0
-  Aini<-as.numeric(Aini)
-  #S matrix-------------------------------
-  #symmetrical
-  core<-matrix(c("Vx","Cxdx", NA,"Cxdx","Vdx",NA,NA,NA,"Vd2x"),3,3)
-  Slabel<-matrix(NA,n+1,n+1)
-  Slabel[1:3,1:3]<-core
-  if(n>2){
-    for(x in 3:n){
-      Slabel[x+1,x+1]<-paste0("Vd",x,"x")
-    }
-  }
-  Sfree<-!is.na(Slabel)
-  Sini<-Slabel
-  Sini[Sini=="Cxdx"]<-covini
-  Sini[grepl("^V",Sini)]<-varini
-  Sini[is.na(Sini)]<-0
-  Sini<-as.numeric(Sini)
-  Sbound<-diag(s_bound,n+1,n+1)
-  Sbound[Sbound==0]<-NA
-  # ----------------------------------
-  # Create LDE model.
-  manifestVars <- dimnames(Xembed)[[2]]
-  ldeModel1 <- mxModel("LDE_Model_1",
-                       mxMatrix("Full",
-                                values=L,
-                                free=FALSE,
-                                name="L",
-                                byrow=TRUE
-                       ),
-                       mxMatrix("Full",
-                                values=Aini,
-                                labels= Alabel,
-                                free=Afree,
-                                name="A",
-                                byrow=TRUE
-                       ),
-                       mxMatrix("Full",
-                                values=Sini,
-                                free=Sfree,
-                                labels=Slabel,
-                                name="S",
-                                byrow=TRUE,
-                                lbound=Sbound,
-                       ),
-                       mxMatrix("Diag", embedD, embedD,
-                                values=u_ini,
-                                free=TRUE,
-                                labels="u1",
-                                name="U",
-                                lbound=u_bound
-                       ),
-                       mxMatrix("Iden", n+1, name="I"),
-                       mxAlgebra(L %*% solve(I-A) %*% S %*% t(solve(I-A)) %*% t(L) + U,
-                                 name="R",
-                                 dimnames = list(manifestVars, manifestVars)
-                       ),
-                       mxExpectationNormal(covariance="R"),
-                       mxFitFunctionML(),
-                       mxData(cov(Xembed),
-                              type="cov",
-                              numObs=nrow(Xembed)
-                       )
-  )
-  # ----------------------------------
-  # Fit the LDE model and save the summary results.
-  ldeModel1Fit <- mxRun(ldeModel1)
-  summary(ldeModel1Fit)
-  return(ldeModel1Fit)
+  res<-list(analysis=analysis,summary_opt=summ_opt,d = Dopt)
+  class(res)= "doremiparam"
+  return(res)
 }
