@@ -512,7 +512,7 @@ generate.2order <- function(time = 0:100,
 
   # bind the two
   out <- rbind(out_left,out_right)
-  # setneames
+  # setnames
   names(out)<-c("t","y")
   # take initial times only
   out <- out[out$t %in% time_init,]
@@ -1553,3 +1553,4 @@ optimum_param <- function(data,
   class(res)= "doremiparam"
   return(res)
 }
+
