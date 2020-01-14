@@ -376,6 +376,7 @@ generate.1order <- function(time = 0:100,
                             excitation = as.numeric(0:100>50),
                             y0 = 0,
                             t0 = 0,
+                            exc0 = 0,
                             tau = 10,
                             k = 1,
                             yeq = 0){
@@ -395,16 +396,9 @@ generate.1order <- function(time = 0:100,
   #if excitation is a character or a matrix, the function stops
   if (is.matrix(excitation) | is.character(excitation)) stop("Excitation should be a vector.")
 
-  #Interpolating excitation function so that it can be evaluated in the time points required by deSolve. Rule 2 means constant interpolation.
-  excf <- approxfun(time, excitation, rule = 2)
-
-  time_init <- time
   #Initial values
   state <- c(y = y0)
-  # integrate time of initial value
-  time <- c(time,t0)
-  #Parameters
-  parameters <- c(tau,k,yeq)
+  parameters<-c(tau,k,yeq)
 
   #Model
   model1<-function(t, state, parameters)
@@ -414,20 +408,29 @@ generate.1order <- function(time = 0:100,
            list(-(1/tau)*y + k/tau*u + yeq/tau)})
 
   }
-  # do the integration for time before t0
-  time <- time[order(-time)]
-  out_left <- as.data.frame(ode(y = state, times = time[time <= t0], func = model1, parms = parameters))
-  # do the integration for time after t0
-  time <- time[order(time)]
-  out_right <- as.data.frame(ode(y = state, times = time[time >= t0], func = model1, parms = parameters))
-  # bind the two
-  out <- rbind(out_left,out_right)
-  # setneames
+  timecomp<-c(time[time<t0],t0,time[time>t0])
+  exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
+  #Position of t0 in the original time vector
+  i <- length(time[time<t0])+1
+
+  #Left side of the curve
+  if(t0>0){
+    excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
+    out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model1, parms = parameters))
+  }
+  #Right side of the curve
+  excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
+  out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model1, parms = parameters))
+
+  if(t0>0){
+    # bind the two
+    out <- rbind(out_left[nrow(out_left):1,],out_right)
+    # remove duplicated initial value
+    out <- out[!duplicated(out),]
+  }else{
+    out <-out_right
+  }
   names(out)<-c("t","y")
-  # take initial times only
-  out <- out[out$t %in% time_init,]
-  # remove duplicated initial value
-  out <- out[!duplicated(out),]
   out
 }
 # generate.2order ----------------------------------------------------
@@ -460,10 +463,11 @@ generate.1order <- function(time = 0:100,
 #'@export
 #'@importFrom deSolve ode
 generate.2order <- function(time = 0:100,
-                            excitation = as.numeric(0:100>50),
+                            excitation = as.numeric(0:100>50), #totalexc
                             y0 = 0,
                             v0 = 0,
-                            t0 = 0,
+                            t0 = 0, #time_derivate[1]
+                            exc0 = 0, #totalexcroll[1]
                             xi = 0.1,
                             period = 10,
                             k = 1,
@@ -478,15 +482,10 @@ generate.2order <- function(time = 0:100,
   }
   #if excitation is a character or a matrix, the function stops
   if (!is.vector(excitation)) stop("Excitation should be a vector.")
-  excf <- approxfun(time, excitation, rule = 2)
 
   #Initial values
-  time_init <- time
   state <- c(y1 = y0, y2 = v0)
   parameters<-c(xi,period,k,yeq)
-
-  # integrate time of initial value
-  time <- c(time,t0)
 
   #Model
   model2<-function(t, state, parameters)
@@ -499,25 +498,29 @@ generate.2order <- function(time = 0:100,
              # return latent variables
              list(c(dy1,dy2))})
   }
-  # do the integration for time before t0
-  time <- time[order(-time)]
-  out_left <- as.data.frame(ode(y = state, times = time[time <= t0], func = model2, parms = parameters))
-  # if(t0 != last(time)){
-  #
-  #   }else{out_left <- NULL}
 
-  # do the integration for time after t0
-  time <- time[order(time)]
-  out_right <- as.data.frame(ode(y = state, times = time[time >= t0], func = model2, parms = parameters))
+  timecomp<-c(time[time<t0],t0,time[time>t0])
+  exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
+  #Position of t0 in the original time vector
+  i <- length(time[time<t0])+1
 
-  # bind the two
-  out <- rbind(out_left,out_right)
-  # setnames
-  names(out)<-c("t","y")
-  # take initial times only
-  out <- out[out$t %in% time_init,]
-  # remove duplicated initial value
-  out <- out[!duplicated(out),]
+  #Left side of the curve
+  if(t0>0){
+    excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
+    out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model2, parms = parameters))
+  }
+  #Right side of the curve
+  excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
+  out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model2, parms = parameters))
+
+  if(t0>0){
+    # bind the two
+    out <- rbind(out_left[nrow(out_left):1,],out_right)
+    # remove duplicated initial value
+    out <- out[!duplicated(out),]
+  }else{
+    out <-out_right
+  }
   names(out)<-c("t","y","dy")
   out
 }
