@@ -404,39 +404,40 @@ generate.1order <- function(time = 0:100,
   #Initial values
   state <- c(y = y0)
   parameters<-c(tau,k,yeq)
+  if(any(is.na(parameters))){out<-NULL}else{
+    #Model
+    model1<-function(t, state, parameters)
+    {   with(as.list(c(state, parameters)),
+             { u <- excf(t)
+             # return latent variable
+             list(-(1/tau)*y + k/tau*u + yeq/tau)})
 
-  #Model
-  model1<-function(t, state, parameters)
-  {   with(as.list(c(state, parameters)),
-           { u <- excf(t)
-           # return latent variable
-           list(-(1/tau)*y + k/tau*u + yeq/tau)})
+    }
+    timecomp<-c(time[time<t0],t0,time[time>t0])
+    exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
+    #Position of t0 in the original time vector
+    i <- length(time[time<t0])+1
 
+    #Left side of the curve
+    if(t0>0){
+      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
+      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model1, parms = parameters))
+    }
+    #Right side of the curve
+    excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
+    out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model1, parms = parameters))
+
+    if(t0>0){
+      # bind the two
+      out <- rbind(out_left[nrow(out_left):1,],out_right)
+      # remove duplicated initial value
+      out <- out[!duplicated(out),]
+    }else{
+      out <-out_right
+    }
+    names(out)<-c("t","y")
+    out
   }
-  timecomp<-c(time[time<t0],t0,time[time>t0])
-  exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
-  #Position of t0 in the original time vector
-  i <- length(time[time<t0])+1
-
-  #Left side of the curve
-  if(t0>0){
-    excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
-    out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model1, parms = parameters))
-  }
-  #Right side of the curve
-  excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
-  out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model1, parms = parameters))
-
-  if(t0>0){
-    # bind the two
-    out <- rbind(out_left[nrow(out_left):1,],out_right)
-    # remove duplicated initial value
-    out <- out[!duplicated(out),]
-  }else{
-    out <-out_right
-  }
-  names(out)<-c("t","y")
-  out
 }
 # generate.2order ----------------------------------------------------
 #' Generation of the second order differential equation solution with deSolve
@@ -491,11 +492,11 @@ generate.1order <- function(time = 0:100,
 #'@export
 #'@importFrom deSolve ode
 generate.2order <- function(time = 0:100,
-                            excitation = as.numeric(0:100>50), #totalexc
+                            excitation = as.numeric(0:100>50),
                             y0 = 0,
                             v0 = 0,
-                            t0 = 0, #time_derivate[1]
-                            exc0 = 0, #totalexcroll[1]
+                            t0 = 0,
+                            exc0 = 0,
                             xi = 0.1,
                             period = 10,
                             k = 1,
@@ -515,42 +516,48 @@ generate.2order <- function(time = 0:100,
   state <- c(y1 = y0, y2 = v0)
   parameters<-c(xi,period,k,yeq)
 
-  #Model
-  model2<-function(t, state, parameters)
-  {   with(as.list(c(state, parameters)),
-           { # equations of the state space model (two first oder coupled ODEs)
-             u <- excf(t)
-             wn <- 2*pi/period
-             dy1 <- y2
-             dy2 <- -wn^2*y1-2*xi*wn*y2 + k*wn^2*u + wn^2*yeq
-             # return latent variables
-             list(c(dy1,dy2))})
-  }
+  if(any(is.na(parameters))){out<-NULL}else{
+    #Model
+    model2<-function(t, state, parameters)
+    {   with(as.list(c(state, parameters)),
+             { # equations of the state space model (two first oder coupled ODEs)
+               u <- excf(t)
+               wn <- 2*pi/period
+               dy1 <- y2
+               dy2 <- -wn^2*y1-2*xi*wn*y2 + k*wn^2*u + wn^2*yeq
+               # return latent variables
+               list(c(dy1,dy2))})
+    }
 
-  timecomp<-c(time[time<t0],t0,time[time>t0])
-  exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
-  #Position of t0 in the original time vector
-  i <- length(time[time<t0])+1
+    timecomp<-c(time[time<t0],t0,time[time>t0])
+    exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
+    #Position of t0 in the original time vector
+    i <- length(time[time<t0])+1
 
-  #Left side of the curve
-  if(t0>0){
-    excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
-    out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model2, parms = parameters))
-  }
-  #Right side of the curve
-  excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
-  out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model2, parms = parameters))
+    #Left side of the curve
+    if(i>1){
+      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
+      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model2, parms = parameters))
+    }
+    #Right side of the curve
+    excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
+    out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model2, parms = parameters))
 
-  if(t0>0){
-    # bind the two
-    out <- rbind(out_left[nrow(out_left):1,],out_right)
-    # remove duplicated initial value
-    out <- out[!duplicated(out),]
-  }else{
-    out <-out_right
+    if(i>1){
+      # bind the two
+      out <- rbind(out_left[nrow(out_left):1,],out_right)
+      # remove duplicated initial value
+      out <- out[!duplicated(out),]
+      #if t0 wasn't in the initial time vector then supress it
+      if(!t0 %in% time){
+        out<-out[!time==t0]
+      }
+    }else{
+      out <-out_right
+    }
+    names(out)<-c("t","y","dy")
+    out
   }
-  names(out)<-c("t","y","dy")
-  out
 }
 # generate.panel.1order ----------------------------------------------
 
