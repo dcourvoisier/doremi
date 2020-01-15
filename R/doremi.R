@@ -118,7 +118,7 @@ calculate.gold <-  function(signal,
 #'
 #' \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method
 #' described in \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}.
-#' This method allows to estimate the derivatives over a number of measurement points called the embedding number.
+#' This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 #' @param signal is the input vector containing the data from which the derivatives are estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param n is the maximum order of the derivative to calculate
@@ -166,10 +166,9 @@ calculate.glla <-  function(signal,
     #Initialize L matrix
     L <- rep(1,embedding)
     for(i in 1:n) {
-      #L <- cbind(L,((c(1:embedding)-mean(c(1:embedding)*deltat)))^i/factorial(i))
       L <- cbind(L,((c(1:embedding)-mean(c(1:embedding))))^i/factorial(i))
     }
-    #print(L)
+
     W <- L%*%solve(t(L)%*%L)
 
     Xembed <- embed(signal, embedding)
@@ -180,7 +179,7 @@ calculate.glla <-  function(signal,
     for(i in 2:(n+1)){
       derivative[,i] <- derivative[,i]/deltat^(i-1)
     }
-    derivative <- rbind(derivative, matrix(data = NA, ncol = n+1, nrow = embedding - 1))
+    derivative <- rbind(derivative, matrix(data = NA, ncol = n + 1, nrow = embedding - 1))
 
   } else if (embedding == 2){
     warning("Only first derivative can be calculated with an embedding of 2.\n")
@@ -202,19 +201,19 @@ calculate.glla <-  function(signal,
   return(returnobject)
 }
 # calculate.fda ----------------------------------------------------------
-#' Calculation of derivatives using the FDA method (splines)
+#' Calculation of derivatives using the Functinal Data Analysis (FDA) method.
 #'
-#' \code{calculate.fda} estimates the derivatives of a variable using the Functional Data Analysis (FDA)
+#' \code{calculate.fda} estimates the derivatives of a variable using the FDA
 #' method described in several sources, such as in \href{ISBN 978-0-387-98185-7}{Ramsay et al. (2009)}
 #' and  \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
 #' This method estimates a spline function that fits all the data points and then derivates this function to estimate derivatives at those points.
-#' In order for the derivatives to exist, the function must be smooth. A roughness penalty function controlled by a smoothing parameter is then used
+#' In order for the derivatives to exist, the function must be smooth. A roughness penalty function controlled by a smoothing parameter is then used.
 #' The estimations are done by using the R's "fda" package.
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
-#' @param spar
-#' @param order not used yet
-#' @keywords derivative, embed, rollmean, fda, spline
+#' @param spar is the smoothing parameter used by the roughness penalty function in the smooth.spline R function.
+#' @param order not used
+#' @keywords derivative, fda, spline
 #' @return Returns a list containing three columns:
 #'
 #' dtime- contains the initial time values provided.
@@ -231,6 +230,8 @@ calculate.glla <-  function(signal,
 #' result <- calculate.fda(signal = signal, time = time)
 #'
 #'@export
+#'@importFrom fda smooth.spline
+#'@importFrom fda predict
 calculate.fda <-  function(signal,
                            time,
                            spar = NULL,
@@ -348,12 +349,16 @@ generate.excitation = function(amplitude = 1,
 #' Generation of the first order differential equation solution with deSolve
 #'
 #' \code{generate.1order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a first order
-#' differential equation which coefficients are provided as inputs. The excitation is also provided as input and it can be null (then the solution
-#' will be a decreasing exponential)
+#' differential equation whith the coefficients are provided as inputs:
+#' \deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
+#' Where y(t) is the signal, dy(t) its derivative, \gamma is the damping rate, k the gain and yeq the equilibrium value.
+#' u(t) is an external excitation perturbing the dynamics.
+#' The latter is also provided as input and it can be null (then the solution
+#' will be a decreasing exponential). The analytical solution is generated with deSolve.
 #' @param time Is a vector containing the time values corresponding to the excitation signal.
 #' @param excitation Is a vector containing the values of the excitation signal.
 #' @param y0 Signal initial value y(t=t0)
-#' @param t0 Time for the signal initial value y(t=t0)
+#' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector
 #' @param tau Signal damping time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
 #' @param k Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
@@ -362,8 +367,8 @@ generate.excitation = function(amplitude = 1,
 #' @keywords first order differential equation, constant coefficients
 #' @return Returns a list containing two elements:
 #' \itemize{
-#'   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a first order differential equation with constant
-#'   coefficients (provided as input).
+#'   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a first order differential equation with the constant
+#'   coefficients provided as input.
 #'   \item  t is a vector containing the corresponding time values
 #' }
 #' @examples
@@ -437,28 +442,51 @@ generate.1order <- function(time = 0:100,
 #' Generation of the second order differential equation solution with deSolve
 #'
 #' \code{generate.2order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a second order
-#' differential equation which constant coefficients are provided as inputs. The excitation is also provided as input and it can be null (then the solution
-#' will be a damped linear oscillator)
+#' differential equation whith constant coefficients that are provided as inputs:
+#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
+#' Where:
+#' y(t) is the signal, dy(t) its derivative and d2y(t) its second derivative
+#' \itemize{
+#'    \item{\eqn{\omega_{n} = \frac{2\pi}{period}} that is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
+#'    The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
+#'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
+#'    }
+#'    \item{\zeta is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
+#'    The term 2\zeta\omega_n thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium.
+#'    The value of \zeta determines the shape of the system time response, which can be:
+#'    \zeta<0	Unstable, oscillations of increasing magnitude
+#'    \zeta=0	Undamped, oscillating
+#'    0<\zeta<1	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
+#'    \zeta=1	Critically damped
+#'    \zeta>1	Over-damped, no oscillations in the return to equilibrium
+#'    }
+#'    \item k is the gain
+#'    \item u(t) is an external excitation perturbing the dynamics
+#' }
+#' The excitation is also provided as input and it can be null (then the solution
+#' will be a damped linear oscillator when the initial condition is different from 0)
 #'
 #' @param time is a vector containing the time values corresponding to the excitation signal.
 #' @param excitation Is a vector containing the values of the excitation signal.
-#' @param y0 is the initial condition for the variable (0, by default), it is a scalar.
-#' @param v0 is the initial condition of the derivative (0, by default), it is a scalar.
+#' @param y0 is the initial condition for the variable y(t=t0), (0, by default), it is a scalar.
+#' @param v0 is the initial condition for the derivative dy(t=t0), (0, by default), it is a scalar.
+#' @param t0 is the initial time
+#' @param exc0 is the initial value for the excitation: u(t=t0)
 #' @param xi is the damping factor. A negative value will produce divergence from equilibrium.
-#' @param wn is the natural frequency which with the system would vibrate if there were no damping.
+#' @param period is the period T of the oscillation, \eqn{\T = \frac{2\pi}{omega_{n}}} as mentioned
 #' @param k is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
 #' for differential equations including an excitation term.
 #' @param yeq is the signal equilibrium value. Value reached when the excitation term is 0 or constant.
-
 #' @keywords second order differential equation, constant coefficients
 #' @return Returns a list containing two elements:
 #' \itemize{
-#'   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a second order differential equation with constant
-#'   coefficients (provided as input).
 #'   \item  t is a vector containing the corresponding time values
+#'   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a second order differential equation with constant
+#'   coefficients (provided as input) evaluated at the time points given by t
+#'   \item dy is a vector containing the values of the derivative calculated at the same time points
 #' }
 #' @examples
-#' generate.2order(time=0:249,excitation=c(rep(0,10),rep(1,240)),wn=0.2)
+#' generate.2order(time=0:249,excitation=c(rep(0,10),rep(1,240)),period=10)
 #' generate.2order(y0=10)
 #'@export
 #'@importFrom deSolve ode
@@ -527,37 +555,29 @@ generate.2order <- function(time = 0:100,
 # generate.panel.1order ----------------------------------------------
 
 #' Generation of first order differential equation solutions for several individuals with intra and inter noise
-#'
 #' \code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
-
-#' The signals generated are solution to the first order differential equation:
-#' \deqn{\frac{dy(t)}{dt} - \gamma y(t) = k*u(t) + yeq}
-#' The analytical solution is generated with deSolve. From this
-#' signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
-#' intra-individual and inter-individual noise with normal distributions are added.
-
+#' The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
+#' It then calls the function \code{\link{generate.1order}} to generate a solution of a first order differential equation with these parameters for the nind individuals.
+#' Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
 #' @inheritParams generate.1order
 #' @param nind  number of individuals.
 #' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
-#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section).
-#' @param intranoise Is the noise added in each individual signal (dynamic noise). It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
-#' amplitude of the convolution when using an excitation containing a single pulse.
-
+#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section). The same applies to the other coefficients of the differential
+#' equation (k and yeq)
+#' @param intranoise Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise
 #' @keywords simulation, first order, differential equation
-#' @return Returns a data frame with signal and time values starting at 0 and sampled at equal time steps deltatf in the time lapse tmax.
-#' It contains the following columns:
+#' @return Returns a data frame containing the following columns:
 #' \itemize{
 #'    \item id - individual identifier (from 1 to nind).
-#'    \item excitation - excitation signal generate through the generate.excitation
+#'    \item excitation - excitation signal
 #'    \item time - time values
-#'    \item signalraw - signal with no noise (inter noise added for each individual)
-#'    \item dampedsignal - signal with intra noise added
+#'    \item signalraw - signal with no noise (internoise provided added for each individual)
+#'    \item dampedsignal - signal with intranoise added
 #' }
 #' @details Used for simulations in the context of the package.
-#'
 #' The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
 #' and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
-#' distribution is truncated at 0.1*deltatf and values below are set to this limit. High values are symmetrically set at the upper percentile value
+#' distribution is truncated at 0.1*deltat and values below are set to this limit. High values are symmetrically set at the upper percentile value
 #' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
 #' noise obtained after truncation.
 #' @seealso \code{\link{generate.1order}} for calculation of the analytical solution to the differential equation
@@ -571,7 +591,7 @@ generate.2order <- function(time = 0:100,
 #'                       yeq = 0,
 #'                       nind = 5,
 #'                       internoise = 0.2,
-#'                       intranoise = 0.1)
+#'                       intranoise = 1)
 #'@export
 #'@importFrom data.table setDT
 #'@importFrom data.table copy
@@ -581,6 +601,8 @@ generate.2order <- function(time = 0:100,
 generate.panel.1order <- function(time,
                                   excitation = NULL,
                                   y0 = 0,
+                                  t0 = 0,
+                                  exc0 = 0,
                                   tau = 10,
                                   k = 1,
                                   yeq = 0,
@@ -588,7 +610,7 @@ generate.panel.1order <- function(time,
                                   internoise = 0,
                                   intranoise = 0){
   # Generating simulation data for a given excitation and parameters
-  # Generating id column (id being the individual number)with as many lines per individual as npoints
+  # Generating id column (id being the individual number) with as many lines per individual as npoints
   data <- data.table(id = rep(1:nind,each = length(time)))
 
   #Adding 3excitation and time to the data frame
@@ -625,50 +647,34 @@ generate.panel.1order <- function(time,
   data[, signalraw := generate.1order (time = time,
                                        excitation =  excitation,
                                        y0 =  y0vec[.GRP],
-                                       t0 = min(time,na.rm = T),
+                                       t0 = t0,
+                                       exc0 = exc0,
                                        tau = tauvec[.GRP],
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
-  data[, signal := signalraw + rnorm(.N, mean = 0, sd = intranoise * max(abs(signalraw))), by = id ]
+  if(intranoise!=0){
+    data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
+  }else{
+    data[, signal := signalraw, by = id]
+  }
   return(data)
 }
 
 # generate.panel.2order ----------------------------------------------
 
 #' Generation of first order differential equation solutions for several individuals with intra and inter noise
-#'
 #' \code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
-
-#' The signals are solution to the second order differential equation:
-#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
-#' Where:
-#' \itemize{
-#'    \item{\eqn{\omega_{n} = \frac{2\pi}{period}} that is the system's natural frequency, corresponding to a period of period.
-#'    The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
-#'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
-#'    }
-#'    \item{\zeta is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
-#'    The term 2\zeta\omega_n thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium.
-#'    The value of \zeta determines the shape of the system time response, which can be:
-#'    \zeta<0	Unstable, oscillations of increasing magnitude
-#'    \zeta=0	Undamped, oscillating
-#'    0<\zeta<1	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
-#'    \zeta=1	Critically damped
-#'    \zeta>1	Over-damped, no oscillations in the return to equilibrium
-#'    }
-
-#' The analytical solution is generated with deSolve. From this
-#' signal, the function samples points with a constant time step given by deltatf. These operations are repeated as many times as the value set in the input "nind". Once the signal is sampled,
-#' intra-individual and inter-individual noise with normal distributions are added.
-
+#' The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
+#' It then calls the function \code{\link{generate.2order}} to generate a solution of a second order differential equation with these parameters for the nind individuals.
+#' Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
 #' @inheritParams generate.2order
-#' #' @param nind  number of individuals.
-#' @param internoise Is the inter-individual noise added. The damping ratio across individuals follows a normal distribution centered on the input parameter damping ratio
-#' with a standard deviation of internoise*damping ratio, except if any damping time is negative (see Details section).
-#' @param intranoise Is the noise added in each individual signal (dynamic noise). It also follows a normal distribution with a standard deviation equal to this parameter times the maximum
-#' amplitude of the convolution when using an excitation containing a single pulse.
+#' @param nind  number of individuals.
+#' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
+#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section). The same applies to the other coefficients of the differential
+#' equation (k and yeq)
+#' @param intranoise Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise
 
 #' @keywords simulation, second order, differential equation
 #' @return Returns a data frame with signal and time values for the time and excitation vectore provided.
@@ -681,7 +687,6 @@ generate.panel.1order <- function(time,
 #'    \item signal - signal with intra noise added
 #' }
 #' @details Used for simulations in the context of the package.
-#'
 #' The function currently simulates only positive damping factors corresponding to a self-regulated system. When the damping factor is low
 #' and the inter individual noise is high, some individuals' damping factor could be negative. In that case, the damping factor
 #' distribution is truncated at 0.1*min_deltat (calculated from the time vector) and values below are set to this limit.
@@ -695,6 +700,8 @@ generate.panel.1order <- function(time,
 #'                       excitation = generate.excitation(3, 6, 2, 1, 200, 2)$exc,
 #'                       y0 = 0,
 #'                       v0 = 0,
+#'                       t0 = 0,
+#'                       exc0 = 0,
 #'                       xi = 0.1,
 #'                       period = 0.5,
 #'                       k = 1,
@@ -712,6 +719,8 @@ generate.panel.2order <- function(time,
                                   excitation = NULL,
                                   y0 = 0,
                                   v0 = 0,
+                                  t0 = 0,
+                                  exc0 = 0,
                                   xi = 0.1,
                                   period = 10,
                                   k = 1,
@@ -726,7 +735,6 @@ generate.panel.2order <- function(time,
   #Adding excitation and time input vectors to the data frame
   data[, time := time, by = id]
   data[, excitation := excitation, by = id]
-
 
   #Creating normal distributions for parameters
   y0vec <- rnorm(nind, mean = y0, sd = internoise * y0)
@@ -762,7 +770,8 @@ generate.panel.2order <- function(time,
                                       excitation = excitation,
                                       y0 = y0vec[.GRP],
                                       v0 = v0vec[.GRP],
-                                      t0 = min(time,na.rm = T),
+                                      t0 = t0,
+                                      exc0 = exc0,
                                       xi = xivec[.GRP],
                                       period = periodvec[.GRP],
                                       k = kvec[.GRP],
@@ -784,9 +793,9 @@ generate.panel.2order <- function(time,
 #' DOREMI first order analysis function
 #'
 #' \code{analyze.1order}  estimates the coefficients of a first order differential equation of the form:
-#' \deqn{\frac{1}{\gamma} \dot{y}(t) = - y(t) + \epsilon u(t) + yeq}
+#' \deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
 #' using linear mixed-effect models.
-#' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
+#' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is an external excitation perturbing the dynamics.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
 #' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
@@ -796,22 +805,25 @@ generate.panel.2order <- function(time,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
 #' and build the estimated curve.
-#' The function will consider an excitation variable each column of data whose name is contained in the input vector.
-#' The function will return a coefficient for each one of the excitation variables included.
+#' The function will consider as an excitation each column of data having a name contained in the input vector.
+#' The function will return a coefficient for each one of the excitation variables included in the input vector.
 #' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
 #' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
+#' @param dermethod is the derivative estimation method. The following methods are available: "gold","glla" and "fda"
 #' @param derparam If dermethod "glla" or "gold" are chosen, it is the embedding number, a positive integer containing the number of points to be used for the calculation of the derivatives.
-#' Its value by default is 2 as at least two points are needed for the calculation of the first derivative. If dermethod "fda" is chosen,
-#' it is spar, the parameter related to the smoothing parameter lambda used in the penalization function of to estimate the derivatives via splines of \code{smooth.spline}
-#' @param verbose Is a boolean that displays status messages of the function when set to 1.
+#' Its value by default is 2 as at least two points are needed for the calculation of the first derivative. If dermethod "fda" is chosen, this parameter is
+#' spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis)
+#' @param order is the maximum order of the derivative to estimate. Using an order higher than that of the maximum derivative to estimate (1 in first order differential equations and
+#' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
+#' @param verbose Is a boolean that displays status messages of the function when set to 1. Useful for debugging.
 #' @keywords analysis, first order, exponential
-#' @return Returns a summary of the fixed components for the three coefficients: damping time, excitation coefficient and equilibrium value.
+#' @return Returns a summary of the fixed components estimated by the linear regression for the three coefficients: damping time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
 #' @details The analysis performs the following linear mixed-effects regression:
-#' \deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} E_{ij}+u_{1j} y_{ij}+u_{2j} E_{ij}+e_{ij}}
+#' \deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} U_{ij}+u_{1j} y_{ij}+u_{2j} U_{ij}+e_{ij}}
 #' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
 #' \eqn{y_{ij}'} is the derivative calculated on embedding points and
-#' y and E are the signal and the excitation averaged on embedding points.
+#' y and U are the signal and the excitation averaged on embedding points.
 #' The coefficients estimated to characterize the signal are calculated as follows:
 #' \itemize{
 #'   \item Damping time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
@@ -821,7 +833,7 @@ generate.panel.2order <- function(time,
 #' }
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal can be reconstructed for
-#' each individual by using the generate.1order function on this package (based on deSolve's ode function).
+#' each individual by using the generate.1order function of this package (based on deSolve's ode function).
 #' The function returns five objects:
 #' \enumerate{
 #'  \item data- A data.frame including the input data, the intermediate calculations used to prepare the variables for
@@ -829,7 +841,7 @@ generate.panel.2order <- function(time,
 #'
 #'     signal_rollmean - calculation of the moving average of the signal over embedding points.
 #'
-#'     signal_derivate1 - calculation of the first derivative of the signal with the glla method in embedding points.
+#'     signal_derivate1 - calculation of the first derivative of the signal with the gold,glla or fda methods in embedding points.
 #'
 #'     time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
@@ -839,7 +851,7 @@ generate.panel.2order <- function(time,
 #'     excitation coefficient and equilibrium value obtained from the fit.
 #'  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
 #'  equilibrium value (see variables presented in the Details section).
-#'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above.
+#'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above and the R2 resulting from an estimation based on this coefficients
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
@@ -855,7 +867,7 @@ generate.panel.2order <- function(time,
 #'                   input = "load",
 #'                   time = "time",
 #'                   signal = "hr",
-#'                   dermethod ="calculate.gold",
+#'                   dermethod ="gold",
 #'                   derparam = 5)
 #'@export
 #'@import data.table
@@ -867,12 +879,11 @@ generate.panel.2order <- function(time,
 #'@importFrom zoo rollmean
 #'@importFrom zoo na.locf
 analyze.1order <- function(data,
-
                            id = NULL,
                            input = NULL,
                            time = NULL,
                            signal,
-                           dermethod = "calculate.fda",
+                           dermethod = "fda",
                            derparam = 2,
                            order = 1,
                            verbose = FALSE){
@@ -912,6 +923,7 @@ analyze.1order <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
+  dermethod<-paste0("calculate.",dermethod)
   if(!dermethod %in% c("calculate.fda","calculate.glla","calculate.gold")){
     stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
   }
@@ -1087,12 +1099,12 @@ analyze.1order <- function(data,
       #The estimated signal is calculated by calling ode function in deSolve (through function "generate.1order"). As we will have a decomposition
       #of k for each excitation, the excitation considered is already the total excitation with the total gain (to avoid calculating both separately, this is why
       #k=1, total gain is already included in totalexc)
-
       if(nind > 1){
         intdata[, signal_estimated := generate.1order(time = time,
                                                       excitation = totalexc,
                                                       y0 = signal_rollmean[1],
                                                       t0 = time_derivate[1],
+                                                      exc0 = totalexcroll[1],
                                                       tau = resultid[.GRP, tau],
                                                       yeq = resultid[.GRP, yeq])$y,by =id]
       }else{
@@ -1100,6 +1112,7 @@ analyze.1order <- function(data,
                                                       excitation = totalexc,
                                                       y0 = signal_rollmean[1],
                                                       t0 = time_derivate[1],
+                                                      exc0 = totalexcroll[1],
                                                       tau = resultmean[,tau],
                                                       yeq = resultmean[, yeq])$y]
       }
@@ -1167,7 +1180,7 @@ analyze.1order <- function(data,
 #' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
 #' The function estimates the coefficients \zeta, \omega_{n}, k and y_{eq} using a two step procedure in
 #' which the user can choose the derivative estimation method (through the parameter dermethod) and then the
-#' coefficients are then estimated via linear mixed-effect models.
+#' coefficients are then estimated through a linear mixed-effect model.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
 #' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
@@ -1175,25 +1188,24 @@ analyze.1order <- function(data,
 #' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
-#' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
-#' and build the estimated curve.
-#' The function will consider an excitation variable each column of data whose name is contained in the input vector.
-#' The function will return a coefficient for each one of the excitation variables included.
+#' for the excitation term. If no excitation term is supplied, one of the initial conditions is different from 0 (signal or derivative) and xi<1 the function will estimate
+#' a damped linear oscillator (DLO)
 #' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
 #' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
-#' @param embedding Is a positive integer containing the number of points to be used for the calculation of the derivatives if dermethod "glla" or "gold" are chosen.
-#' (It will be ignored if method "fda" is chosen) Its value by default is 2 as at least two points are needed for the calculation of the first derivative.
-#' @param spar Related to the smoothing parameter lambda used in the penalization function of to estimate the derivatives via splines. If dermethod "glla" or "gold"
-#' are chosen, this parameter is ignored. For more details, see the documentation
-#' of \code{smooth.spline}
+#' @param dermethod is the derivative estimation method. The following methods are available: "gold","glla" and "fda"
+#' @param derparam If dermethod "glla" or "gold" are chosen, it is the embedding number, a positive integer containing the number of points to be used for the calculation of the derivatives.
+#' Its value by default is 3 as at least three points are needed for the calculation of the second derivative. If dermethod "fda" is chosen, this parameter is
+#' spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis)
+#' @param order is the maximum order of the derivative to estimate. Using an order higher than that of the maximum derivative to estimate (1 in first order differential equations and
+#' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @keywords analysis, second order
 
-#' @return Returns a summary of the fixed components for the coefficients: damping factor, natural frenquency, gain and equilibrium value.
+#' @return Returns a summary of the fixed components for the coefficients: damping factor, period, gain and equilibrium value and the R2 resulting from the estimation.
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal is reconstructed for
-#' each individual by using the generate.2order function on this package (based on deSolve's ode function).
+#' each individual by using the generate.2order function of this package (based on deSolve's ode function).
 #' The function returns five objects:
 #' \enumerate{
 #'  \item data- A data.frame including the input data, the intermediate calculations used to prepare the variables for
@@ -1212,7 +1224,7 @@ analyze.1order <- function(data,
 #'     estimated- the estimated signal calculated using deSolve's ode function with a second order model, the excitation provided as input and the
 #'     coefficients obtained from the fit.
 #'  \item resultid- A data.frame including for each individual, listed by id number, the coefficients calculated (thus fixed + random component)
-#'  \item resultmean- A data.frame including the fixed effects of the coefficients mentioned above.
+#'  \item resultmean- A data.frame including the fixed effects of the coefficients mentioned above and the R2 resulting from the estimation
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
@@ -1229,7 +1241,7 @@ analyze.1order <- function(data,
 #'                   input = "load",
 #'                   time = "time",
 #'                   signal = "hr",
-#'                   dermethod = "calculate.gold",
+#'                   dermethod = "gold",
 #'                   derparam = 5)
 #'@export
 #'@import data.table
@@ -1245,7 +1257,7 @@ analyze.2order <- function(data,
                            input = NULL,
                            time = NULL,
                            signal,
-                           dermethod = "calculate.gold",
+                           dermethod = "gold",
                            derparam = 3,
                            order = 2,
                            verbose = FALSE){
@@ -1454,6 +1466,7 @@ analyze.2order <- function(data,
                                                         y0 = signal_rollmean[1],
                                                         v0 = signal_derivate1[1],
                                                         t0 = time_derivate[1],
+                                                        exc0 = totalexcroll[1],
                                                         xi = resultid[.GRP, xi],
                                                         period = resultid[.GRP, period],
                                                         k = 1,
@@ -1466,6 +1479,7 @@ analyze.2order <- function(data,
                                                         y0 = signal_rollmean[1],
                                                         v0 = signal_derivate1[1],
                                                         t0 = time_derivate[1],
+                                                        exc0 = totalexcroll[1],
                                                         xi = resultmean[, xi],
                                                         period = resultmean[, period],
                                                         k = 1,
@@ -1523,15 +1537,80 @@ analyze.2order <- function(data,
   return(res)
 }
 
-# Optimization loop for embedding dimension/spar --------------------------
-#
+# optimum_param --------------------------------------------------------------------
+#' Function to find the optimum parameter for derivative estimation (embedding or spar according to derivative estimation method chosen)
+#'
+#' \code{optimum_param}  calculates the optimum parameter for derivative estimation by varying the latter in a range introduced as input and keeping the parameter and
+#' coefficients having the R2 closest to 1.
+#' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
+#' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+#' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
+#' of the linear mixed-effects regression.
+#' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' If this parameter is not entered when calling the function,
+#' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
+#' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
+#' and build the estimated curve.
+#' The function will consider as an excitation each column of data having a name contained in the input vector.
+#' The function will return a coefficient for each one of the excitation variables included in the input vector.
+#' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
+#' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
+#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
+#' @param dermethod is the derivative estimation method. The following methods are available: "gold","glla" and "fda"
+#' @param model is the model to be used for analysis of the signal. The models available are "1order" and "2order"
+#' @param pmin is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
+#' @param pmax is the maximum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
+#' @param pstep is the step that will be considered when varying the parameter. For instance pmin=3, pmax=7 and pstep=2 and dermethod="gold" will make the embedding number take
+#' the values 3,5 and 7.
+#' @param verbose Is a boolean that displays status messages of the function (and functions it calls) when set to 1.
+#' @keywords optimum, embedding number, smoothing parameter, derivative
+#' @return Returns a list of three objects:
+#' \itemize{
+#'   \item  analysis is a data.frame containing the resultmean object of the analysis made (result of the analyze.1order or analyze.2order function
+#'   according to model chosen) with the different values of embedding/spar and the resulting R2.
+#'   \item  summary_opt is a data.frame containing the analysis that had the best R2 from the analysis data.frame previously mentioned
+#'   \item d contains the optimum value of the embedding/spar
+#' }
+#' @seealso \code{\link{analyze.1order}\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
+#' @examples
+#' s2 <- generate.panel.2order(time = 0:100,
+#'                             excitation = c(rep(0,25),rep(1,76)),
+#'                             y0 = 0,
+#'                             v0= 0,
+#'                             xi = 0.05,
+#'                             period=10,
+#'                             k=1,
+#'                             yeq=0,
+#'                             nind=4,
+#'                             internoise = 0.2,
+#'                             intranoise = 8)
+#' resgold <- optimum_param (data=s2,
+#'                           id="id",
+#'                           input="excitation",
+#'                           time="time",
+#'                           signal="signal",
+#'                           model = "2order",
+#'                           dermethod = "calculate.gold",
+#'                           pmin = 3,
+#'                           pmax = 15,
+#'                           pstep = 1,
+#'                           verbose=T)
+#'@export
+#'@import data.table
+#'@importFrom lmerTest lmer
+#'@importFrom lme4 lmerControl
+#'@importFrom lme4 ranef
+#'@importFrom stats embed
+#'@importFrom stats lm
+#'@importFrom zoo rollmean
+#'@importFrom zoo na.locf
 optimum_param <- function(data,
                           id,
                           input= NULL,
                           time,
                           signal,
-                          model = "analyze.1order",
-                          dermethod = "calculate.gold", #string containing function name, beware!
+                          dermethod = "gold",
+                          model = "1order",
                           pmin = 3,
                           pmax = 21,
                           pstep = 2,
@@ -1541,6 +1620,7 @@ optimum_param <- function(data,
   if(any(pmax>Npoints)){
     stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
   }
+  model<-paste0("analyze.",model)
   analyze <- get(model)
   analysis <- rbindlist(lapply(seq(pmin,pmax,pstep),function(embedding){
     if(verbose){print(paste0("Analyzing for embedding=",embedding))}
@@ -1550,7 +1630,8 @@ optimum_param <- function(data,
                    time = time,
                    signal = signal,
                    dermethod = dermethod,
-                   derparam = embedding)
+                   derparam = embedding,
+                   verbose = verbose)
     res2 <- res$resultmean
     res2[, D:= embedding]
     res2
