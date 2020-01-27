@@ -56,10 +56,10 @@ summary.doremi = function (object, ...){
    print(object$resultmean)
    cat("\n Coefficients per individual ($resultid):\n")
    print(object$resultid)
-   cat("\n Estimated signal ($estimated):\n")
-   print(object$estimated)
-   cat("\n Embedding number ($embedding):\n")
-   print(object$embedding)
+   cat("\n Derivative estimation method used ($dermethod):\n")
+   print(object$dermethod)
+   cat("\n Embedding number/smoothing parameter ($derparam):\n")
+   print(object$derparam)
 }
 
 #' S3 method to plot DOREMI objects
@@ -135,7 +135,44 @@ plot.doremi = function (x, ...,
   return(p)
 
 }
+plot.doremidata = function (x, ...){
 
+  p <- ggplot(x) + geom_point(aes(time, signal, color = "signal")) +
+    geom_line(aes(time, signalraw, color = "signal, no noise")) +
+    facet_wrap(~id, scales = "free") +
+    labs(x = "time",
+                y = "signal",
+                colour = "") +
+    ggtitle(paste0("DOREMI simulated data: ",deparse(substitute(x))))+
+    theme(legend.position = "top",
+          plot.title = element_text(hjust = 0.5))
+  if(!is.null(x$excitation)){
+    p <- p + geom_line(aes(time, excitation, color = "excitation"))
+  }
+  return(p)
+
+}
+#plots parameter evolution of a "doremiparam" object resulting from the function "optimum_param"
+plot.doremiparam = function (x, ...,
+                             id = NULL){
+  analysis <- x$analysis
+  dermethod <-x$summary_opt$method
+
+  #Temporary long data table containing parameter name
+  toplot<-melt(analysis[,-c("id")],id.vars="D")
+  #Plotting estimated parameters and R2 versus embedding
+  estvsembed<-ggplot(toplot) +
+    geom_point(aes(D,value,color=variable)) +
+    labs(x = "Embedding dimension, D",
+         y = "",
+         colour = "") +
+    ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension: ",dermethod))+
+    theme_bw()+
+    theme(legend.position = "top",
+          plot.title = element_text(hjust = 0.5)) +
+    facet_wrap(~variable,scale = "free")
+  return(estvsembed)
+}
 #' S3 method to predict signal values in a DOREMI object when entering a new excitation
 #'
 #' \code{predict.doremi} predicts signal values with a DOREMI object when providing a new excitation vector(s).

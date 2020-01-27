@@ -32,22 +32,22 @@ values of the signal for the new excitation(s).
 \code{predict.doremi} predicts signal values with a DOREMI object when providing a new excitation vector(s).
 }
 \examples{
-myresult <- remi(data = cardio[id == 1],
+myresult <- remi(data = cardio[id==1],
+                 id="id",
                  input = "load",
                  time = "time",
                  signal = "hr",
                  embedding = 5)
 #Copying cardio into a new data frame and modifying the excitation column
-new_exc <- cardio[id == 1, !"id"]
-
+new_exc <- cardio[id==1]
 et <- generate.excitation(amplitude = 100,
-                                   nexc = 6,
-                                   duration = 2,
-                                   deltatf = 1,
-                                   tmax = 49,
-                                   minspacing = 2)
+                          nexc = 6,
+                          duration = 2,
+                          deltatf = 1,
+                          tmax = 49,
+                          minspacing = 2)
 new_exc$load <- et$exc
 new_exc$time <- et$t
-predresult <- predict(myresult, newdata = new_exc)
+predresult <- predict(myresult, newdata = new_exc,verbose=TRUE)
 plot(predresult)
 }

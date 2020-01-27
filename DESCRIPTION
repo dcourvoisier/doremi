@@ -22,7 +22,7 @@ Imports:
     lme4,
     ggplot2,
     lmerTest
-RoxygenNote: 6.1.0
+RoxygenNote: 7.0.2
 Suggests:
     knitr,
     rmarkdown,

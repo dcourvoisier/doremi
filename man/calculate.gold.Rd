@@ -4,7 +4,7 @@
 \alias{calculate.gold}
 \title{Calculation of derivatives using the GOLD method}
 \usage{
-calculate.gold(signal, time, embedding = 2)
+calculate.gold(signal, time, embedding = 2, n = 2)
 }
 \arguments{
 \item{signal}{is a vector containing the data from which the derivative is estimated.}
@@ -13,9 +13,11 @@ calculate.gold(signal, time, embedding = 2)
 
 \item{embedding}{is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
 two points are needed for the calculation of the first derivative and at least 3 for the calculation of the second derivative.}
+
+\item{n}{is the maximum order of derivative to estimate ("m" in the cited paper)}
 }
 \value{
-Returns a list containing three columns:
+Returns a list containing the following columns:
 
 dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 
@@ -24,12 +26,13 @@ The first column is the moving average of the signal over embedding points, the 
 and the third is the second derivative.
 
 embedding- contains the number of points used for the derivative calculation, which is constant.
+
+order - contains the order of the maximum derivative
 }
 \description{
 \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
-method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}.
+method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
 This method allows calculating over a number of measurement points (called the embedding number) the first derivative with errors uncorrelated with the signal.
-It was generalized for non-equidistant time points (variable time steps), in order to account for missing observations.
 }
 \examples{
 #In the following example the derivatives for the function y(t) = t^2 are calculated.

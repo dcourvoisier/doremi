@@ -4,8 +4,14 @@
 \alias{generate.excitation}
 \title{Excitation signal generation}
 \usage{
-generate.excitation(amplitude = 1, nexc = 1, duration = 2,
-  deltatf = 0.1, tmax = 10, minspacing = 1)
+generate.excitation(
+  amplitude = 1,
+  nexc = 1,
+  duration = 2,
+  deltatf = 0.1,
+  tmax = 10,
+  minspacing = 1
+)
 }
 \arguments{
 \item{amplitude}{is vector of values different than 0 indicating the amplitude of the excitation. It should contain as many values

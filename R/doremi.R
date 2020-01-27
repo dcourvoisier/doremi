@@ -208,7 +208,7 @@ calculate.glla <-  function(signal,
 #' and  \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
 #' This method estimates a spline function that fits all the data points and then derivates this function to estimate derivatives at those points.
 #' In order for the derivatives to exist, the function must be smooth. A roughness penalty function controlled by a smoothing parameter is then used.
-#' The estimations are done by using the R's "fda" package.
+#' The estimations are done by using the R's base smooth.spline function.
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param spar is the smoothing parameter used by the roughness penalty function in the smooth.spline R function.
@@ -230,8 +230,8 @@ calculate.glla <-  function(signal,
 #' result <- calculate.fda(signal = signal, time = time)
 #'
 #'@export
-#'@importFrom fda smooth.spline
-#'@importFrom fda predict
+#'@importFrom stats smooth.spline
+#'@importFrom stats predict
 calculate.fda <-  function(signal,
                            time,
                            spar = NULL,
@@ -394,9 +394,9 @@ generate.1order <- function(time = 0:100,
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
   }
 
-  if (t0 < min(time,na.rm = T) | t0 > max(time,na.rm = T)) {
-    stop("Initial condition should be given for a time contained within the the time vector boundaries\n")
-  }
+  # if (t0 < min(time,na.rm = T) | t0 > max(time,na.rm = T)) {
+  #   stop("Initial condition should be given for a time contained within the the time vector boundaries\n")
+  # }
 
   #if excitation is a character or a matrix, the function stops
   if (is.matrix(excitation) | is.character(excitation)) stop("Excitation should be a vector.")
@@ -620,7 +620,7 @@ generate.panel.1order <- function(time,
   # Generating id column (id being the individual number) with as many lines per individual as npoints
   data <- data.table(id = rep(1:nind,each = length(time)))
 
-  #Adding 3excitation and time to the data frame
+  #Adding excitation and time to the data frame
   data[, time := time, by = id]
   data[, excitation := excitation, by = id]
 
@@ -659,13 +659,13 @@ generate.panel.1order <- function(time,
                                        tau = tauvec[.GRP],
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
-
   #Addition of intra-noise
   if(intranoise!=0){
     data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
   }else{
     data[, signal := signalraw, by = id]
   }
+  class(data)<-c("doremidata","data.frame","data.table")
   return(data)
 }
 
@@ -930,8 +930,7 @@ analyze.1order <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
-  dermethod<-paste0("calculate.",dermethod)
-  if(!dermethod %in% c("calculate.fda","calculate.glla","calculate.gold")){
+  if(!dermethod %in% c("fda","glla","gold")){
     stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
   }
 
@@ -969,8 +968,8 @@ analyze.1order <- function(data,
 
 
   #Calculation of the signal rollmean and first derivative of the signal column
+  dermethod<-paste0("calculate.",dermethod)
   derivate <-get(dermethod)
-
   intdata[, signal_rollmean := derivate(signal, time, derparam, order)$dsignal[, 1], by = id]
   intdata[, signal_derivate1 := derivate(signal, time, derparam, order)$dsignal[, 2], by = id]
   intdata[, time_derivate := derivate(signal, time, derparam, order)$dtime, by = id]
@@ -1304,7 +1303,7 @@ analyze.2order <- function(data,
     time <- "time" # if no time set it to a 1 sec step vector
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
-  if(!dermethod %in% c("calculate.fda","calculate.glla","calculate.gold")){
+  if(!dermethod %in% c("fda","glla","gold")){
     stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
   }
 
@@ -1343,6 +1342,7 @@ analyze.2order <- function(data,
 
 
   #Calculation of the signal rollmean and first derivative of the signal column
+  dermethod<-paste0("calculate.",dermethod)
   derivate<-get(dermethod)
   intdata[, signal_rollmean := derivate(signal, time, derparam, order)$dsignal[, 1], by = id]
   intdata[, signal_derivate1 := derivate(signal, time, derparam, order)$dsignal[, 2], by = id]
@@ -1623,7 +1623,7 @@ optimum_param <- function(data,
                           pstep = 2,
                           verbose= F){
   #Error management
-  Npoints<-data[,.N,by=id]$N
+  Npoints <- data[, .N,by = data$str_id]$N
   if(any(pmax>Npoints)){
     stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
   }

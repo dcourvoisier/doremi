@@ -1,0 +1,201 @@
+---
+title: "Introduction-to-doremi"
+author: "Adriana Uribe"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette 
+vignette: >
+  %\VignetteIndexEntry{Introduction to doremi}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
+```{r, include = FALSE}
+ library(ggplot2)
+ library(doremi)
+set.seed(1)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  warning = FALSE,
+  comment = "#>"
+)
+```
+
+The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to be able to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates coefficients for the solution of a first and second order differential equations using a two-step estimation method with an estimation of the derivatives first and then a fit of the coefficients through linear mixed-effects (multilevel) models. 
+
+# FIRST ORDER DIFERENTIAL EQUATION MODEL
+
+The differential equation considered is the following:
+
+$$\frac{1}{\gamma} \dot{y}(t) + y(t) = kU(t) + yeq  (1)$$
+
+Where:
+
+* $y(t)$ is the signal to be analyzed
+
+* $\dot{y}(t)$ is its first derivative
+
+* $U(t)$ is the excitation term perturbing the dynamics of $y(t)$
+
+And regarding the coefficients:
+
+* $\gamma$ is the damping rate, the inverse of which is the damping time. The damping rate indicates the relative variation of the signal with respect to time when the excitation term is 0.
+The damping time is the characteristic response time of the solution to equation (1). When the excitation starts, the signal reaches its new value and $\tau =\frac{1}{\gamma}$ corresponds to the time needed to reach 63% of the difference between the maximum value and the initial value (it can be verified by substituting t=\tau in the equation above). After an excitation, when the signal returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value. Figure 1 presents both the damping time $\tau$ for the increase and decrease of the signal. Further development of the model will relax this constraint and will allow for different signal increase and decrease behavior.
+
+```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
+time <- 0:90
+exc <- rep(c(0,1,0),c(11,30,50))
+signal<- generate.1order(time = time,
+                         excitation = exc,
+                         y0 = 0,
+                         t0 = 0,
+                         exc0 = 0,
+                         tau = 5,
+                         k = 1,
+                         yeq = 0)
+signal<-cbind(as.data.table(signal),exc)
+ggplot2::ggplot(data = as.data.table(signal)) +
+ggplot2::ggtitle( "First order differential equation solution")+
+  ggplot2::geom_line(ggplot2::aes(t,y, colour = "Signal"))+
+  ggplot2::geom_line(ggplot2::aes(t,exc, colour = "Excitation"))+
+  ggplot2::geom_hline(yintercept=0.63*max(signal$y), linetype="dashed", colour = "gray")+
+  ggplot2::geom_hline(yintercept=0.37*max(signal$y), linetype="dashed", colour = "gray")+
+  ggplot2::geom_vline(xintercept=signal$t[signal$y==max(signal$y)], colour = "gray")+
+  ggplot2::geom_vline(xintercept=50, colour = "gray")+
+  ggplot2::geom_vline(xintercept=19, colour = "gray")+
+  ggplot2::geom_vline(xintercept=10, colour = "gray")+
+  ggplot2::annotate("segment", x = 10, xend = 19, y = -0.1, yend = -0.1, colour = "dark green", size = 1)+
+  ggplot2::annotate("text", x = 15, y = -0.2, label = "tau", parse = TRUE, colour = "dark green")+
+  
+  ggplot2::annotate("segment", x = 40, xend = 50, y = -0.1, yend = -0.1, colour = "dark green", size = 1)+
+  ggplot2::annotate("text", x = 45, y = -0.2, label = "tau", parse = TRUE, colour = "dark green")+
+
+  ggplot2::annotate("text", x = 75, y = 0.63*max(signal$y), label = "63% diff. max and eq. value", colour = "gray")+
+  ggplot2::annotate("text", x = 75, y = 0.37*max(signal$y), label = "37% diff. max and eq. value", colour = "gray")+
+  
+  ggplot2::labs(x = "Time (arb. unit)",
+           y = "Signal (arb. unit)",
+           colour = "Legend")+
+  ggplot2::theme(legend.position = "top", plot.title = ggplot2::element_text(hjust = 0.5))
+```
+
+* $k$ is the excitation coefficient, also called "gain" in control theory.  It indicates the proportionality between the maximal amplitude the signal can reach and the input (also called excitation).
+
+* _yeq_ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
+
+In order to find these coefficients, the model performs the following linear mixed-effect regression derived from equation (1), as presented by [(Mongin et al., under review)]:
+
+$$\dot{y}_{ij} \sim b_{0}+b_{0j}+b_{1}y_{ij}+b_{2}U_{ij}+u_{1j}y_{ij}+u_{2j}U_{ij}+e_{ij} (2)$$
+
+where:
+  
+* i accounts for the time
+
+* j accounts for the different individuals
+
+* $\dot{y}_{ij}$ is the derivative estimated through one of the derivative estimation methods available in the package (gold, glla and fda) calculated on embedding points (gold, glla) or estimated on the time points provided (fda) 
+
+* $y_{ij}$ and $U_{ij}$ are the signal and the excitation averaged on embedding points (gold, glla) or the originals provided (fda)
+
+* $e_{ij}$ is the error term (residuals)
+
+Note that random effects are estimated for the intercept ($b_{0} +b_{0j}$), signal ($b_{1} +u_{1j}$) and excitation terms ($b_{2} +u_{2j}$), so that individuals can have different coefficients (initial condition, damping time, gain and equilibrium value).
+
+The coefficients aforementioned can be thus calculated as:
+
+* Damping time: $\tau_{j} = \frac{1}{\gamma_{j}}$  with $\gamma_{j} =  b_{1} + u_{1j}$
+
+* Excitation coefficient: $\k_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
+
+* Equilibrium value: $yeq_{j} = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
+
+The estimation is performed using the function `lmer` if there are several individuals or `lm` if there is a single individual.
+
+With the above estimated parameters, the estimated signal can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
+
+# SECOND ORDER DIFERENTIAL EQUATION MODEL
+
+The differential equation considered in this case is the following:
+
+$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*U(t)  (3)$$
+
+Where:
+
+* $y(t)$ is the signal to be analyzed
+
+* $\dot{y}(t)$ is its first derivative
+
+* $\frac{d^2y}{dt}$ is its second derivative
+
+* $U(t)$ is the excitation term perturbing the dynamics of $y(t)$
+
+And regarding the coefficients:
+  
+* $\omega_{n} = \frac{2\pi}{period}$ is the system's natural frequency, the frequency with which the system would oscillate if there were no damping. The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
+
+* $\xi$ is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable). The term 2\xi\omega_n thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium. The value of $\xi$ determines the shape of the system time response, which can be:
+     $\xi<0$	Unstable, oscillations of increasing magnitude
+     $\xi=0$	Undamped, oscillating
+     $0<\xi<1$	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
+     $\xi=1$	Critically damped
+     $\xi>1$	Over-damped, no oscillations in the return to equilibrium
+
+* $k$ is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only for differential equations including an excitation term.
+
+* $yeq$ is the signal equilibrium value. Value reached when the excitation term is 0 or constant.
+
+The package also allows the excitation term to be NULL (and thus, the solution is a damped linear oscillator when the initial condition is different from 0)as it can be seen in the graph below (right panel)
+
+```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
+time <- 0:130
+excitation <- c(rep(0,30),rep(1,50),rep(0,51))
+signal <- generate.2order(time = time,
+                            excitation = excitation,
+                            y0 = 0,
+                            v0 = 0,
+                            xi = 0.2,
+                            period = 15,
+                            k = 1,
+                            yeq = )
+ggplot2::ggplot(signal)+
+  ggplot2::ggtitle( "Second order differential equation solution")+
+  ggplot2::geom_line(aes(t,y,color = "signal"))+
+  ggplot2::geom_line(aes(time,excitation,color = "excitation"))+
+  ggplot2::geom_vline(xintercept=80, colour = "gray")+
+  ggplot2::annotate("text", x = 100, y = 1, label = "DLO", parse = TRUE, colour = "gray")+
+  ggplot2::labs(x = "Time (arb. unit)",
+           y = "Signal (arb. unit)",
+           colour = "Legend")+
+  ggplot2::theme(legend.position = "top", plot.title = ggplot2::element_text(hjust = 0.5))
+```
+
+# FUNCTIONS INCLUDED ON THE PACKAGE
+
+The doremi package contains three types of functions:
+
+### Simulation functions
+These are functions that allow the user to generate data following the first/second order differential equation models (i.e. solution of equations (1)/(3)). More specifically:
+
+* **generate.1order/generate.2order:** generate the solution of equation (1)/(3) with the coefficients and excitation provided as input.
+
+
+* **generate.panel.1order/generate.panel.2order:** generate the solution of equation (1)/(3) for a given excitation and for a number of individuals, dynamic noise and variability between individuals provided as input.
+
+### Analysis functions
+These functions allow to analyze a set of data and verify how close it is to being a solution of a first/second order differential equation with constant coefficients by following a two-step estimation method (derivative estimation first and then estimation of the coefficients through a multilevel regression).
+
+
+* **analyze.1order/analyze.2order:** these functions perform estimate the derivatives of the datacto be analyzed by three methods:
+  *GOLD- Generalized Orthogonal Local Derivative, method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the signal. 
+  *GLLA- Generalized Local Linear Approximation, method described \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}. This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
+  *FDA- Functional Data Analysis. This method generates a function that contains the data points provided and then derives it to evaluate the derivatives in those same points. 
+  The analyze analyze.1order/analyze.2order functions use one of these three methods according to what is set as input and then, once the derivatives are estimated, they are used as a known term in the multilevel regression so that the coefficients of the equation are the only unknowns and can be estimated through the fit. Once the coefficients are estimated, the estimated 1st order/2nd order signal is generated from these and the R2 is calculated and provided as a result. The estimation of the derivatives, summary of the regression, coefficients found for each individual (random coefficients of the regression) and for the group (fixed coefficients) are also provided. 
+
+### Other functions
+These functions are used by or together with the simulation and/or analysis functions but they can also be used independently:
+
+* **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only, can be use to generate the excitation signals that are introduced as input for the generate.xorder and generate.panel.xorder functions).
+
+* **calculate.gold:** calculates the derivative of a group of data points by using the GOLD method as mentioned.
+* **calculate.glla:** idem for the GLLA method.
+* **calculate.fda:** idem for the FDA method.
+
+* **optimum_param:** calculates the optimum embedding number (gold/glla) or smoothing parameter (fda) for derivative estimation by varying the latter in a range provided as input and keeping the parameter that produces the R2 the closest to 1 (optimum). It provides as output the optimum parameter found, the coefficients estimated with it and the R2 calculated.
