@@ -39,7 +39,7 @@ generate.panel.2order(
 
 \item{xi}{is the damping factor. A negative value will produce divergence from equilibrium.}
 
-\item{period}{is the period T of the oscillation, \eqn{\T = \frac{2\pi}{omega_{n}}} as mentioned}
+\item{period}{is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned}
 
 \item{k}{is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
 for differential equations including an excitation term.}

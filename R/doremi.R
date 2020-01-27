@@ -20,7 +20,7 @@
 #'
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
 #'
-#' order - contains the order of the maximum derivative
+#' order - contains the order of the maximum derivative to calculate (introduced as input parameter)
 #'
 #' @examples
 #' #In the following example the derivatives for the function y(t) = t^2 are calculated.
@@ -136,6 +136,7 @@ calculate.gold <-  function(signal,
 #'
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
 #'
+#' order - contains the order of the maximum derivative to calculate (introduced as input parameter)
 #' @examples
 #' #In the following example the derivatives for the function y(t) = t^2 are calculated.
 #' #The expected results are:
@@ -197,7 +198,8 @@ calculate.glla <-  function(signal,
 
   returnobject <- list("dtime" = time_derivative,
                        "dsignal" = derivative,
-                       "embedding" = embedding)
+                       "embedding" = embedding,
+                       "order" = order)
   return(returnobject)
 }
 # calculate.fda ----------------------------------------------------------
@@ -351,7 +353,7 @@ generate.excitation = function(amplitude = 1,
 #' \code{generate.1order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a first order
 #' differential equation whith the coefficients are provided as inputs:
 #' \deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
-#' Where y(t) is the signal, dy(t) its derivative, \gamma is the damping rate, k the gain and yeq the equilibrium value.
+#' Where y(t) is the signal, dy(t) its derivative, \eqn{\gamma} is the damping rate, k the gain and yeq the equilibrium value.
 #' u(t) is an external excitation perturbing the dynamics.
 #' The latter is also provided as input and it can be null (then the solution
 #' will be a decreasing exponential). The analytical solution is generated with deSolve.
@@ -359,6 +361,7 @@ generate.excitation = function(amplitude = 1,
 #' @param excitation Is a vector containing the values of the excitation signal.
 #' @param y0 Signal initial value y(t=t0)
 #' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector
+#' @param exc0 is the initial value for the excitation: u(t=t0)
 #' @param tau Signal damping time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
 #' @param k Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
@@ -394,9 +397,9 @@ generate.1order <- function(time = 0:100,
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
   }
 
-  # if (t0 < min(time,na.rm = T) | t0 > max(time,na.rm = T)) {
-  #   stop("Initial condition should be given for a time contained within the the time vector boundaries\n")
-  # }
+  if (t0 < min(time,na.rm = T) | t0 > max(time,na.rm = T)) {
+    stop("Initial condition should be given for a time contained within the time vector boundaries\n")
+  }
 
   #if excitation is a character or a matrix, the function stops
   if (is.matrix(excitation) | is.character(excitation)) stop("Excitation should be a vector.")
@@ -418,20 +421,20 @@ generate.1order <- function(time = 0:100,
     #Position of t0 in the original time vector
     i <- length(time[time<t0])+1
 
-    #Left side of the curve
-    if(t0>0){
-      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
-      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model1, parms = parameters))
-    }
     #Right side of the curve
     excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
     out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model1, parms = parameters))
-
-    if(t0>0){
+    if(t0!=time[1]){
+      #Left side of the curve
+      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
+      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model1, parms = parameters))
       # bind the two
       out <- rbind(out_left[nrow(out_left):1,],out_right)
       # remove duplicated initial value
       out <- out[!duplicated(out),]
+      if(!t0 %in% time){#if t0 wasn't in original time vector, suppress it, otherwise it won't match the initial time points given when building the table
+        out <- out[!time == t0]
+      }
     }else{
       out <-out_right
     }
@@ -444,23 +447,21 @@ generate.1order <- function(time = 0:100,
 #'
 #' \code{generate.2order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a second order
 #' differential equation whith constant coefficients that are provided as inputs:
-#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
+#' \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
 #' Where:
 #' y(t) is the signal, dy(t) its derivative and d2y(t) its second derivative
 #' \itemize{
-#'    \item{\eqn{\omega_{n} = \frac{2\pi}{period}} that is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
-#'    The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
+#'    \item \eqn{\omega_{n} = \frac{2*pi}{period}} that is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
+#'    The term \eqn{\omega_{n}^2} represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
 #'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
-#'    }
-#'    \item{\zeta is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
-#'    The term 2\zeta\omega_n thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium.
-#'    The value of \zeta determines the shape of the system time response, which can be:
-#'    \zeta<0	Unstable, oscillations of increasing magnitude
-#'    \zeta=0	Undamped, oscillating
-#'    0<\zeta<1	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
-#'    \zeta=1	Critically damped
-#'    \zeta>1	Over-damped, no oscillations in the return to equilibrium
-#'    }
+#'    \item \eqn{\xi} is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
+#'    The term \eqn{2\xi\omega_n} thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium.
+#'    The value of \eqn{\xi} determines the shape of the system time response, which can be:
+#'    \eqn{\xi<0}	Unstable, oscillations of increasing magnitude
+#'    \eqn{\xi=0}	Undamped, oscillating
+#'    \eqn{0<\xi<1}	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
+#'    \eqn{\xi=1}	Critically damped
+#'    \eqn{\xi>1}	Over-damped, no oscillations in the return to equilibrium
 #'    \item k is the gain
 #'    \item u(t) is an external excitation perturbing the dynamics
 #' }
@@ -474,7 +475,7 @@ generate.1order <- function(time = 0:100,
 #' @param t0 is the initial time
 #' @param exc0 is the initial value for the excitation: u(t=t0)
 #' @param xi is the damping factor. A negative value will produce divergence from equilibrium.
-#' @param period is the period T of the oscillation, \eqn{\T = \frac{2\pi}{omega_{n}}} as mentioned
+#' @param period is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned
 #' @param k is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
 #' for differential equations including an excitation term.
 #' @param yeq is the signal equilibrium value. Value reached when the excitation term is 0 or constant.
@@ -665,7 +666,7 @@ generate.panel.1order <- function(time,
   }else{
     data[, signal := signalraw, by = id]
   }
-  class(data)<-c("doremidata","data.frame","data.table")
+  class(data)<-c("doremidata","data.table","data.frame")
   return(data)
 }
 
@@ -793,6 +794,7 @@ generate.panel.2order <- function(time,
   }else{
     data[, signal := signalraw, by = id]
   }
+  class(data)<-c("doremidata","data.table","data.frame")
   return(data)
 }
 
@@ -834,7 +836,7 @@ generate.panel.2order <- function(time,
 #' The coefficients estimated to characterize the signal are calculated as follows:
 #' \itemize{
 #'   \item Damping time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
-#'   \item Gain, k: \eqn{\epsilon _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
+#'   \item Gain, k: \eqn{\gamma _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
 #'   difference between the maximum value reached by the signal and its initial value.
 #'   \item Equilibrium value, yeq: \eqn{yeq _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
 #' }
@@ -867,7 +869,7 @@ generate.panel.2order <- function(time,
 #'  \item embedding - contains the embedding number used to generate the results (same as function input argument)
 #'  \item spar - contains the smoothing parameter used for the estimation of the derivatives using splines (method "fda")
 #' }
-#' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
+#' @seealso \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
 #' @examples
 #' myresult <- analyze.1order(data = cardio,
 #'                   id = "id",
@@ -891,7 +893,7 @@ analyze.1order <- function(data,
                            time = NULL,
                            signal,
                            dermethod = "fda",
-                           derparam = 2,
+                           derparam = 0.2,
                            order = 1,
                            verbose = FALSE){
 
@@ -903,10 +905,12 @@ analyze.1order <- function(data,
   if (!is.null(id)){ #Several individuals
     errorcheck(intdata,id)
     nind <- length(unique(intdata[[id]]))
+    if(verbose){print("Status: Several individuals.")}
   }else{#Single individual. Create id column anyways (needed for the rest of the data processing)
     nind <-1
     intdata[, id:=1]
     id<- "id"
+    if(verbose){print("Status: Single individual.")}
   }
   if (!is.null(input)){
     errorcheck(intdata, input)
@@ -991,12 +995,12 @@ analyze.1order <- function(data,
       model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
                                      " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      if (verbose){print("Status: One or several excitations. Linear mixed-effect model calculated.")}
+      if (verbose){print("Status: Multiple individuals.One or several excitations. Linear mixed-effect model calculated.")}
     }
   }else{ #SINGLE individual
     if(noinput){ # if there is no excitation signal
       model <- tryCatch({lm(signal_derivate1 ~ signal_rollmean, data = intdata)}, error = function(e) e)
-      if (verbose){print("Status: Unknown excitation. Linear regression calculated")}
+      if (verbose){print("Status: Single individual. Unknown excitation. Linear regression calculated")}
 
     }
     else{ # if there is one or several excitation signals
@@ -1182,9 +1186,9 @@ analyze.1order <- function(data,
 #' DOREMI second order analysis function
 #'
 #' \code{analyze.2order}  estimates the coefficients of a second order differential equation of the form:
-#' \deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
+#' \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
 #' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
-#' The function estimates the coefficients \zeta, \omega_{n}, k and y_{eq} using a two step procedure in
+#' The function estimates the coefficients \eqn{\xi, \omega_{n}, k} and \eqn{y_{eq}} using a two step procedure in
 #' which the user can choose the derivative estimation method (through the parameter dermethod) and then the
 #' coefficients are then estimated through a linear mixed-effect model.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
@@ -1236,11 +1240,10 @@ analyze.1order <- function(data,
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
 #'  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
 #'  to access the regression summary by typing result$regression.
-#'  \item embedding - contains the embedding number used to generate the results (same as function input argument). Will only appear in the output if the
-#'  derivative estimation method chosen is "glla" or "gold".
-#'  \item spar -
+#'  \item derparam - contains the embedding number used to generate the results (if the derivative estimation method chosen is "glla" or "gold") or
+#'  the smoothing parameter spar if the chosen method is fda
 #' }
-#' @seealso \code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding.
+#' @seealso \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar
 #' @examples
 #' myresult <- analyze.2order(data = cardio,
 #'                   id = "id",
@@ -1597,11 +1600,11 @@ analyze.2order <- function(data,
 #'                           time="time",
 #'                           signal="signal",
 #'                           model = "2order",
-#'                           dermethod = "calculate.gold",
+#'                           dermethod = "gold",
 #'                           pmin = 3,
 #'                           pmax = 15,
 #'                           pstep = 1,
-#'                           verbose=T)
+#'                           verbose = TRUE)
 #'@export
 #'@import data.table
 #'@importFrom lmerTest lmer
@@ -1621,7 +1624,7 @@ optimum_param <- function(data,
                           pmin = 3,
                           pmax = 21,
                           pstep = 2,
-                          verbose= F){
+                          verbose= FALSE){
   #Error management
   Npoints <- data[, .N,by = data$str_id]$N
   if(any(pmax>Npoints)){

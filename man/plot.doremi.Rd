@@ -7,7 +7,7 @@
 \method{plot}{doremi}(x, ..., id = NULL)
 }
 \arguments{
-\item{x}{DOREMI object from \code{\link{remi}} analysis}
+\item{x, }{DOREMI object from \code{\link{analyze.1order}} or \code{\link{analyze.2order}} analysis}
 
 \item{...}{includes the additional arguments inherited from the generic plot method}
 
@@ -24,21 +24,21 @@ to generate the graphs and so it is possible to override the values of axis labe
 signal over time for each individual.
 }
 \examples{
-mydata <- generate.panel.remi(nind = 2,
-                           dampingtime = 10,
-                           amplitude = c(5,10),
-                           nexc = 2,
-                           duration = 20,
-                           deltatf = 2,
-                           tmax = 200,
-                           minspacing = 0,
-                           internoise = 0.2,
-                           intranoise = 0.1)
-myresult <- remi(data = mydata,
-                 id = "id",
-                 input = "excitation",
-                 time = "time",
-                 signal = "dampedsignal",
-                 embedding = 5)
+mydata <- generate.panel.1order(time= 0:100,
+                                excitation = sin(0:100),
+                                y0 = 0,
+                                t0 = 0,
+                                exc0 = 0,
+                                tau = 2,
+                                k = 1,
+                                yeq = 0,
+                                nind = 2,
+                                internoise = 0.1,
+                                intranoise = 8)
+myresult <- analyze.1order(data = mydata,
+                           id = "id",
+                           input = "excitation",
+                           time = "time",
+                           signal = "signal")
 plot(myresult)
 }

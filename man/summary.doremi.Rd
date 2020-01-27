@@ -7,7 +7,7 @@
 \method{summary}{doremi}(object, ...)
 }
 \arguments{
-\item{object}{DOREMI object (contains several lists)}
+\item{object, }{DOREMI object (contains several lists)}
 
 \item{...}{includes the additional arguments inherited from the generic summary method}
 }
@@ -15,14 +15,13 @@
 Returns a summary containing the five lists of the DOREMI object
 }
 \description{
-\code{summary.doremi} provides a summary of the remi analysis
+\code{summary.doremi} provides a summary of the analysis
 }
 \examples{
-myresult <- remi(data = cardio,
+myresult <- analyze.1order(data = cardio,
                  id = "id",
                  input = "load",
                  time = "time",
-                 signal = "hr",
-                 embedding = 5)
+                 signal = "hr")
 summary(myresult)
 }

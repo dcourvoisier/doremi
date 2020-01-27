@@ -81,9 +81,9 @@ The function returns five objects:
 }
 \description{
 \code{analyze.2order}  estimates the coefficients of a second order differential equation of the form:
-\deqn{\frac{d^2y}{dt} + 2\zeta\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
+\deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
 Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
-The function estimates the coefficients \zeta, \omega_{n}, k and y_{eq} using a two step procedure in
+The function estimates the coefficients \eqn{\xi, \omega_{n}, k and y_{eq}} using a two step procedure in
 which the user can choose the derivative estimation method (through the parameter dermethod) and then the
 coefficients are then estimated through a linear mixed-effect model.
 }

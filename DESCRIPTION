@@ -1,18 +1,17 @@
 Package: doremi
 Type: Package
 Title: Dynamics of Return to Equilibrium During Multiple Inputs
-Version: 0.1.1
+Version: 0.2.0
 Authors@R: c(
     person("Mongin", "Denis", email = "Denis.Mongin@hcuge.ch", role = "aut"),
     person("Uribe", "Adriana", email = "adriana.uribe@unige.ch", role = "aut"),
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "aut"),
     person("Courvoisier", "Delphine", email = "Delphine.Courvoisier@hcuge.ch", role = "cre"))
-Description: Provides models to fit the dynamics of a regulated
-    system experiencing exogenous inputs. The underlying models use differential
-    equations and linear mixed-effects regressions to estimate the characteristic
-    parameters of the equation (the coefficients) and an estimated signal. The
-    package also provides print, summary, plot and predict functions, specific for
-    the models outputs.
+Description: Provides models to fit the dynamics of a regulated system experiencing exogenous inputs. 
+    The underlying models use differential equations and linear mixed-effects regressions to estimate the 
+    coefficients of the equation. With them, the functions can provide an estimated signal and calculate the R2.
+    The package provides simulation and analysis functions and also print, summary, plot and predict methods,
+    adapted to the funciton outputs, for easy implementation and presentation of results.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -21,7 +20,8 @@ Imports:
     data.table,
     lme4,
     ggplot2,
-    lmerTest
+    lmerTest,
+    deSolve
 RoxygenNote: 7.0.2
 Suggests:
     knitr,

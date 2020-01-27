@@ -1,31 +1,25 @@
 # Call to global variables ------------------------------------------------
 
-globalVariables(c("id", "input", "time", "signal"))
+globalVariables(c("id", "input", "time", "signal","signalraw","excitation"))
 globalVariables(c("id_tmp", "signal_derivate1", "signal_rollmean", "time_derivate"))
-globalVariables(c("dampedsignalraw", "amplitudenorm", "dampedsignal", "excitation"))
-globalVariables(c("exc_max", "exc_min", "intervals", "totalexc", "ymax", "ymin"))
-globalVariables(c("tmpsignal", "expfit_A", "signal_estimated"))
-globalVariables(c("value","variable"))
-globalVariables(c("dampingtime", "eqvalue", "quantile", "sd","timedup"))
+globalVariables(c("totalexc", "totalexcroll"))
+globalVariables(c("tmpsignal", "expfit_A", "signal_estimated","tau","timedup","value","variable"))
+globalVariables(c("Komega2","R2","deltatf","esp2omega","method","omega2","period", "signal_derivate2","wn","xi","yeq","yeqomega2"))
 
 # Call to classes and methods ---------------------------------------------
-# Classes documented directly in the analysis function (object "doremi")
-# plot doremi generic method
-#doremi <- function(x, ..., id) UseMethod("doremi")
 
 #' S3 method to print DOREMI objects
 #'
 #' \code{print.doremi} prints the most important results of a DOREMI object
 #' @param x DOREMI object
 #' @param ... includes the additional arguments inherited from the generic print method
-#' @return Returns the three coefficients of the differential equation estimated (fixed part, table $resultmean of the DOREMI object)
+#' @return Returns the coefficients of the differential equation estimated (fixed coefficients, table $resultmean of the DOREMI object)
 #' @examples
-#' myresult <- remi(data = cardio,
+#' myresult <- analyze.1order(data = cardio,
 #'                  id = "id",
 #'                  input = "load",
 #'                  time = "time",
-#'                  signal = "hr",
-#'                  embedding = 5)
+#'                  signal = "hr")
 #' myresult
 #' @export
 print.doremi = function (x, ...){
@@ -34,17 +28,16 @@ print.doremi = function (x, ...){
 
 #' S3 method for DOREMI object summary
 #'
-#' \code{summary.doremi} provides a summary of the remi analysis
-#' @param object DOREMI object (contains several lists)
+#' \code{summary.doremi} provides a summary of the analysis
+#' @param object, DOREMI object (contains several lists)
 #' @param ... includes the additional arguments inherited from the generic summary method
 #' @return Returns a summary containing the five lists of the DOREMI object
 #' @examples
-#' myresult <- remi(data = cardio,
+#' myresult <- analyze.1order(data = cardio,
 #'                  id = "id",
 #'                  input = "load",
 #'                  time = "time",
-#'                  signal = "hr",
-#'                  embedding = 5)
+#'                  signal = "hr")
 #' summary(myresult)
 #' @export
 summary.doremi = function (object, ...){
@@ -66,7 +59,7 @@ summary.doremi = function (object, ...){
 #'
 #' \code{plot.doremi} generates a plot with the observed values of the signal, the excitation values and the fitted
 #' signal over time for each individual.
-#' @param x DOREMI object from \code{\link{remi}} analysis
+#' @param x, DOREMI object from \code{\link{analyze.1order}} or \code{\link{analyze.2order}} analysis
 #' @param ... includes the additional arguments inherited from the generic plot method
 #' @param id Identifiers of the individuals to be represented in the plot.
 #' By default, it will print the first six individuals.
@@ -74,22 +67,22 @@ summary.doremi = function (object, ...){
 #' The title includes the name of the DOREMI object result of the analysis. The function uses \code{\link[ggplot2]{ggplot}}
 #' to generate the graphs and so it is possible to override the values of axis labels, legend and title through ggplot commands.
 #' @examples
-#' mydata <- generate.panel.remi(nind = 2,
-#'                            dampingtime = 10,
-#'                            amplitude = c(5,10),
-#'                            nexc = 2,
-#'                            duration = 20,
-#'                            deltatf = 2,
-#'                            tmax = 200,
-#'                            minspacing = 0,
-#'                            internoise = 0.2,
-#'                            intranoise = 0.1)
-#' myresult <- remi(data = mydata,
-#'                  id = "id",
-#'                  input = "excitation",
-#'                  time = "time",
-#'                  signal = "dampedsignal",
-#'                  embedding = 5)
+#' mydata <- generate.panel.1order(time= 0:100,
+#'                                 excitation = sin(0:100),
+#'                                 y0 = 0,
+#'                                 t0 = 0,
+#'                                 exc0 = 0,
+#'                                 tau = 2,
+#'                                 k = 1,
+#'                                 yeq = 0,
+#'                                 nind = 2,
+#'                                 internoise = 0.1,
+#'                                 intranoise = 8)
+#' myresult <- analyze.1order(data = mydata,
+#'                            id = "id",
+#'                            input = "excitation",
+#'                            time = "time",
+#'                            signal = "signal")
 #' plot(myresult)
 #' @export
 #' @import ggplot2
@@ -135,6 +128,23 @@ plot.doremi = function (x, ...,
   return(p)
 
 }
+#' S3 method to plot DOREMIDATA objects
+#'
+#' \code{plot.doremidata} generates a plot of the simulated signals resulting from the \code{\link{generate.panel.1order}} and \code{\link{generate.panel.2order}} functions
+#' @param x DOREMIDATA object resulting from the aforementioned functions
+#' @param ... includes the additional arguments inherited from the generic plot method
+#' @return Returns a plot with axis labels, legend and title. The title includes the name of the DOREMIDATA object result of the analysis.
+#' The function uses \code{\link[ggplot2]{ggplot}}
+#' to generate the graphs and thus it is possible to override the values of axis labels, legend and title through ggplot commands.
+#' @examples
+#' mydata <- generate.panel.1order(time=0:100,
+#'                                 excitation = c(rep(0,50),rep(1,51)),
+#'                                 nind = 6,
+#'                                 internoise = 0.2,
+#'                                 intranoise = 100)
+#' plot(mydata)
+#' @export
+#' @import ggplot2
 plot.doremidata = function (x, ...){
 
   p <- ggplot(x) + geom_point(aes(time, signal, color = "signal")) +
@@ -152,12 +162,38 @@ plot.doremidata = function (x, ...){
   return(p)
 
 }
-#plots parameter evolution of a "doremiparam" object resulting from the function "optimum_param"
-plot.doremiparam = function (x, ...,
-                             id = NULL){
+#' S3 method to plot DOREMIPARAM objects
+#'
+#' \code{plot.doremiparam} generates a plot of the parameters resulting from the \code{\link{optimum_param}} function
+#' @param x DOREMIPARAM object resulting from the aforementioned function
+#' @param ... includes the additional arguments inherited from the generic plot method
+#' @return Returns a plot showing the evolution of the first/second order differential equation coefficients and R2 with the values taken by the embedding number/smoothing parameter
+#' (see details of \code{\link{optimum_param}} function).
+#' The function uses \code{\link[ggplot2]{ggplot}}
+#' to generate the graphs and thus it is possible to override the values of axis labels, legend and title through ggplot commands.
+#' @examples
+#' mydata <- generate.panel.1order(time = 0:130,
+#'                           excitation = c(rep(0,30),rep(1,50),rep(0,51)),
+#'                           nind = 5,
+#'                           internoise = 0.2,
+#'                           intranoise = 100)
+#' myres<- optimum_param (data = mydata,
+#'                          id = "id",
+#'                          input ="excitation",
+#'                          time = "time",
+#'                          signal = "signal",
+#'                          model = "1order",
+#'                          dermethod = "gold",
+#'                          pmin = 3,
+#'                          pmax = 11,
+#'                          pstep = 2)
+#' plot(myres)
+#' @export
+#' @import ggplot2
+#' @importFrom data.table melt
+plot.doremiparam = function (x, ...){
   analysis <- x$analysis
   dermethod <-x$summary_opt$method
-
   #Temporary long data table containing parameter name
   toplot<-melt(analysis[,-c("id")],id.vars="D")
   #Plotting estimated parameters and R2 versus embedding
@@ -166,11 +202,11 @@ plot.doremiparam = function (x, ...,
     labs(x = "Embedding dimension, D",
          y = "",
          colour = "") +
-    ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension: ",dermethod))+
+    ggtitle(paste0("Evolution of R2 and the estimated parameters\nwith the embedding dimension/smoothing parameter: ",dermethod))+
     theme_bw()+
     theme(legend.position = "top",
           plot.title = element_text(hjust = 0.5)) +
-    facet_wrap(~variable,scale = "free")
+    facet_wrap(~variable,scales = "free")
   return(estvsembed)
 }
 #' S3 method to predict signal values in a DOREMI object when entering a new excitation
@@ -192,12 +228,11 @@ plot.doremiparam = function (x, ...,
 #' @return Returns a list containing the values of time, the values of the excitation and the predicted
 #' values of the signal for the new excitation(s).
 #' @examples
-#' myresult <- remi(data = cardio[id==1],
+#' myresult <- analyze.1order(data = cardio[id==1],
 #'                  id="id",
 #'                  input = "load",
 #'                  time = "time",
-#'                  signal = "hr",
-#'                  embedding = 5)
+#'                  signal = "hr")
 #' #Copying cardio into a new data frame and modifying the excitation column
 #' new_exc <- cardio[id==1]
 #' et <- generate.excitation(amplitude = 100,
@@ -208,8 +243,7 @@ plot.doremiparam = function (x, ...,
 #'                           minspacing = 2)
 #' new_exc$load <- et$exc
 #' new_exc$time <- et$t
-#' predresult <- predict(myresult, newdata = new_exc,verbose=TRUE)
-#' plot(predresult)
+#' predresult <- predict(myresult, newdata = new_exc)
 #' @export
 predict.doremi = function (object,
                            ...,

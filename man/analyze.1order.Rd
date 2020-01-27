@@ -11,7 +11,7 @@ analyze.1order(
   time = NULL,
   signal,
   dermethod = "fda",
-  derparam = 2,
+  derparam = 0.2,
   order = 1,
   verbose = FALSE
 )
@@ -65,7 +65,7 @@ y and U are the signal and the excitation averaged on embedding points.
 The coefficients estimated to characterize the signal are calculated as follows:
 \itemize{
   \item Damping time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
-  \item Gain, k: \eqn{\epsilon _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
+  \item Gain, k: \eqn{\gamma _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
   difference between the maximum value reached by the signal and its initial value.
   \item Equilibrium value, yeq: \eqn{yeq _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
 }
@@ -109,7 +109,7 @@ myresult <- analyze.1order(data = cardio,
                   derparam = 5)
 }
 \seealso{
-\code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
+\code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
 }
 \keyword{analysis,}
 \keyword{exponential}

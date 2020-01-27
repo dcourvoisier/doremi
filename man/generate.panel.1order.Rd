@@ -31,6 +31,8 @@ generate.panel.1order(
 
 \item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector}
 
+\item{exc0}{is the initial value for the excitation: u(t=t0)}
+
 \item{tau}{Signal damping time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 

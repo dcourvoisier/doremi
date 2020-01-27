@@ -4,12 +4,13 @@ author: "Adriana Uribe"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette 
 vignette: >
-  %\VignetteIndexEntry{Introduction to doremi}
+  %\VignetteIndexEntry{Introduction-to-doremi}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 
 ```{r, include = FALSE}
  library(ggplot2)
+ library(data.table)
  library(doremi)
 set.seed(1)
 knitr::opts_chunk$set(
@@ -51,7 +52,7 @@ signal<- generate.1order(time = time,
                          tau = 5,
                          k = 1,
                          yeq = 0)
-signal<-cbind(as.data.table(signal),exc)
+signal<-cbind(data.table::as.data.table(signal),exc)
 ggplot2::ggplot(data = as.data.table(signal)) +
 ggplot2::ggtitle( "First order differential equation solution")+
   ggplot2::geom_line(ggplot2::aes(t,y, colour = "Signal"))+

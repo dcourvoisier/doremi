@@ -24,6 +24,8 @@ generate.1order(
 
 \item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector}
 
+\item{exc0}{is the initial value for the excitation: u(t=t0)}
+
 \item{tau}{Signal damping time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
@@ -44,7 +46,7 @@ Returns a list containing two elements:
 \code{generate.1order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a first order
 differential equation whith the coefficients are provided as inputs:
 \deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
-Where y(t) is the signal, dy(t) its derivative, \gamma is the damping rate, k the gain and yeq the equilibrium value.
+Where y(t) is the signal, dy(t) its derivative, \eqn{\gamma} is the damping rate, k the gain and yeq the equilibrium value.
 u(t) is an external excitation perturbing the dynamics.
 The latter is also provided as input and it can be null (then the solution
 will be a decreasing exponential). The analytical solution is generated with deSolve.

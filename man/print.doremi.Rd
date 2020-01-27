@@ -12,17 +12,16 @@
 \item{...}{includes the additional arguments inherited from the generic print method}
 }
 \value{
-Returns the three coefficients of the differential equation estimated (fixed part, table $resultmean of the DOREMI object)
+Returns the coefficients of the differential equation estimated (fixed coefficients, table $resultmean of the DOREMI object)
 }
 \description{
 \code{print.doremi} prints the most important results of a DOREMI object
 }
 \examples{
-myresult <- remi(data = cardio,
+myresult <- analyze.1order(data = cardio,
                  id = "id",
                  input = "load",
                  time = "time",
-                 signal = "hr",
-                 embedding = 5)
+                 signal = "hr")
 myresult
 }

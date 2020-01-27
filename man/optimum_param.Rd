@@ -15,7 +15,7 @@ optimum_param(
   pmin = 3,
   pmax = 21,
   pstep = 2,
-  verbose = F
+  verbose = FALSE
 )
 }
 \arguments{
@@ -82,11 +82,11 @@ resgold <- optimum_param (data=s2,
                           time="time",
                           signal="signal",
                           model = "2order",
-                          dermethod = "calculate.gold",
+                          dermethod = "gold",
                           pmin = 3,
                           pmax = 15,
                           pstep = 1,
-                          verbose=T)
+                          verbose = TRUE)
 }
 \seealso{
 \code{\link{analyze.1order}\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
