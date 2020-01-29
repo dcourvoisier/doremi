@@ -53,9 +53,9 @@ Returns a list containing two elements:
 differential equation whith constant coefficients that are provided as inputs:
 \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
 Where:
-y(t) is the signal, dy(t) its derivative and d2y(t) its second derivative
+y(t) is the signal, dy(t) its derivative and \eqn{d^2y(t)} its second derivative
 \itemize{
-   \item \eqn{\omega_{n} = \frac{2*pi}{period}} that is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
+   \item \eqn{\omega_{n} = \frac{2*pi}{T}}, where T is the period of the oscillation, is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
    The term \eqn{\omega_{n}^2} represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
    \item \eqn{\xi} is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).

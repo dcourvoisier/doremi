@@ -48,7 +48,7 @@ for a given duration and then returns back to 0, thus producing a square shape.
 Used for simulations in the context of the package. Beware that the following condition should apply:
 \deqn{tmax >= (duration+minspacing)*nexc}
 so that the pulses "fit" in the time lapse defined.
-Compared to pulsew from the seewave package this function can generate pulses of different duration and amplitude.
+Compared to \code{pulsew} from the \code{seewave} package this function can generate pulses of different duration and amplitude.
 }
 \examples{
 generate.excitation (amplitude = 3,

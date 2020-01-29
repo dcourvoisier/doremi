@@ -27,7 +27,7 @@ and the third is the second derivative.
 
 embedding- contains the number of points used for the derivative calculation, which is constant.
 
-order - contains the order of the maximum derivative
+order - contains the order of the maximum derivative to calculate (introduced as input parameter)
 }
 \description{
 \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)

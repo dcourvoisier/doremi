@@ -38,7 +38,7 @@ it is assumed that time steps are of 1 unit and the time vector is generated int
 
 \item{signal}{Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.}
 
-\item{dermethod}{is the derivative estimation method. The following methods are available: "gold","glla" and "fda"}
+\item{dermethod}{is the derivative estimation method. The methods currently available are: "gold","glla" and "fda" (see their respective function for more details)}
 
 \item{model}{is the model to be used for analysis of the signal. The models available are "1order" and "2order"}
 
@@ -89,7 +89,7 @@ resgold <- optimum_param (data=s2,
                           verbose = TRUE)
 }
 \seealso{
-\code{\link{analyze.1order}\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
+\code{\link{analyze.1order}} and \code{\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
 }
 \keyword{derivative}
 \keyword{embedding}

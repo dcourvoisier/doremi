@@ -28,7 +28,7 @@ print.doremi = function (x, ...){
 
 #' S3 method for DOREMI object summary
 #'
-#' \code{summary.doremi} provides a summary of the analysis
+#' \code{summary.doremi} provides a summary containing the five lists of the DOREMI object
 #' @param object, DOREMI object (contains several lists)
 #' @param ... includes the additional arguments inherited from the generic summary method
 #' @return Returns a summary containing the five lists of the DOREMI object
@@ -59,7 +59,7 @@ summary.doremi = function (object, ...){
 #'
 #' \code{plot.doremi} generates a plot with the observed values of the signal, the excitation values and the fitted
 #' signal over time for each individual.
-#' @param x, DOREMI object from \code{\link{analyze.1order}} or \code{\link{analyze.2order}} analysis
+#' @param x, DOREMI object resulting from \code{\link{analyze.1order}} or \code{\link{analyze.2order}} analysis
 #' @param ... includes the additional arguments inherited from the generic plot method
 #' @param id Identifiers of the individuals to be represented in the plot.
 #' By default, it will print the first six individuals.

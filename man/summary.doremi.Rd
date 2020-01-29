@@ -15,7 +15,7 @@
 Returns a summary containing the five lists of the DOREMI object
 }
 \description{
-\code{summary.doremi} provides a summary of the analysis
+\code{summary.doremi} provides a summary containing the five lists of the DOREMI object
 }
 \examples{
 myresult <- analyze.1order(data = cardio,

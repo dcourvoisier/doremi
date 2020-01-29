@@ -74,16 +74,15 @@ The function returns five objects:
  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
  to access the regression summary by typing result$regression.
- \item embedding - contains the embedding number used to generate the results (same as function input argument). Will only appear in the output if the
- derivative estimation method chosen is "glla" or "gold".
- \item spar -
+ \item derparam - contains the embedding number used to generate the results (if the derivative estimation method chosen is "glla" or "gold") or
+ the smoothing parameter spar if the chosen method is fda
 }
 }
 \description{
 \code{analyze.2order}  estimates the coefficients of a second order differential equation of the form:
 \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
 Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
-The function estimates the coefficients \eqn{\xi, \omega_{n}, k and y_{eq}} using a two step procedure in
+The function estimates the coefficients \eqn{\xi, \omega_{n}, k} and \eqn{y_{eq}} using a two step procedure in
 which the user can choose the derivative estimation method (through the parameter dermethod) and then the
 coefficients are then estimated through a linear mixed-effect model.
 }
@@ -97,7 +96,7 @@ myresult <- analyze.2order(data = cardio,
                   derparam = 5)
 }
 \seealso{
-\code{\link{calculate.gold}\link{calculate.glla}\link{calculate.fda}} to compute the derivatives, for details on embedding.
+\code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar
 }
 \keyword{analysis,}
 \keyword{order}

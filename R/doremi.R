@@ -272,7 +272,7 @@ calculate.fda <-  function(signal,
 #' @details Used for simulations in the context of the package. Beware that the following condition should apply:
 #' \deqn{tmax >= (duration+minspacing)*nexc}
 #' so that the pulses "fit" in the time lapse defined.
-#' Compared to pulsew from the seewave package this function can generate pulses of different duration and amplitude.
+#' Compared to \code{pulsew} from the \code{seewave} package this function can generate pulses of different duration and amplitude.
 #' @examples
 #' generate.excitation (amplitude = 3,
 #'                      nexc = 6,
@@ -356,11 +356,12 @@ generate.excitation = function(amplitude = 1,
 #' Where y(t) is the signal, dy(t) its derivative, \eqn{\gamma} is the damping rate, k the gain and yeq the equilibrium value.
 #' u(t) is an external excitation perturbing the dynamics.
 #' The latter is also provided as input and it can be null (then the solution
-#' will be a decreasing exponential). The analytical solution is generated with deSolve.
+#' will be a decreasing exponential). The numerical solution is generated with deSolve.
 #' @param time Is a vector containing the time values corresponding to the excitation signal.
 #' @param excitation Is a vector containing the values of the excitation signal.
 #' @param y0 Signal initial value y(t=t0)
-#' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector
+#' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
+#' within the interval defined by it)
 #' @param exc0 is the initial value for the excitation: u(t=t0)
 #' @param tau Signal damping time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
@@ -449,9 +450,9 @@ generate.1order <- function(time = 0:100,
 #' differential equation whith constant coefficients that are provided as inputs:
 #' \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
 #' Where:
-#' y(t) is the signal, dy(t) its derivative and d2y(t) its second derivative
+#' y(t) is the signal, dy(t) its derivative and \eqn{d^2y(t)} its second derivative
 #' \itemize{
-#'    \item \eqn{\omega_{n} = \frac{2*pi}{period}} that is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
+#'    \item \eqn{\omega_{n} = \frac{2*pi}{T}}, where T is the period of the oscillation, is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
 #'    The term \eqn{\omega_{n}^2} represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
 #'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
 #'    \item \eqn{\xi} is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
@@ -563,10 +564,12 @@ generate.2order <- function(time = 0:100,
 # generate.panel.1order ----------------------------------------------
 
 #' Generation of first order differential equation solutions for several individuals with intra and inter noise
+#'
 #' \code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
 #' The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
 #' It then calls the function \code{\link{generate.1order}} to generate a solution of a first order differential equation with these parameters for the nind individuals.
 #' Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
+#'
 #' @inheritParams generate.1order
 #' @param nind  number of individuals.
 #' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
@@ -588,7 +591,7 @@ generate.2order <- function(time = 0:100,
 #' distribution is truncated at 0.1*deltat and values below are set to this limit. High values are symmetrically set at the upper percentile value
 #' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
 #' noise obtained after truncation.
-#' @seealso \code{\link{generate.1order}} for calculation of the analytical solution to the differential equation
+#' @seealso \code{\link{generate.1order}} for calculation of the numerical solution to the differential equation
 #' and \code{\link{generate.excitation}} for excitation signal generation
 #' @examples
 #' generate.panel.1order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
@@ -673,19 +676,20 @@ generate.panel.1order <- function(time,
 # generate.panel.2order ----------------------------------------------
 
 #' Generation of first order differential equation solutions for several individuals with intra and inter noise
+#'
 #' \code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
 #' The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
 #' It then calls the function \code{\link{generate.2order}} to generate a solution of a second order differential equation with these parameters for the nind individuals.
 #' Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
+#'
 #' @inheritParams generate.2order
 #' @param nind  number of individuals.
-#' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
-#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section). The same applies to the other coefficients of the differential
-#' equation (k and yeq)
+#' @param internoise Is the inter-individual noise added. The damping factor across individuals follows a normal distribution centered on the input parameter xi
+#' with a standard deviation of internoise*xi. The same applies to the other coefficients of the differential equation (T,k and yeq) and to the initial conditions (y0 and v0)
 #' @param intranoise Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise
 
 #' @keywords simulation, second order, differential equation
-#' @return Returns a data frame with signal and time values for the time and excitation vectore provided.
+#' @return Returns a data frame with signal and time values for the time and excitation vectors provided.
 #' It contains the following columns:
 #' \itemize{
 #'    \item id - individual identifier (from 1 to nind).
@@ -695,13 +699,7 @@ generate.panel.1order <- function(time,
 #'    \item signal - signal with intra noise added
 #' }
 #' @details Used for simulations in the context of the package.
-#' The function currently simulates only positive damping factors corresponding to a self-regulated system. When the damping factor is low
-#' and the inter individual noise is high, some individuals' damping factor could be negative. In that case, the damping factor
-#' distribution is truncated at 0.1*min_deltat (calculated from the time vector) and values below are set to this limit.
-#' High values are symmetrically set at the upper percentile value
-#' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
-#' noise obtained after truncation.
-#' @seealso \code{\link{generate.2order}} for calculation of the analytical solution to the second order differential equation
+#' @seealso \code{\link{generate.2order}} for calculation of the numerical solution to the second order differential equation
 #' and \code{\link{generate.excitation}} for excitation signal generation
 #' @examples
 #' generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
@@ -1566,7 +1564,7 @@ analyze.2order <- function(data,
 #' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
 #' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
-#' @param dermethod is the derivative estimation method. The following methods are available: "gold","glla" and "fda"
+#' @param dermethod is the derivative estimation method. The methods currently available are: "gold","glla" and "fda" (see their respective function for more details)
 #' @param model is the model to be used for analysis of the signal. The models available are "1order" and "2order"
 #' @param pmin is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
 #' @param pmax is the maximum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
@@ -1581,7 +1579,7 @@ analyze.2order <- function(data,
 #'   \item  summary_opt is a data.frame containing the analysis that had the best R2 from the analysis data.frame previously mentioned
 #'   \item d contains the optimum value of the embedding/spar
 #' }
-#' @seealso \code{\link{analyze.1order}\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
+#' @seealso \code{\link{analyze.1order}} and \code{\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
 #' @examples
 #' s2 <- generate.panel.2order(time = 0:100,
 #'                             excitation = c(rep(0,25),rep(1,76)),

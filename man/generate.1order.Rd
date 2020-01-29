@@ -22,7 +22,8 @@ generate.1order(
 
 \item{y0}{Signal initial value y(t=t0)}
 
-\item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector}
+\item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
+within the interval defined by it)}
 
 \item{exc0}{is the initial value for the excitation: u(t=t0)}
 
@@ -49,7 +50,7 @@ differential equation whith the coefficients are provided as inputs:
 Where y(t) is the signal, dy(t) its derivative, \eqn{\gamma} is the damping rate, k the gain and yeq the equilibrium value.
 u(t) is an external excitation perturbing the dynamics.
 The latter is also provided as input and it can be null (then the solution
-will be a decreasing exponential). The analytical solution is generated with deSolve.
+will be a decreasing exponential). The numerical solution is generated with deSolve.
 }
 \examples{
 generate.1order()

@@ -7,7 +7,7 @@
 \method{plot}{doremi}(x, ..., id = NULL)
 }
 \arguments{
-\item{x, }{DOREMI object from \code{\link{analyze.1order}} or \code{\link{analyze.2order}} analysis}
+\item{x, }{DOREMI object resulting from \code{\link{analyze.1order}} or \code{\link{analyze.2order}} analysis}
 
 \item{...}{includes the additional arguments inherited from the generic plot method}
 

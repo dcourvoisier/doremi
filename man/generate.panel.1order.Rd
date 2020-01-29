@@ -2,11 +2,7 @@
 % Please edit documentation in R/doremi.R
 \name{generate.panel.1order}
 \alias{generate.panel.1order}
-\title{Generation of first order differential equation solutions for several individuals with intra and inter noise
-\code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
-The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
-It then calls the function \code{\link{generate.1order}} to generate a solution of a first order differential equation with these parameters for the nind individuals.
-Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.}
+\title{Generation of first order differential equation solutions for several individuals with intra and inter noise}
 \usage{
 generate.panel.1order(
   time,
@@ -29,7 +25,8 @@ generate.panel.1order(
 
 \item{y0}{Signal initial value y(t=t0)}
 
-\item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector}
+\item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
+within the interval defined by it)}
 
 \item{exc0}{is the initial value for the excitation: u(t=t0)}
 
@@ -60,7 +57,6 @@ Returns a data frame containing the following columns:
 }
 }
 \description{
-Generation of first order differential equation solutions for several individuals with intra and inter noise
 \code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
 The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
 It then calls the function \code{\link{generate.1order}} to generate a solution of a first order differential equation with these parameters for the nind individuals.
@@ -86,7 +82,7 @@ generate.panel.1order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
                       intranoise = 1)
 }
 \seealso{
-\code{\link{generate.1order}} for calculation of the analytical solution to the differential equation
+\code{\link{generate.1order}} for calculation of the numerical solution to the differential equation
 and \code{\link{generate.excitation}} for excitation signal generation
 }
 \keyword{differential}

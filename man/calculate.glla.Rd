@@ -27,6 +27,8 @@ The first column is the moving average of the signal over embedding points, the 
 and the third is the second derivative.
 
 embedding- contains the number of points used for the derivative calculation, which is constant.
+
+order - contains the order of the maximum derivative to calculate (introduced as input parameter)
 }
 \description{
 \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method

@@ -2,11 +2,7 @@
 % Please edit documentation in R/doremi.R
 \name{generate.panel.2order}
 \alias{generate.panel.2order}
-\title{Generation of first order differential equation solutions for several individuals with intra and inter noise
-\code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
-The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
-It then calls the function \code{\link{generate.2order}} to generate a solution of a second order differential equation with these parameters for the nind individuals.
-Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.}
+\title{Generation of first order differential equation solutions for several individuals with intra and inter noise}
 \usage{
 generate.panel.2order(
   time,
@@ -48,14 +44,13 @@ for differential equations including an excitation term.}
 
 \item{nind}{number of individuals.}
 
-\item{internoise}{Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
-with a standard deviation of internoise*tau, except if any damping time is negative (see Details section). The same applies to the other coefficients of the differential
-equation (k and yeq)}
+\item{internoise}{Is the inter-individual noise added. The damping factor across individuals follows a normal distribution centered on the input parameter xi
+with a standard deviation of internoise*xi. The same applies to the other coefficients of the differential equation (T,k and yeq) and to the initial conditions (y0 and v0)}
 
 \item{intranoise}{Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise}
 }
 \value{
-Returns a data frame with signal and time values for the time and excitation vectore provided.
+Returns a data frame with signal and time values for the time and excitation vectors provided.
 It contains the following columns:
 \itemize{
    \item id - individual identifier (from 1 to nind).
@@ -66,7 +61,6 @@ It contains the following columns:
 }
 }
 \description{
-Generation of first order differential equation solutions for several individuals with intra and inter noise
 \code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
 The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
 It then calls the function \code{\link{generate.2order}} to generate a solution of a second order differential equation with these parameters for the nind individuals.
@@ -74,12 +68,6 @@ Finally it adds dynamic noise to each signal according to the value of the param
 }
 \details{
 Used for simulations in the context of the package.
-The function currently simulates only positive damping factors corresponding to a self-regulated system. When the damping factor is low
-and the inter individual noise is high, some individuals' damping factor could be negative. In that case, the damping factor
-distribution is truncated at 0.1*min_deltat (calculated from the time vector) and values below are set to this limit.
-High values are symmetrically set at the upper percentile value
-similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
-noise obtained after truncation.
 }
 \examples{
 generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
@@ -97,7 +85,7 @@ generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
                       intranoise = 0.1)
 }
 \seealso{
-\code{\link{generate.2order}} for calculation of the analytical solution to the second order differential equation
+\code{\link{generate.2order}} for calculation of the numerical solution to the second order differential equation
 and \code{\link{generate.excitation}} for excitation signal generation
 }
 \keyword{differential}
