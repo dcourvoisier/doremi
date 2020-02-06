@@ -452,7 +452,7 @@ generate.1order <- function(time = 0:100,
 #' Where:
 #' y(t) is the signal, dy(t) its derivative and \eqn{d^2y(t)} its second derivative
 #' \itemize{
-#'    \item \eqn{\omega_{n} = \frac{2*pi}{T}}, where T is the period of the oscillation, is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
+#'    \item \eqn{\omega_{n} = \frac{2\pi}{T}} -where T is the period of the oscillation- is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
 #'    The term \eqn{\omega_{n}^2} represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
 #'    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
 #'    \item \eqn{\xi} is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
@@ -494,7 +494,7 @@ generate.1order <- function(time = 0:100,
 #'@export
 #'@importFrom deSolve ode
 generate.2order <- function(time = 0:100,
-                            excitation = as.numeric(0:100>50),
+                            excitation = NULL,
                             y0 = 0,
                             v0 = 0,
                             t0 = 0,
@@ -536,16 +536,14 @@ generate.2order <- function(time = 0:100,
     #Position of t0 in the original time vector
     i <- length(time[time<t0])+1
 
-    #Left side of the curve
-    if(i>1){
-      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
-      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model2, parms = parameters))
-    }
     #Right side of the curve
     excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
     out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model2, parms = parameters))
 
-    if(i>1){
+    if(t0!=time[1]){
+      #Left side of the curve
+      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
+      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model2, parms = parameters))
       # bind the two
       out <- rbind(out_left[nrow(out_left):1,],out_right)
       # remove duplicated initial value
@@ -559,7 +557,7 @@ generate.2order <- function(time = 0:100,
     }
     names(out)<-c("t","y","dy")
     out
-  }
+ }
 }
 # generate.panel.1order ----------------------------------------------
 

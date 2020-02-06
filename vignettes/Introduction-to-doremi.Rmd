@@ -1,4 +1,9 @@
 ---
+output:
+  html_document: default
+  pdf_document: default
+---
+---
 title: "Introduction-to-doremi"
 author: "Adriana Uribe"
 date: "`r Sys.Date()`"
@@ -104,7 +109,7 @@ The coefficients aforementioned can be thus calculated as:
 
 * Damping time: $\tau_{j} = \frac{1}{\gamma_{j}}$  with $\gamma_{j} =  b_{1} + u_{1j}$
 
-* Excitation coefficient: $\k_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
+* Excitation coefficient: $k_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
 
 * Equilibrium value: $yeq_{j} = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
 
@@ -116,7 +121,7 @@ With the above estimated parameters, the estimated signal can be reconstructed f
 
 The differential equation considered in this case is the following:
 
-$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*U(t)  (3)$$
+$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = kU(t)  (3)$$
 
 Where:
 
@@ -143,7 +148,7 @@ And regarding the coefficients:
 
 * $yeq$ is the signal equilibrium value. Value reached when the excitation term is 0 or constant.
 
-The package also allows the excitation term to be NULL (and thus, the solution is a damped linear oscillator when the initial condition is different from 0)as it can be seen in the graph below (right panel)
+The package also allows the excitation term to be NULL (and thus, the solution is a damped linear oscillator when the initial condition is different from 0) as it can be seen in the graph below (right panel)
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
 time <- 0:130
