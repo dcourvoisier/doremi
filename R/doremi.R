@@ -1617,6 +1617,7 @@ optimum_param <- function(data,
                           signal,
                           dermethod = "gold",
                           model = "1order",
+                          order = 2,
                           pmin = 3,
                           pmax = 21,
                           pstep = 2,
@@ -1637,6 +1638,7 @@ optimum_param <- function(data,
                    signal = signal,
                    dermethod = dermethod,
                    derparam = embedding,
+                   order = order,
                    verbose = verbose)
     res2 <- res$resultmean
     res2[, D:= embedding]

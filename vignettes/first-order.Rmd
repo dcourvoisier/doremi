@@ -259,11 +259,11 @@ plot(simu_data)
 ```
 
 ```{r}
-res3b<-optimum_param (data=as.data.table(simu_data),
-                      id="id",
-                      input="excitation",
-                      time="time",
-                      signal="signal",
+res3b<-optimum_param (data = as.data.table(simu_data),
+                      id = "id",
+                      input = "excitation",
+                      time = "time",
+                      signal = "signal",
                       model = "1order",
                       dermethod = "glla",
                       pmin = 3,
