@@ -87,7 +87,7 @@ ggplot2::ggtitle( "First order differential equation solution")+
 
 * _yeq_ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
 
-In order to find these coefficients, the model performs the following linear mixed-effect regression derived from equation (1), as presented by [(Mongin et al., under review)]:
+In order to find these coefficients, the model performs the following linear mixed-effect regression derived from equation (1):
 
 $$\dot{y}_{ij} \sim b_{0}+b_{0j}+b_{1}y_{ij}+b_{2}U_{ij}+u_{1j}y_{ij}+u_{2j}U_{ij}+e_{ij} (2)$$
 
@@ -107,9 +107,9 @@ Note that random effects are estimated for the intercept ($b_{0} +b_{0j}$), sign
 
 The coefficients aforementioned can be thus calculated as:
 
-* Damping time: $\tau_{j} = \frac{1}{\gamma_{j}}$  with $\gamma_{j} =  b_{1} + u_{1j}$
+* Decay time: $\tau_{j} = \frac{1}{\gamma_{j}}$  with $\gamma_{j} =  b_{1} + u_{1j}$
 
-* Excitation coefficient: $k_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
+* Gain: $k_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
 
 * Equilibrium value: $yeq_{j} = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
 
@@ -135,7 +135,7 @@ Where:
 
 And regarding the coefficients:
   
-* $\omega_{n} = \frac{2\pi}{period}$ is the system's natural frequency, the frequency with which the system would oscillate if there were no damping. The term \omega_{n}^2 represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
+* $\omega_{n} = \frac{2\pi}{period}$ is the system's natural frequency, the frequency with which the system would oscillate if there were no damping. The term $\omega_{n}^2$ represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
 
 * $\xi$ is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable). The term 2\xi\omega_n thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium. The value of $\xi$ determines the shape of the system time response, which can be:
      $\xi<0$	Unstable, oscillations of increasing magnitude
@@ -190,10 +190,14 @@ These functions allow to analyze a set of data and verify how close it is to bei
 
 
 * **analyze.1order/analyze.2order:** these functions perform estimate the derivatives of the datacto be analyzed by three methods:
+
   *GOLD- Generalized Orthogonal Local Derivative, method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the signal. 
+  
   *GLLA- Generalized Local Linear Approximation, method described \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}. This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
-  *FDA- Functional Data Analysis. This method generates a function that contains the data points provided and then derives it to evaluate the derivatives in those same points. 
-  The analyze analyze.1order/analyze.2order functions use one of these three methods according to what is set as input and then, once the derivatives are estimated, they are used as a known term in the multilevel regression so that the coefficients of the equation are the only unknowns and can be estimated through the fit. Once the coefficients are estimated, the estimated 1st order/2nd order signal is generated from these and the R2 is calculated and provided as a result. The estimation of the derivatives, summary of the regression, coefficients found for each individual (random coefficients of the regression) and for the group (fixed coefficients) are also provided. 
+  
+  *FDA- Functional Data Analysis. This method creates a function that fits the data and then derives it to evaluate the derivatives in those same points. 
+  
+  The analyze.1order/analyze.2order functions use one of these three methods according to what is set as input and then, once the derivatives are estimated, they are used as a known term in the multilevel regression so that the coefficients of the equation are the only unknowns and can be estimated through the fit. Once the coefficients are estimated, the estimated 1st order/2nd order signal is generated from these and the R2 is calculated and provided as a result. The estimation of the derivatives, summary of the regression, coefficients found for each individual (random coefficients of the regression) and for the group (fixed coefficients) are also provided. 
 
 ### Other functions
 These functions are used by or together with the simulation and/or analysis functions but they can also be used independently:

@@ -363,7 +363,7 @@ generate.excitation = function(amplitude = 1,
 #' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
 #' within the interval defined by it)
 #' @param exc0 is the initial value for the excitation: u(t=t0)
-#' @param tau Signal damping time. It represents the characteristic response time of the solution of the differential equation.
+#' @param tau Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
 #' @param k Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
 #' for differential equations including an excitation term.
@@ -571,7 +571,7 @@ generate.2order <- function(time = 0:100,
 #' @inheritParams generate.1order
 #' @param nind  number of individuals.
 #' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
-#' with a standard deviation of internoise*tau, except if any damping time is negative (see Details section). The same applies to the other coefficients of the differential
+#' with a standard deviation of internoise*tau, except if any decay time is negative (see Details section). The same applies to the other coefficients of the differential
 #' equation (k and yeq)
 #' @param intranoise Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise
 #' @keywords simulation, first order, differential equation
@@ -584,8 +584,8 @@ generate.2order <- function(time = 0:100,
 #'    \item dampedsignal - signal with intranoise added
 #' }
 #' @details Used for simulations in the context of the package.
-#' The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
-#' and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
+#' The function currently simulates only positive decay times corresponding to a regulated system. When the decay time is low
+#' and the inter individual noise is high, some individuals' decay time could be negative. In that case, the decay time
 #' distribution is truncated at 0.1*deltat and values below are set to this limit. High values are symmetrically set at the upper percentile value
 #' similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
 #' noise obtained after truncation.
@@ -632,10 +632,10 @@ generate.panel.1order <- function(time,
   kvec <- rnorm(nind, mean = k, sd = internoise * k)
   yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
 
-  #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
+  #If any value of the decay time vector is negative, the original value is used instead at that position of the vector
   if (any(tauvec <= 0)){
     a <- 0.1 * deltatf #Threshold to truncate the tau distribution
-    perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
+    perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (decay times of 0 are thus also excluded)
     b <- as.vector(quantile(tauvec, probs = 1 - perc)) #Calculation of the symmetrical threshold
 
     #Truncating the normal distribution to these two thresholds
@@ -646,7 +646,7 @@ generate.panel.1order <- function(time,
     nsd <- sd(tauvec)
     ninternoise <- nsd / tau
 
-    warning("Some values for tau where negative when adding internoise. Negative damping times imply signals
+    warning("Some values for tau where negative when adding internoise. Negative decay times imply signals
             that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
             the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
   }
@@ -748,11 +748,11 @@ generate.panel.2order <- function(time,
   kvec <- rnorm(nind, mean = k, sd = internoise * k)
   yeqvec <- rnorm(nind, mean = yeq, sd = internoise * yeq)
 
-  #If any value of the damping time vector is negative, the original value is used instead at that position of the vector
+  #If any value of the decay time vector is negative, the original value is used instead at that position of the vector
   #this is because we are only interested in self-regulated signals, or oscillating but not divergent signals.
   if (any(xivec < 0)){
     a <- 0.1 * min(diff(time)) #Threshold to truncate the xi distribution
-    perc <- as.vector(prop.table(table(xivec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (damping times of 0 are thus also excluded)
+    perc <- as.vector(prop.table(table(xivec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (decay times of 0 are thus also excluded)
     b <- as.vector(quantile(xivec, probs = 1 - perc)) #Calculation of the symmetrical threshold
 
     #Truncating the normal distribution to these two thresholds
@@ -823,7 +823,7 @@ generate.panel.2order <- function(time,
 #' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1. Useful for debugging.
 #' @keywords analysis, first order, exponential
-#' @return Returns a summary of the fixed components estimated by the linear regression for the three coefficients: damping time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
+#' @return Returns a summary of the fixed components estimated by the linear regression for the three coefficients: decay time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
 #' @details The analysis performs the following linear mixed-effects regression:
 #' \deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} U_{ij}+u_{1j} y_{ij}+u_{2j} U_{ij}+e_{ij}}
 #' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
@@ -831,7 +831,7 @@ generate.panel.2order <- function(time,
 #' y and U are the signal and the excitation averaged on embedding points.
 #' The coefficients estimated to characterize the signal are calculated as follows:
 #' \itemize{
-#'   \item Damping time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
+#'   \item decay time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
 #'   \item Gain, k: \eqn{\gamma _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
 #'   difference between the maximum value reached by the signal and its initial value.
 #'   \item Equilibrium value, yeq: \eqn{yeq _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
@@ -852,9 +852,9 @@ generate.panel.2order <- function(time,
 #'
 #'     input_rollmean - calculation of the moving average of the excitation vector over embedding points.
 #'
-#'     estimated- the estimated signal calculated using deSolve's ode function with a first order model, the excitation provided as input and the damping time,
+#'     estimated- the estimated signal calculated using deSolve's ode function with a first order model, the excitation provided as input and the decay time,
 #'     excitation coefficient and equilibrium value obtained from the fit.
-#'  \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
+#'  \item resultid- A data.frame including for each individual, listed by id number, the decay time, the excitation coefficient and the
 #'  equilibrium value (see variables presented in the Details section).
 #'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above and the R2 resulting from an estimation based on this coefficients
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
@@ -888,8 +888,8 @@ analyze.1order <- function(data,
                            input = NULL,
                            time = NULL,
                            signal,
-                           dermethod = "fda",
-                           derparam = 0.2,
+                           dermethod = "gold",
+                           derparam = 3,
                            order = 1,
                            verbose = FALSE){
 
@@ -931,7 +931,7 @@ analyze.1order <- function(data,
     warning("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
   if(!dermethod %in% c("fda","glla","gold")){
-    stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"calculate.fda\",\"calculate.glla\" or \"calculate.gold\"")
+    stop("Derivative method is not valid. Please introduce the name of a derivative calculation method available: \"fda\",\"glla\" or \"gold\"")
   }
 
   #After verification, extracting only relevant columns
@@ -1018,7 +1018,7 @@ analyze.1order <- function(data,
     #Generate mean results with convergence criterions
     resultmean <- setDT(list(id = "All"))
 
-    # calculate the damping time for all signal columns: -1/damping_coeff
+    # calculate the decay time for all signal columns: -1/damping_coeff
     resultmean[, tau := -1L/summary$coefficients["signal_rollmean", "Estimate"]]
 
     # Extract the intercept coeff (equilibrium value)
@@ -1029,7 +1029,7 @@ analyze.1order <- function(data,
       resultid <- setDT(list(id = unique(intdata$id), id_tmp = unique(intdata$id_tmp)))
       setkey(resultid, id) #sorts the data table by id
 
-      # Damping time in resultid
+      # decay time in resultid
       resultid[, tau := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
 
       # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
@@ -1037,10 +1037,10 @@ analyze.1order <- function(data,
       resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
 
       # Generation of the estimated signal for all id using analyze.1order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
-      # Write a warning if any of the damping times calculated was negative
+      # Write a warning if any of the decay times calculated was negative
       if (any(is.na(resultid[, tau])) | any(resultid[, tau] < 0)){
-        warning("Some of the damping times calculated were negative and thus, the estimated signal was not generated for these.
-                  Damping times can be negative for some individuals for the following reasons: 1. The signal of
+        warning("Some of the decay times calculated were negative and thus, the estimated signal was not generated for these.
+                  decay times can be negative for some individuals for the following reasons: 1. The signal of
                   the individual doesn't go back to equilibrium. 2.The linear mixed-effects model estimating the random
                   effect showed some error messages/warnings. 3.Model misspecification.\n")
       }
@@ -1057,7 +1057,7 @@ analyze.1order <- function(data,
         intdata[, expfit_A := lm(log(abs(signal - resultid[.GRP, yeq])) ~ time)$coefficients[1], by = id]
         intdata[, signal_estimated :=
                   if(!is.na(resultid[.GRP, tau]) && resultid[.GRP, tau] > 0){
-                    # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
+                    # if there is a decay time that has been calculated and if it is greater than 0 (decreasing exponential)
                     #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
                     #expmodel comes from fitting log(y-B)~t. Calculated above
                     exp(expfit_A) * exp(-1L / resultid[.GRP, tau] * time) + resultid[.GRP, yeq]
@@ -1066,7 +1066,7 @@ analyze.1order <- function(data,
         intdata[, expfit_A := lm(log(abs(signal - resultmean[, yeq])) ~ time)$coefficients[1]]
         intdata[, signal_estimated :=
                   if(!is.na(resultmean[, tau]) && resultmean[, tau] > 0){
-                    # if there is a damping time that has been calculated and if it is greater than 0 (decreasing exponential)
+                    # if there is a decay time that has been calculated and if it is greater than 0 (decreasing exponential)
                     #Then it is assumed that the signal follows a decreasing exponential: y = A* exp(gamma*t)+B
                     #expmodel comes from fitting log(y-B)~t. Calculated above
                     exp(expfit_A) * exp(-1L / resultmean[, tau] * time) + resultmean[, yeq]
@@ -1415,7 +1415,7 @@ analyze.2order <- function(data,
       resultid[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NaN)]
 
       # Generation of the estimated signal for all id using analyze.2order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
-      # Write a warning if any of the damping times calculated was negative
+      # Write a warning if any of the decay times calculated was negative
       if (any(is.na(resultid[, xi])) | any(resultid[, xi] < 0) | any(is.na(resultid[, period])) | any(resultid[, period] < 0)){
         warning("Some of the parameters estimated were negative and thus, the estimated signal was not generated for these.
                   This can be due to one of the following reasons: 1. The signal of
@@ -1622,15 +1622,27 @@ optimum_param <- function(data,
                           pmax = 21,
                           pstep = 2,
                           verbose= FALSE){
+
   #Error management
   Npoints <- data[, .N,by = data$str_id]$N
   if(any(pmax>Npoints)){
     stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
   }
+  #Defining function to test if pstep is integer (as according to the function's help, is.integer(x) doesn't indicate if x is an integer)
+  is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
+  if(dermethod %in% c("glla","gold") & !is.wholenumber(pstep)){
+    stop("For gold and glla derivative estimation methods, pstep should be an integer as the embedding dimension is an integer.")
+  }
+  if(dermethod %in% c("fda") && (pmin < -2 || pmax > 2)){
+    stop("For the fda derivative estimation method, the smooth.spline option advises to use a pmin of 0 and a pmax of 1. Even though it is not a necessary
+         condition, we have set the range at [-2,2] so please modify accordingly.")
+  }
+
   model<-paste0("analyze.",model)
   analyze <- get(model)
+
   analysis <- rbindlist(lapply(seq(pmin,pmax,pstep),function(embedding){
-    if(verbose){print(paste0("Analyzing for embedding=",embedding))}
+    if(verbose){print(paste0("Analyzing for embedding = ",embedding))}
     res <- analyze(data = data,
                    id = id,
                    input = input,

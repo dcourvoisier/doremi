@@ -21,13 +21,14 @@ library(ggplot2)
 library(data.table)
 library(magrittr)
 library(deSolve)
+library(gridExtra)
 set.seed(1)
 ```
 
 # SECOND ORDER DIFFERENTIAL EQUATION MODELS WITHOUT AN EXCITATION TERM
 
 This is the configuration will deal with first, as many studies in the literature use the Damped Linear Oscillator (DLO) in which there aren't any external excitation terms driving the dynamics.This model is described by the equation:
-$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y-y_{eq}) = k*u(t)$$ 
+$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y-y_{eq}) = ku(t)$$ 
 (1)
 
 In which the term $u(t)=0$ thus leading to the equation:
@@ -89,6 +90,85 @@ When there is no excitation, either the input can be set to NULL or not even set
 plot(data11b) +
   ggplot2::geom_hline(yintercept=0)
 ```  
+
+### Example 21 - Using an initial condition in a time different from t0=0
+
+When analyzing the signals, there are already situations in which the time t0 used for the generation of the curves with deSolve, is not the first time value of the time vector, t0. This is because when using glla ou gold, the derivative is estimated in the time points of the embedding matrix, thus according to the embedding dimension set as input. This is to avoid the need of a starting value for the initial condition and the derivative at t=t0. These are taken from the first values of the signal rollmean and derivative estimated respectively, thus being a reasonably good guess. As that point is not t0, in order to generate the whole curve, it is taken as initial condition to generate the signal is then generated from that point to the right and, in the same way, to the left, with a time interval [tembed, t0] and then both solutions are binded together to build the final solution. Below there is an example of this by using the function generate.2order independently:
+```{r}
+time <- 0:99
+data21_t0_0 <- generate.2order(time = time,
+                               excitation = as.numeric(time>20),
+                               y0 = 0,
+                               v0 = 0,
+                               t0 = 0,
+                               exc0 = 0,
+                               xi = 0.1,
+                               period = 30,
+                               k = 1,
+                               yeq = 0)
+data21_t0_0[t==43]
+```
+For instance, taking the signal value in t=43 as initial value: y=1.077549. The speed at that point is dy=-1.311226e-01	and the excitation, 1.Then the call to the function will be in this case:
+```{r}
+data21_t0_43 <- generate.2order(time = time,
+                               excitation = as.numeric(time>20),
+                               y0 = 1.077549,
+                               v0 = -1.311226e-01,
+                               t0 = 43,
+                               exc0 = 1,
+                               xi = 0.1,
+                               period = 30,
+                               k = 1)
+
+```
+
+```{r fig.width = 6, fig.height = 4, fig.pos = 0.5, fig.align = "center"}
+ggplot2::ggplot() + 
+  ggplot2::geom_line(data=data21_t0_0,ggplot2::aes(t,y,color="Solution with t0=0")) +
+  ggplot2::geom_point(data=data21_t0_43,ggplot2::aes(t,y,color="Solution with t0=43"))
+```
+
+### Example 22 - Using simulation functions to generate undamped, critically damped and overdamped signals
+
+Very often in the literature, we find the use of the Damped LInear Oscillator (DLO). But in most of the cases the only behavior considered is the underdamped, that is, when $0<\xi<1$, a system with oscillations exponentially decrasing until the system finds (or is closely around) the equilibrium value. However, there are cases in which the system reached its equilibrium value WITHOUT oscillations: these are the critically damped ($\xi=1$) and overdamped ($\xi>1$). The simulation functions of the package also allow the generation of these behaviors -and even undamped signals (purely oscillating)- with all the other features already explored (generation for several individuals, varying the coefficients between individuals, addition of dynamical noise), as it can be seen in the example below (where the excitation term has been set to 0 for readibility). 
+
+```{r}
+data22a <- generate.panel.2order(time = 0:99,
+                               y0 = 1,
+                               v0 = 0,
+                               xi = 0,
+                               period = 30,
+                               k = 1,
+                               yeq = 0,
+                               nind = 1,
+                               internoise = 0,
+                               intranoise = 5)
+data22b <- generate.panel.2order(time = 0:99,
+                               y0 = 1,
+                               v0 = 0,
+                               xi = 1,
+                               period = 30,
+                               k = 1,
+                               yeq = 0,
+                               nind = 1,
+                               internoise = 0,
+                               intranoise = 5)
+data22c <- generate.panel.2order(time = 0:99,
+                               y0 = 1,
+                               v0 = 0,
+                               xi = 2,
+                               period = 30,
+                               k = 1,
+                              yeq = 0,
+                               nind = 1,
+                               internoise = 0,
+                               intranoise = 5)
+
+```
+
+```{r fig.width = 7, fig.height = 5, fig.align = "center"}
+grid.arrange(plot(data22a)+ggplot2::ggtitle("undamped, xi=0"), plot(data22b)+ggplot2::ggtitle("critically damped, xi=1"), plot(data22c)+ggplot2::ggtitle("overdamped, xi=2"), ncol= 3)
+```
 
 ## Analyzing data
 
@@ -404,84 +484,4 @@ res20 <- analyze.2order(data = data14[id==1],
 ```{r fig.width = 6, fig.height = 4, fig.pos = 0.5, fig.align = "center"}
 plot(res20)
 ```
-
-### Example 21 - Using an initial condition in a time different from t0=0
-
-When analyzing the signals, there are already situations in which the time t0 used for the generation of the curves with deSolve, is not the first time value of the time vector, t0. This is because when using glla ou gold, the derivative is estimated in the time points of the embedding matrix, thus according to the embedding dimension set as input. This is to avoid the need of a starting value for the initial condition and the derivative at t=t0. These are taken from the first values of the signal rollmean and derivative estimated respectively, thus being a reasonably good guess. As that point is not t0, in order to generate the whole curve, it is taken as initial condition to generate the signal is then generated from that point to the right and, in the same way, to the left, with a time interval [tembed, t0] and then both solutions are binded together to build the final solution. Below there is an example of this by using the function generate.2order independently:
-```{r}
-time <- 0:99
-data21_t0_0 <- generate.2order(time = time,
-                               excitation = as.numeric(time>20),
-                               y0 = 0,
-                               v0 = 0,
-                               t0 = 0,
-                               exc0 = 0,
-                               xi = 0.1,
-                               period = 30,
-                               k = 1,
-                               yeq = 0)
-data21_t0_0[t==43]
-```
-For instance, taking the signal value in t=43 as initial value: y=1.077549. The speed at that point is dy=-1.311226e-01	and the excitation, 1.Then the call to the function will be in this case:
-```{r}
-data21_t0_43 <- generate.2order(time = time,
-                               excitation = as.numeric(time>20),
-                               y0 = 1.077549,
-                               v0 = -1.311226e-01,
-                               t0 = 43,
-                               exc0 = 1,
-                               xi = 0.1,
-                               period = 30,
-                               k = 1)
-
-```
-
-```{r fig.width = 6, fig.height = 4, fig.pos = 0.5, fig.align = "center"}
-ggplot2::ggplot() + 
-  ggplot2::geom_line(data=data21_t0_0,ggplot2::aes(t,y,color="Solution with t0=0")) +
-  ggplot2::geom_point(data=data21_t0_43,ggplot2::aes(t,y,color="Solution with t0=43"))
-```
-
-### Example 22 - Using simulation functions to generate undamped, critically damped and overdamped signals
-
-Very often in the literature, we find the use of the Damped LInear Oscillator (DLO). But in most of the cases the only behavior considered is the underdamped, that is, when $0<\xi<1$, a system with oscillations exponentially decrasing until the system finds (or is closely around) the equilibrium value. However, there are cases in which the system reached its equilibrium value WITHOUT oscillations: these are the critically damped ($\xi=1$) and overdamped ($\xi>1$). The simulation functions of the package also allow the generation of these behaviors -and even undamped signals (purely oscillating)- with all the other features already explored (generation for several individuals, varying the coefficients between individuals, addition of dynamical noise), as it can be seen in the example below (where the excitation term has been set to 0 for readibility). 
-
-```{r}
-data22a <- generate.panel.2order(time = 0:99,
-                               y0 = 1,
-                               v0 = 0,
-                               xi = 0,
-                               period = 30,
-                               k = 1,
-                               yeq = 0,
-                               nind = 1,
-                               internoise = 0,
-                               intranoise = 5)
-data22b <- generate.panel.2order(time = 0:99,
-                               y0 = 1,
-                               v0 = 0,
-                               xi = 1,
-                               period = 30,
-                               k = 1,
-                               yeq = 0,
-                               nind = 1,
-                               internoise = 0,
-                               intranoise = 5)
-data22c <- generate.panel.2order(time = 0:99,
-                               y0 = 1,
-                               v0 = 0,
-                               xi = 2,
-                               period = 30,
-                               k = 1,
-                               yeq = 0,
-                               nind = 1,
-                               internoise = 0,
-                               intranoise = 5)
-
-```
-
-```{r fig.width = 7, fig.height = 5, fig.align = "center"}
-grid.arrange(plot(data22a)+ggplot2::ggtitle("undamped, xi=0"), plot(data22b)+ggplot2::ggtitle("critically damped, xi=1"), plot(data22c)+ggplot2::ggtitle("overdamped, xi=2"), ncol= 3)
-```
-
 
