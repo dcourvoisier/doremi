@@ -30,7 +30,7 @@ within the interval defined by it)}
 
 \item{exc0}{is the initial value for the excitation: u(t=t0)}
 
-\item{tau}{Signal damping time. It represents the characteristic response time of the solution of the differential equation.
+\item{tau}{Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
 \item{k}{Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
@@ -41,7 +41,7 @@ for differential equations including an excitation term.}
 \item{nind}{number of individuals.}
 
 \item{internoise}{Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
-with a standard deviation of internoise*tau, except if any damping time is negative (see Details section). The same applies to the other coefficients of the differential
+with a standard deviation of internoise*tau, except if any decay time is negative (see Details section). The same applies to the other coefficients of the differential
 equation (k and yeq)}
 
 \item{intranoise}{Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise}
@@ -64,8 +64,8 @@ Finally it adds dynamic noise to each signal according to the value of the param
 }
 \details{
 Used for simulations in the context of the package.
-The function currently simulates only positive damping times corresponding to a regulated system. When the damping time is low
-and the inter individual noise is high, some individuals' damping time could be negative. In that case, the damping time
+The function currently simulates only positive decay times corresponding to a regulated system. When the decay time is low
+and the inter individual noise is high, some individuals' decay time could be negative. In that case, the decay time
 distribution is truncated at 0.1*deltat and values below are set to this limit. High values are symmetrically set at the upper percentile value
 similar to a Winsorized mean. A warning provides the initial inter individual noise set as input argument and the inter individual
 noise obtained after truncation.

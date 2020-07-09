@@ -1,4 +1,3 @@
-flog.appender(appender.console())
 # calculate.gold ----------------------------------------------------------
 #' Calculation of derivatives using the GOLD method
 #'
@@ -38,17 +37,18 @@ calculate.gold <-  function(signal,
                             time,
                             embedding = 2,
                             n = 2){
+  flog.appender(appender.console())
   #Error management
   if (length(signal) != length(time)){
-    flog.stop("signal and time vectors should have the same length.")
+    flog.error("signal and time vectors should have the same length.")
     stop("signal and time vectors should have the same length.\n")
   }
   if (length(signal) <= embedding){
-    flog.stop("Signal and time vectors should have a length greater than embedding.")
+    flog.error("Signal and time vectors should have a length greater than embedding.")
     stop("Signal and time vectors should have a length greater than embedding.\n")
   }
   if (n >= embedding){
-    flog.stop("The embedding dimension should be higher than the maximum order of the derivative, n.")
+    flog.error("The embedding dimension should be higher than the maximum order of the derivative, n.")
     stop("The embedding dimension should be higher than the maximum order of the derivative, n.\n")
   }
 
@@ -106,7 +106,7 @@ calculate.gold <-  function(signal,
     derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
     # Addition of NA so that the derivative rows are the same as those of signal
   } else{
-    flog.stop("Embedding should be >=2 for the calculation of derivatives.")
+    flog.error("Embedding should be >=2 for the calculation of derivatives.")
     stop("Embedding should be >=2 for the calculation of derivatives.\n")
   }
   time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
@@ -153,21 +153,23 @@ calculate.gold <-  function(signal,
 #'
 #'@export
 #'@importFrom zoo rollmean
+#'@import futile.logger
 calculate.glla <-  function(signal,
                             time,
                             embedding = 3,
                             n = 2){
+  flog.appender(appender.console())
   #Error management
   if (length(signal) != length(time)){
-    flog.stop("signal and time vectors should have the same length.")
+    flog.error("signal and time vectors should have the same length.")
     stop("signal and time vectors should have the same length.\n")
   }
   if (length(signal) <= embedding){
-    flog.stop("Signal and time vectors should have a length greater than embedding.")
+    flog.error("Signal and time vectors should have a length greater than embedding.")
     stop("Signal and time vectors should have a length greater than embedding.\n")
   }
   if (n >= embedding){
-    flog.stop("The embedding dimension should be higher than the maximum order of the derivative, n.")
+    flog.error("The embedding dimension should be higher than the maximum order of the derivative, n.")
     stop("The embedding dimension should be higher than the maximum order of the derivative, n.\n")
   }
   deltat<-min(diff(time)) #Assuming an equally spaced time series
@@ -199,7 +201,7 @@ calculate.glla <-  function(signal,
     derivative <- rbind(derivative,matrix(data = NA, ncol = 2, nrow = embedding - 1))
     # Addition of NA so that the derivative rows are the same as those of signal
   } else{
-    flog.stop("Embedding should be >=2 for the calculation of derivatives.")
+    flog.error("Embedding should be >=2 for the calculation of derivatives.")
     stop("Embedding should be >=2 for the calculation of derivatives.\n")
   }
   time_derivative <-c(rollmean(time, embedding), rep(NA, embedding - 1))
@@ -298,6 +300,7 @@ calculate.fda <-  function(signal,
 #'                      minspacing = 10)
 #'@export
 #'@importFrom utils head
+#'@import futile.logger
 # Excitation signal generation.
 generate.excitation = function(amplitude = 1,
                                nexc = 1,
@@ -306,21 +309,22 @@ generate.excitation = function(amplitude = 1,
                                tmax = 10,
                                minspacing = 1)
 {
+  flog.appender(appender.console())
   #Error management
   if (any(duration < 0)){
-    flog.stop("Invalid input parameters. Pulse duration must be greater or equal to 0.")
+    flog.error("Invalid input parameters. Pulse duration must be greater or equal to 0.")
     stop("Invalid input parameters. Pulse duration must be greater or equal to 0.\n")
   }
   if (any(amplitude == 0)){
-    flog.stop("Invalid input parameters. Amplitude must be different from 0.")
+    flog.error("Invalid input parameters. Amplitude must be different from 0.")
     stop("Invalid input parameters. Amplitude must be different from 0.\n")
   }
   if (nexc <= 0){
-    flog.stop("Invalid input parameters. At least one excitation must be defined.")
+    flog.error("Invalid input parameters. At least one excitation must be defined.")
     stop("Invalid input parameters. At least one excitation must be defined.\n")
   }
   if (nexc < length(duration) | nexc < length(amplitude)){
-    flog.stop("The number of excitations nexc is smaller than the number of elements in amplitude and/or duration.")
+    flog.error("The number of excitations nexc is smaller than the number of elements in amplitude and/or duration.")
     stop("The number of excitations nexc is smaller than the number of elements in amplitude and/or duration.")
   }
 
@@ -339,7 +343,7 @@ generate.excitation = function(amplitude = 1,
     amplitude <- amplitude[1:nexc]
   }
   if(tmax < (sum(duration) + minspacing * (nexc-1))){
-    flog.stop("Invalid input parameters. tmax should be greater than (duration + minspacing) * nexc.")
+    flog.error("Invalid input parameters. tmax should be greater than (duration + minspacing) * nexc.")
     stop("Invalid input parameters. tmax should be greater than (duration + minspacing) * nexc.\n")
   }
 
@@ -397,6 +401,7 @@ generate.excitation = function(amplitude = 1,
 #' generate.1order(time = 0:49, excitation = c(rep(0,10),rep(1,40)))
 #'@export
 #'@importFrom deSolve ode
+#'@import futile.logger
 generate.1order <- function(time = 0:100,
                             excitation = as.numeric(0:100>50),
                             y0 = 0,
@@ -405,24 +410,25 @@ generate.1order <- function(time = 0:100,
                             tau = 10,
                             k = 1,
                             yeq = 0){
+  flog.appender(appender.console())
   #Error management
   #If excitation is not supplied, then creation of an empty vector
   if(is.null(excitation)){excitation <- rep(0,length(time))}
 
   #If excitation is a scalar, the function warns the user that it should be a vector containing the values of the excitation signal
   if (length(excitation) <= 1 | length(excitation) != length(time)) {
-    flog.stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.")
+    flog.error("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.")
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
   }
 
   if (t0 < min(time,na.rm = T) | t0 > max(time,na.rm = T)) {
-    flog.stop("Initial condition should be given for a time contained within the time vector boundaries.")
+    flog.error("Initial condition should be given for a time contained within the time vector boundaries.")
     stop("Initial condition should be given for a time contained within the time vector boundaries.\n")
   }
 
   #if excitation is a character or a matrix, the function stops
   if (is.matrix(excitation) | is.character(excitation)){
-    flog.stop("Excitation should be a vector.")
+    flog.error("Excitation should be a vector.")
     stop("Excitation should be a vector.")
   } 
     
@@ -515,6 +521,7 @@ generate.1order <- function(time = 0:100,
 #' generate.2order(y0=10)
 #'@export
 #'@importFrom deSolve ode
+#'@import futile.logger
 generate.2order <- function(time = 0:100,
                             excitation = NULL,
                             y0 = 0,
@@ -525,18 +532,19 @@ generate.2order <- function(time = 0:100,
                             period = 10,
                             k = 1,
                             yeq = 0){
+  flog.appender(appender.console())
   #Error management
   #If excitation is not supplied, then creation of an empty vector
   if(is.null(excitation)){excitation <- rep(0,length(time))}
 
   #If excitation is a scalar, the function warns the user that it should be a vector containing the values of the excitation signal
   if (length(excitation) <= 1 | length(excitation) != length(time)) {
-    flog.stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.")
+    flog.error("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.")
     stop("Both the excitation (excitation) and its time values (time) should be vectors and have the same length.\n")
   }
   #if excitation is a character or a matrix, the function stops
   if (!is.vector(excitation)){
-    flog.stop("Excitation should be a vector.")
+    flog.error("Excitation should be a vector.")
     stop("Excitation should be a vector.")
   } 
 
@@ -633,6 +641,7 @@ generate.2order <- function(time = 0:100,
 #'@importFrom data.table :=
 #'@importFrom data.table .N
 #'@import stats
+#'@import futile.logger
 generate.panel.1order <- function(time,
                                   excitation = NULL,
                                   y0 = 0,
@@ -644,6 +653,7 @@ generate.panel.1order <- function(time,
                                   nind = 1,
                                   internoise = 0,
                                   intranoise = 0){
+  flog.appender(appender.console())
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number) with as many lines per individual as npoints
   data <- data.table(id = rep(1:nind,each = length(time)))
@@ -745,6 +755,7 @@ generate.panel.1order <- function(time,
 #'@importFrom data.table :=
 #'@importFrom data.table .N
 #'@import stats
+#'@import futile.logger
 generate.panel.2order <- function(time,
                                   excitation = NULL,
                                   y0 = 0,
@@ -758,6 +769,7 @@ generate.panel.2order <- function(time,
                                   nind = 1,
                                   internoise = 0,
                                   intranoise = 0){
+  flog.appender(appender.console())
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number)with as many lines per individual as npoints
   data <- data.table(id = rep(1:nind,each = length(time)))
@@ -909,6 +921,7 @@ generate.panel.2order <- function(time,
 #'@importFrom stats lm
 #'@importFrom zoo rollmean
 #'@importFrom zoo na.locf
+#'@import futile.logger
 analyze.1order <- function(data,
                            id = NULL,
                            input = NULL,
@@ -918,10 +931,13 @@ analyze.1order <- function(data,
                            derparam = 3,
                            order = 1,
                            verbose = FALSE){
-
+  flog.appender(appender.console())
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
-
+  if(verbose){flog.threshold(INFO)}else{
+    flog.threshold(WARN)
+  } #if verbose is false, it only displays warnings and errors, otherwise it displays also info messages
+  
   # Error management
   errorcheck(intdata,signal)
   if (!is.null(id)){ #Several individuals
@@ -957,7 +973,7 @@ analyze.1order <- function(data,
     flog.warn("No time vector introduced as input. A 1 unit increment time vector was generated.")
   }
   if(!dermethod %in% c("fda","glla","gold")){
-    flog.stop("Derivative method is not valid. Please introduce the name of a derivative calculation method available: \"fda\",\"glla\" or \"gold\"")
+    flog.error("Derivative method is not valid. Please introduce the name of a derivative calculation method available: \"fda\",\"glla\" or \"gold\"")
     stop("Derivative method is not valid. Please introduce the name of a derivative calculation method available: \"fda\",\"glla\" or \"gold\"")
   }
 
@@ -970,7 +986,7 @@ analyze.1order <- function(data,
   #Find time duplicates and display error message if it is the case
   intdata[,timedup:=lapply(.SD,duplicated),.SDcols = time,by = id]
   if(any(intdata$timedup)){
-    flog.stop("Input data.table contains duplicated time points.")
+    flog.error("Input data.table contains duplicated time points.")
     stop("Input data.table contains duplicated time points.\n")
   }
   else  intdata[, timedup := NULL]
@@ -1016,27 +1032,27 @@ analyze.1order <- function(data,
     if (noinput){ # if there is no excitation signal
       model <- tryCatch({lmer(signal_derivate1 ~ signal_rollmean + (1 + signal_rollmean |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
+      flog.info("Unknown excitation. Linear mixed-effect model calculated.")
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0("signal_derivate1 ~ signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
                                      " + signal_rollmean |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      if (verbose){print("Status: Multiple individuals.One or several excitations. Linear mixed-effect model calculated.")}
+      flog.info("Multiple individuals.One or several excitations. Linear mixed-effect model calculated.")
     }
   }else{ #SINGLE individual
     if(noinput){ # if there is no excitation signal
       model <- tryCatch({lm(signal_derivate1 ~ signal_rollmean, data = intdata)}, error = function(e) e)
-      if (verbose){print("Status: Single individual. Unknown excitation. Linear regression calculated")}
+      flog.info("Single individual. Unknown excitation. Linear regression calculated")
 
     }
     else{ # if there is one or several excitation signals
       model <- tryCatch({lm(paste0("signal_derivate1 ~ signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
                             data = intdata)}, error = function(e) e)
-      if (verbose){print("Status: One or several excitations. Linear regression calculated")}
+      flog.info("One or several excitations. Linear regression calculated")
     }
   }
   if (!inherits(model,"error")){ # if the regression worked
-    if (verbose){print("Status: Linear mixed-effect model had no errors.")}
+    flog.info("Linear mixed-effect model had no errors.")
     summary <- summary(model) # Summary of the regression
     if(nind > 1){random <- ranef(model)} # Variation of the estimated coefficients over the individuals. Only for data with several individuals
     if(nind > 1){regression <- list(summary, random)}else{regression <- summary} # list to output both results: summary, and the table from ranef
@@ -1077,7 +1093,7 @@ analyze.1order <- function(data,
     }else{resultid <- NULL} #Single individual will not have resultid table
 
     if (noinput){ #There is no excitation signal as input: exponential fit
-      if (verbose){print("Status: Unknown excitation. Calculation of estimated signal through exponential fit.")}
+      flog.info("Unknown excitation. Calculation of estimated signal through exponential fit.")
       #Exponential model is assumed when no input is provided and thus a new fit is necessary BY INDIVIDUAL
       #log(y-B) = gamma*t + log(A) --> LINEAR EQUATION
       #B is known, it is the intercept*tau, from the model fit with the derivative inside the analysis function
@@ -1106,7 +1122,7 @@ analyze.1order <- function(data,
       intdata <- intdata[, c("expfit_A") := NULL]
 
     }else{
-      if (verbose){print("Status: One or several excitation terms. Calculation of estimated signal with deSolve")}
+      flog.info("One or several excitation terms. Calculation of estimated signal with deSolve")
       # Extract the excitation coeff for each excitation
       intdata[, totalexc := 0]
       intdata[, totalexcroll := 0]
@@ -1156,7 +1172,7 @@ analyze.1order <- function(data,
     }
 
   }else{ # if the regression didn't work, a warning will be generated and tables will be set to NULL
-    if (verbose){print("Status: Linear mixed-effect model produced errors.")}
+    flog.info("Linear mixed-effect model produced errors.")
     flog.warn("Linear mixed-effect regression produced an error. Verify the regression object of the result.")
     resultid <- NULL
     resultmean <- NULL
@@ -1287,6 +1303,7 @@ analyze.1order <- function(data,
 #'@importFrom stats lm
 #'@importFrom zoo rollmean
 #'@importFrom zoo na.locf
+#'@import futile.logger
 analyze.2order <- function(data,
                            id = NULL,
                            input = NULL,
@@ -1296,11 +1313,13 @@ analyze.2order <- function(data,
                            derparam = 3,
                            order = 2,
                            verbose = FALSE){
-
+  flog.appender(appender.console())
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
   
-  if(verbose){flog.threshold(INFO)} #if verbose is false, it only displays warnings and errors, otherwise it displays also info messages
+  if(verbose){flog.threshold(INFO)}else{
+    flog.threshold(WARN)
+  } #if verbose is false, it only displays warnings and errors, otherwise it displays also info messages
   # Error management
   errorcheck(intdata,signal)
   if (!is.null(id)){ #Several individuals
@@ -1334,7 +1353,7 @@ analyze.2order <- function(data,
     flog.warn("No time vector introduced as input. A 1 unit increment time vector was generated.\n")
   }
   if(!dermethod %in% c("fda","glla","gold")){
-    flog.stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"fda\",\"glla\" or \"gold\"")
+    flog.error("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"fda\",\"glla\" or \"gold\"")
     stop("Derivative method is not valid. Please introduce the name of the derivative calculation function: \"fda\",\"glla\" or \"gold\"")
   }
 
@@ -1347,13 +1366,13 @@ analyze.2order <- function(data,
   #Find time duplicates and display error message if it is the case
   intdata[,timedup:=lapply(.SD,duplicated),.SDcols = time,by = id]
   if(any(intdata$timedup)){
-    flog.stop("Input data.table contains duplicated time points.")
+    flog.error("Input data.table contains duplicated time points.")
     stop("Input data.table contains duplicated time points.\n")
   } else  {intdata[, timedup := NULL]}
 
   #Verifying column names repeated in data table.
   if(any(duplicated(colnames(intdata)))){
-    flog.stop("Input datatable contains duplicated column names.")
+    flog.error("Input datatable contains duplicated column names.")
     stop("Input datatable contains duplicated column names.\n")
   }
 
@@ -1397,23 +1416,23 @@ analyze.2order <- function(data,
     if (noinput){ # if there is no excitation signal
       model <- tryCatch({lmer(signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 + signal_rollmean + signal_derivate1 |id),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      if (verbose){print("Status: Unknown excitation. Linear mixed-effect model calculated.")}
+      flog.info("Unknown excitation. Linear mixed-effect model calculated.")
     }else{ # if there is one OR SEVERAL excitation signals
       model <- tryCatch({lmer(paste0("signal_derivate2 ~ signal_derivate1 + signal_rollmean + (1 +", paste(doremiexc, "rollmean ", collapse = "+", sep = "_"),
                                      " + signal_rollmean + signal_derivate1 |id) + ", paste(doremiexc, "rollmean ", collapse = "+",sep = "_")),
                               data = intdata, REML = TRUE, control = lmerControl(calc.derivs = FALSE, optimizer = "nloptwrap"))}, error = function(e) e)
-      if (verbose){print("Status: One or several excitations. Linear mixed-effect model calculated.")}
+      flog.info("One or several excitations. Linear mixed-effect model calculated.")
     }
   }else{ #SINGLE individual
     if(noinput){ # if there is no excitation signal
       model <- tryCatch({lm(signal_derivate2 ~ signal_derivate1 + signal_rollmean, data = intdata)}, error = function(e) e)
-      if (verbose){print("Status: Unknown excitation. Linear regression calculated")}
+      flog.info("Unknown excitation. Linear regression calculated")
 
     }
     else{ # if there is one or several excitation signals
       model <- tryCatch({lm(paste0("signal_derivate2 ~ signal_derivate1 + signal_rollmean + ", paste(doremiexc, "rollmean ", collapse = "+", sep = "_")),
                             data = intdata)}, error = function(e) e)
-      if (verbose){print("Status: One or several excitations. Linear regression calculated")}
+      flog.info("One or several excitations. Linear regression calculated")
     }
   }
   if (!inherits(model,"error")){ # if the regression worked
@@ -1645,6 +1664,7 @@ analyze.2order <- function(data,
 #'@importFrom stats lm
 #'@importFrom zoo rollmean
 #'@importFrom zoo na.locf
+#'@import futile.logger
 optimum_param <- function(data,
                           id,
                           input= NULL,
@@ -1657,11 +1677,11 @@ optimum_param <- function(data,
                           pmax = 21,
                           pstep = 2,
                           verbose= FALSE){
-
+  flog.appender(appender.console())
   #Error management
   Npoints <- data[, .N,by = data$str_id]$N
   if(any(pmax>Npoints)){
-    flog.stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
+    flog.error("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
     stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
     
   }

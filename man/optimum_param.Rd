@@ -12,6 +12,7 @@ optimum_param(
   signal,
   dermethod = "gold",
   model = "1order",
+  order = 2,
   pmin = 3,
   pmax = 21,
   pstep = 2,

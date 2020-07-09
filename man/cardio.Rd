@@ -4,14 +4,16 @@
 \name{cardio}
 \alias{cardio}
 \title{Measurements of cardiac frequency in 21 patients during effort tests}
-\format{A data frame with 1686 rows and 4 variables
+\format{
+A data frame with 1686 rows and 4 variables
 \describe{
   \item{id}{positive integer, arbitrary identifier of the patient}
   \item{time}{positive real number, time since the beginning of the test, in seconds (s)}
   \item{load}{positive real number, load of the resistive bicycle, effort that the patient needs to do, in watts (W)}
   \item{hr}{positive real number, patient's cardiac rhythm, in heart beats per minute (1/min)}
 
-}}
+}
+}
 \source{
 Mongin et al. 2018, under review (future DOI will be inserted here)
 }

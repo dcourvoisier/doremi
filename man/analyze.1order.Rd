@@ -10,8 +10,8 @@ analyze.1order(
   input = NULL,
   time = NULL,
   signal,
-  dermethod = "fda",
-  derparam = 0.2,
+  dermethod = "gold",
+  derparam = 3,
   order = 1,
   verbose = FALSE
 )
@@ -48,7 +48,7 @@ spar, the parameter related to the smoothing parameter lambda used in the penali
 \item{verbose}{Is a boolean that displays status messages of the function when set to 1. Useful for debugging.}
 }
 \value{
-Returns a summary of the fixed components estimated by the linear regression for the three coefficients: damping time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
+Returns a summary of the fixed components estimated by the linear regression for the three coefficients: decay time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
 }
 \description{
 \code{analyze.1order}  estimates the coefficients of a first order differential equation of the form:
@@ -64,7 +64,7 @@ with i accounting for the time and j for the different individuals. \eqn{e_{ij}}
 y and U are the signal and the excitation averaged on embedding points.
 The coefficients estimated to characterize the signal are calculated as follows:
 \itemize{
-  \item Damping time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
+  \item decay time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
   \item Gain, k: \eqn{\gamma _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
   difference between the maximum value reached by the signal and its initial value.
   \item Equilibrium value, yeq: \eqn{yeq _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
@@ -85,9 +85,9 @@ The function returns five objects:
 
     input_rollmean - calculation of the moving average of the excitation vector over embedding points.
 
-    estimated- the estimated signal calculated using deSolve's ode function with a first order model, the excitation provided as input and the damping time,
+    estimated- the estimated signal calculated using deSolve's ode function with a first order model, the excitation provided as input and the decay time,
     excitation coefficient and equilibrium value obtained from the fit.
- \item resultid- A data.frame including for each individual, listed by id number, the damping time, the excitation coefficient and the
+ \item resultid- A data.frame including for each individual, listed by id number, the decay time, the excitation coefficient and the
  equilibrium value (see variables presented in the Details section).
  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above and the R2 resulting from an estimation based on this coefficients
  \item regression- A list containing the summary of the linear mixed-effects regression.

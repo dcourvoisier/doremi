@@ -27,7 +27,7 @@ within the interval defined by it)}
 
 \item{exc0}{is the initial value for the excitation: u(t=t0)}
 
-\item{tau}{Signal damping time. It represents the characteristic response time of the solution of the differential equation.
+\item{tau}{Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
 \item{k}{Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only

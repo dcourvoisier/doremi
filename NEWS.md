@@ -6,6 +6,7 @@
 Addition of a plot method to visualize the results of this function: evolution of R2 and parameter estimation with embedding number/smoothing parameter.
 4. Added functions for the generation of simulation signals following a second order differential equation and the corresponding analysis tools for this type of signals
 5. Modified the function that generates simulation signals. It now uses deSolve and it is able to generate a signal even for initial conditions different from t0=0
+6. Uses package futile.logger to log all events on the console (info, warning and errors). Info messages can be displayed by activating parameter "verbose=T"in analysis functions (first and second order).
 
 ### doremi v0.1.1 
 #### BUG FIXES

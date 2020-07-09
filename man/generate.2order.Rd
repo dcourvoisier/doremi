@@ -6,7 +6,7 @@
 \usage{
 generate.2order(
   time = 0:100,
-  excitation = as.numeric(0:100 > 50),
+  excitation = NULL,
   y0 = 0,
   v0 = 0,
   t0 = 0,
@@ -55,7 +55,7 @@ differential equation whith constant coefficients that are provided as inputs:
 Where:
 y(t) is the signal, dy(t) its derivative and \eqn{d^2y(t)} its second derivative
 \itemize{
-   \item \eqn{\omega_{n} = \frac{2*pi}{T}}, where T is the period of the oscillation, is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
+   \item \eqn{\omega_{n} = \frac{2\pi}{T}} -where T is the period of the oscillation- is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
    The term \eqn{\omega_{n}^2} represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
    of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
    \item \eqn{\xi} is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable).
