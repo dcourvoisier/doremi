@@ -26,6 +26,29 @@ print.doremi = function (x, ...){
   print(x$resultmean)
 }
 
+#' S3 method to print DOREMIDATA objects
+#'
+#' \code{print.doremidata} prints the a DOREMIDATA object
+#' @param x DOREMIDATA object
+#' @param ... includes the additional arguments inherited from the generic print method
+#' @return Returns the DOREMIDATA object (datatable))
+#' @examples
+#' data <- generate.panel.2order(time = time,
+#'                               y0 = 10,
+#'                               v0 = 0,
+#'                               xi = 0.1,
+#'                               period = 30,
+#'                               k = 1,
+#'                               yeq = 2,
+#'                               nind = 6,
+#'                               internoise = 0.3,
+#'                               intranoise = 5)
+#' data
+#' @export
+print.doremidata = function (x, ...){
+  class(x)<-"data.table"
+  print(x)
+}
 #' S3 method for DOREMI object summary
 #'
 #' \code{summary.doremi} provides a summary containing the five lists of the DOREMI object

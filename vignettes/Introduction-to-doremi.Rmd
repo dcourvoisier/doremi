@@ -121,7 +121,7 @@ With the above estimated parameters, the estimated signal can be reconstructed f
 
 The differential equation considered in this case is the following:
 
-$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = kU(t)  (3)$$
+$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = ku(t)  (3)$$
 
 Where:
 
@@ -131,7 +131,7 @@ Where:
 
 * $\frac{d^2y}{dt}$ is its second derivative
 
-* $U(t)$ is the excitation term perturbing the dynamics of $y(t)$
+* $u(t)$ is the excitation term perturbing the dynamics of $y(t)$
 
 And regarding the coefficients:
   
