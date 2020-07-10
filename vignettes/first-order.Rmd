@@ -93,7 +93,7 @@ Where:
 
 
 Plotting the data with the plot method available in the package for doremidata objects is quite straight forward:
-```{r plot res_1a, fig.align=, fig.height=6, fig.width=7}
+```{r plot res_1a, fig.align="center", fig.height=6, fig.width=7}
 plot(res1a)
 ```  
 
