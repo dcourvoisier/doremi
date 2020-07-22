@@ -35,7 +35,7 @@
 #'@import futile.logger
 calculate.gold <-  function(signal,
                             time,
-                            embedding = 2,
+                            embedding = 3,
                             n = 2){
   flog.appender(appender.console())
   #Error management
@@ -652,7 +652,7 @@ generate.panel.1order <- function(time,
                                   yeq = 0,
                                   nind = 1,
                                   internoise = 0,
-                                  intranoise = 0){
+                                  intranoise = NULL){
   flog.appender(appender.console())
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number) with as many lines per individual as npoints
@@ -698,8 +698,9 @@ generate.panel.1order <- function(time,
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
   #Addition of intra-noise
-  if(intranoise!=0){
-    data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
+  if(!is.null(intranoise)){
+    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sd(signalraw)/sqrt(intranoise)), by = id ]
+    # data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
   }else{
     data[, signal := signalraw, by = id]
   }
@@ -768,7 +769,7 @@ generate.panel.2order <- function(time,
                                   yeq = 0,
                                   nind = 1,
                                   internoise = 0,
-                                  intranoise = 0){
+                                  intranoise = NULL){
   flog.appender(appender.console())
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number)with as many lines per individual as npoints
@@ -823,8 +824,9 @@ generate.panel.2order <- function(time,
   #intranoise is the Signal to Noise ratio (SNR)
   #rnorm(signal) generates errors with mean 0 ans sd 1 then we need to calculate a scaling value
   #taken from https://stats.stackexchange.com/questions/31158/how-to-simulate-signal-noise-ratio
-  if(intranoise!=0){
-    data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
+  if(!is.null(intranoise)){
+    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sd(signalraw)/sqrt(intranoise)), by = id ]
+    # data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
   }else{
     data[, signal := signalraw, by = id]
   }
@@ -1666,7 +1668,7 @@ analyze.2order <- function(data,
 #'@importFrom zoo na.locf
 #'@import futile.logger
 optimum_param <- function(data,
-                          id,
+                          id = NULL,
                           input= NULL,
                           time,
                           signal,
@@ -1693,6 +1695,10 @@ optimum_param <- function(data,
   if(dermethod %in% c("fda") && (pmin < -2 || pmax > 2)){
     stop("For the fda derivative estimation method, the smooth.spline option advises to use a pmin of 0 and a pmax of 1. Even though it is not a necessary
          condition, we have set the range at [-2,2] so please modify accordingly.")
+  }
+  
+  if(!model %in% c("1order","2order")){
+    stop("the model should be either 1order or 2order")
   }
 
   model<-paste0("analyze.",model)
