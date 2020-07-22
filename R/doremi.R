@@ -584,7 +584,7 @@ generate.2order <- function(time = 0:100,
       idx <- which(timecomp == t0)
       #Right side of the curve
       excf <- approxfun(timecomp[idx:length(timecomp)],exccomp[idx:length(exccomp)], rule = 2)
-      out_right <- as.data.table(ode(y = state, times = timecomp[idx:length(timecomp)], func = model1, parms = parameters))
+      out_right <- as.data.table(ode(y = state, times = timecomp[idx:length(timecomp)], func = model2, parms = parameters))
       #Left side of the curve
       excf <- approxfun(timecomp[idx:1],exccomp[idx:1], rule = 2)
       out_left <- as.data.table(ode(y = state, times = timecomp[idx:1], func = model2, parms = parameters))

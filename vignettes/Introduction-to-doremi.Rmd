@@ -27,11 +27,94 @@ knitr::opts_chunk$set(
 
 ```{r, eval = FALSE, echo = FALSE}
 source("../R/doremi.R")
+source("../R/others.R")
 library(futile.logger)
 library(deSolve)
 ```
 
 The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
+
+An example of the estimation it can perform is shown on the graph below
+
+```{r}
+time <- 0:90
+exc <- rep(c(0,1,0),c(11,30,50))
+variable <- generate.panel.1order(time = time,
+                           excitation = exc,
+                           y0 = 0,
+                           t0 = 0,
+                           tau = 5,
+                           k = 1,
+                           yeq = 0,
+                           nind = 1,
+                           intranoise = 1)
+
+
+opt_par <- optimum_param(variable,
+                         input = "excitation",
+                         time = "time",
+                         signal = "signal",
+                         dermethod = "gold",
+                         model = "1order",
+                         pmin = 3,
+                         pmax = 23,
+                         pstep = 1)
+est_result <- analyze.1order(variable,
+                             input = "excitation",
+                             time = "time",
+                             signal = "signal",
+                             dermethod = "gold",
+                             derparam = opt_par$d)
+
+p1 <- ggplot2::ggplot(est_result$data)+
+  ggplot2::geom_point(aes(time,signal,color = "variable"))+
+  ggplot2::geom_line(data = variable,aes(time,signalraw,color = "underlying model"))+
+  ggplot2::geom_line(aes(time,excitation,color = "excitation"))+
+  ggplot2::geom_line(aes(time,signal_estimated,color = "estimate"))+
+  ggplot2::labs(color = "",
+       y = "",
+       title = "estimation of first order\n differential equation parameters")+
+  ggplot2::theme_bw()+
+  ggplot2::theme(legend.position = c(1,1),
+        legend.justification = c(1,1),legend.background = element_blank())
+
+variable2 <- generate.panel.2order(time = time,
+                                  excitation = NULL,
+                                  y0 = 10,
+                                  t0 = 0,period = 15,xi = 0.1,
+                                  nind = 1,
+                                  intranoise = 1)
+
+opt_par2 <- optimum_param(variable2,
+                         time = "time",
+                         signal = "signal",
+                         dermethod = "glla",
+                         model = "2order",
+                         pmin = 3,
+                         pmax = 23,
+                         pstep = 1)
+est_result2 <- analyze.2order(variable2,
+                             time = "time",
+                             signal = "signal",
+                             dermethod = "glla",
+                             derparam = opt_par$d)
+
+p2 <- ggplot2::ggplot(est_result2$data)+
+  ggplot2::geom_point(aes(time,signal,color = "variable"))+
+  ggplot2::geom_line(data = variable2,aes(time,signalraw,color = "underlying model"))+
+  ggplot2::geom_line(aes(time,signal_estimated,color = "estimate"))+
+  ggplot2::labs(color = "",
+       y = "",
+       title = "estimation of second order \ndifferential equation parameters")+
+  ggplot2::theme_bw()+
+  ggplot2::theme(legend.position = c(1,1),
+        legend.justification = c(1,1),legend.background = element_blank())
+
+
+
+gridExtra::grid.arrange(p1,p2,ncol = 2)
+```
+
 
 The first step consist in the estimation of the derivatives, and the second one of the estimation of the differential equation coefficient thanks to a linear mixed-effects (multilevel) models. 
 
