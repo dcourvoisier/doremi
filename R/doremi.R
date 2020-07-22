@@ -406,7 +406,6 @@ generate.1order <- function(time = 0:100,
                             excitation = as.numeric(0:100>50),
                             y0 = 0,
                             t0 = 0,
-                            exc0 = 0,
                             tau = 10,
                             k = 1,
                             yeq = 0){
@@ -435,7 +434,7 @@ generate.1order <- function(time = 0:100,
 
   #Initial values
   state <- c(y = y0)
-  parameters<-c(tau,k,yeq)
+  parameters <- c(tau,k,yeq)
   if(any(is.na(parameters))){out<-NULL}else{
     #Model
     model1<-function(t, state, parameters)
@@ -445,18 +444,25 @@ generate.1order <- function(time = 0:100,
              list(-(1/tau)*y + k/tau*u + yeq/tau)})
 
     }
-    timecomp<-c(time[time<t0],t0,time[time>t0])
-    exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
-    #Position of t0 in the original time vector
-    i <- length(time[time<t0])+1
-
-    #Right side of the curve
-    excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
-    out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model1, parms = parameters))
-    if(t0!=time[1]){
+    
+    
+    if(t0>time[1]){ # if t0 is superior to the firts time in timevec, 
+      #then there is two side of the curve to reconstruct
+      
+      # in case t0 is not in the time vec, create exc0, the extrapolated value of excitation at t0
+      extrapol <- lm(excitation~time,data = data.frame(time = c(last(time[time<t0]),first(time[time>t0])),
+                                                       excitation = c(last(excitation[time<t0]),first(excitation[time>t0])) ))
+      exc0 <- predict(extrapol,newdata = data.frame(time = t0))
+      timecomp <- c(time[time<t0],t0,time[time>t0])
+      exccomp <- c(excitation[time<t0],exc0,excitation[time>t0])
+      #Position of t0 in time vector
+      idx <- which(timecomp == t0)
+      #Right side of the curve
+      excf <- approxfun(timecomp[idx:length(timecomp)],exccomp[idx:length(exccomp)], rule = 2)
+      out_right <- as.data.table(ode(y = state, times = timecomp[idx:length(timecomp)], func = model1, parms = parameters))
       #Left side of the curve
-      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
-      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model1, parms = parameters))
+      excf <- approxfun(timecomp[idx:1],exccomp[idx:1], rule = 2)
+      out_left <- as.data.table(ode(y = state, times = timecomp[idx:1], func = model1, parms = parameters))
       # bind the two
       out <- rbind(out_left[nrow(out_left):1,],out_right)
       # remove duplicated initial value
@@ -465,9 +471,11 @@ generate.1order <- function(time = 0:100,
         out <- out[!time == t0]
       }
     }else{
-      out <-out_right
+      excf <- approxfun(time,excitation, rule = 2)
+      out <- as.data.table(ode(y = state, times = time, func = model1, parms = parameters))
     }
     names(out)<-c("t","y")
+    out[,exc := excitation]
     out
   }
 }
@@ -523,11 +531,10 @@ generate.1order <- function(time = 0:100,
 #'@importFrom deSolve ode
 #'@import futile.logger
 generate.2order <- function(time = 0:100,
-                            excitation = NULL,
+                            excitation = as.numeric(0:100>50),
                             y0 = 0,
                             v0 = 0,
                             t0 = 0,
-                            exc0 = 0,
                             xi = 0.1,
                             period = 10,
                             k = 1,
@@ -565,31 +572,37 @@ generate.2order <- function(time = 0:100,
                list(c(dy1,dy2))})
     }
 
-    timecomp<-c(time[time<t0],t0,time[time>t0])
-    exccomp<-c(excitation[time<t0],exc0,excitation[time>t0])
-    #Position of t0 in the original time vector
-    i <- length(time[time<t0])+1
 
-    #Right side of the curve
-    excf <- approxfun(timecomp[i:length(timecomp)],exccomp[i:length(exccomp)], rule = 2)
-    out_right <- as.data.table(ode(y = state, times = timecomp[i:length(timecomp)], func = model2, parms = parameters))
-
-    if(t0!=time[1]){
+    if(t0>time[1]){ # if t0 is superior to the firts time in timevec, 
+      #then there is two side of the curve to reconstruct
+      
+      # in case t0 is not in the time vec, create exc0, the extrapolated value of excitation at t0
+      extrapol <- lm(excitation~time,data = data.frame(time = c(last(time[time<t0]),first(time[time>t0])),
+                                                       excitation = c(last(excitation[time<t0]),first(excitation[time>t0])) ))
+      exc0 <- predict(extrapol,newdata = data.frame(time = t0))
+      timecomp <- c(time[time<t0],t0,time[time>t0])
+      exccomp <- c(excitation[time<t0],exc0,excitation[time>t0])
+      #Position of t0 in time vector
+      idx <- which(timecomp == t0)
+      #Right side of the curve
+      excf <- approxfun(timecomp[idx:length(timecomp)],exccomp[idx:length(exccomp)], rule = 2)
+      out_right <- as.data.table(ode(y = state, times = timecomp[idx:length(timecomp)], func = model1, parms = parameters))
       #Left side of the curve
-      excf <- approxfun(timecomp[i:1],exccomp[i:1], rule = 2)
-      out_left <- as.data.table(ode(y = state, times = timecomp[i:1], func = model2, parms = parameters))
+      excf <- approxfun(timecomp[idx:1],exccomp[idx:1], rule = 2)
+      out_left <- as.data.table(ode(y = state, times = timecomp[idx:1], func = model2, parms = parameters))
       # bind the two
       out <- rbind(out_left[nrow(out_left):1,],out_right)
       # remove duplicated initial value
       out <- out[!duplicated(out),]
-      #if t0 wasn't in the initial time vector then supress it
-      if(!t0 %in% time){
-        out<-out[!time==t0]
+      if(!t0 %in% time){#if t0 wasn't in original time vector, suppress it, otherwise it won't match the initial time points given when building the table
+        out <- out[!time == t0]
       }
     }else{
-      out <-out_right
+      excf <- approxfun(time,excitation, rule = 2)
+      out <- as.data.table(ode(y = state, times = time, func = model2, parms = parameters))
     }
     names(out)<-c("t","y","dy")
+    out[,exc := excitation]
     out
  }
 }
