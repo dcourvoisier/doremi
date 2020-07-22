@@ -382,7 +382,6 @@ generate.excitation = function(amplitude = 1,
 #' @param y0 Signal initial value y(t=t0)
 #' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
 #' within the interval defined by it)
-#' @param exc0 is the initial value for the excitation: u(t=t0)
 #' @param tau Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
 #' @param k Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
@@ -510,7 +509,6 @@ generate.1order <- function(time = 0:100,
 #' @param y0 is the initial condition for the variable y(t=t0), (0, by default), it is a scalar.
 #' @param v0 is the initial condition for the derivative dy(t=t0), (0, by default), it is a scalar.
 #' @param t0 is the initial time
-#' @param exc0 is the initial value for the excitation: u(t=t0)
 #' @param xi is the damping factor. A negative value will produce divergence from equilibrium.
 #' @param period is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned
 #' @param k is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
@@ -659,7 +657,6 @@ generate.panel.1order <- function(time,
                                   excitation = NULL,
                                   y0 = 0,
                                   t0 = 0,
-                                  exc0 = 0,
                                   tau = 10,
                                   k = 1,
                                   yeq = 0,
@@ -706,7 +703,6 @@ generate.panel.1order <- function(time,
                                        excitation =  excitation,
                                        y0 =  y0vec[.GRP],
                                        t0 = t0,
-                                       exc0 = exc0,
                                        tau = tauvec[.GRP],
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
@@ -755,7 +751,6 @@ generate.panel.1order <- function(time,
 #'                       y0 = 0,
 #'                       v0 = 0,
 #'                       t0 = 0,
-#'                       exc0 = 0,
 #'                       xi = 0.1,
 #'                       period = 0.5,
 #'                       k = 1,
@@ -775,7 +770,6 @@ generate.panel.2order <- function(time,
                                   y0 = 0,
                                   v0 = 0,
                                   t0 = 0,
-                                  exc0 = 0,
                                   xi = 0.1,
                                   period = 10,
                                   k = 1,
@@ -827,7 +821,6 @@ generate.panel.2order <- function(time,
                                       y0 = y0vec[.GRP],
                                       v0 = v0vec[.GRP],
                                       t0 = t0,
-                                      exc0 = exc0,
                                       xi = xivec[.GRP],
                                       period = periodvec[.GRP],
                                       k = kvec[.GRP],
@@ -1171,7 +1164,6 @@ analyze.1order <- function(data,
                                                       excitation = totalexc,
                                                       y0 = signal_rollmean[1],
                                                       t0 = time_derivate[1],
-                                                      exc0 = totalexcroll[1],
                                                       tau = resultid[.GRP, tau],
                                                       yeq = resultid[.GRP, yeq])$y,by =id]
       }else{
@@ -1179,7 +1171,6 @@ analyze.1order <- function(data,
                                                       excitation = totalexc,
                                                       y0 = signal_rollmean[1],
                                                       t0 = time_derivate[1],
-                                                      exc0 = totalexcroll[1],
                                                       tau = resultmean[,tau],
                                                       yeq = resultmean[, yeq])$y]
       }
@@ -1542,7 +1533,6 @@ analyze.2order <- function(data,
                                                         y0 = signal_rollmean[1],
                                                         v0 = signal_derivate1[1],
                                                         t0 = time_derivate[1],
-                                                        exc0 = totalexcroll[1],
                                                         xi = resultid[.GRP, xi],
                                                         period = resultid[.GRP, period],
                                                         k = 1,
@@ -1555,7 +1545,6 @@ analyze.2order <- function(data,
                                                         y0 = signal_rollmean[1],
                                                         v0 = signal_derivate1[1],
                                                         t0 = time_derivate[1],
-                                                        exc0 = totalexcroll[1],
                                                         xi = resultmean[, xi],
                                                         period = resultmean[, period],
                                                         k = 1,
