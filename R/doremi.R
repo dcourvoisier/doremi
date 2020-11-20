@@ -529,7 +529,7 @@ generate.1order <- function(time = 0:100,
 #'@importFrom deSolve ode
 #'@import futile.logger
 generate.2order <- function(time = 0:100,
-                            excitation = as.numeric(0:100>50),
+                            excitation = NULL,
                             y0 = 0,
                             v0 = 0,
                             t0 = 0,
@@ -618,7 +618,7 @@ generate.2order <- function(time = 0:100,
 #' @param internoise Is the inter-individual noise added. The tau across individuals follows a normal distribution centered on the input parameter tau
 #' with a standard deviation of internoise*tau, except if any decay time is negative (see Details section). The same applies to the other coefficients of the differential
 #' equation (k and yeq)
-#' @param intranoise Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise
+#' @param intranoise Is the noise to signal  ratio: dynamic noise added to each signal defined as the ratio between the variance  of the noise and the variance of the signal
 #' @keywords simulation, first order, differential equation
 #' @return Returns a data frame containing the following columns:
 #' \itemize{
@@ -662,7 +662,7 @@ generate.panel.1order <- function(time,
                                   yeq = 0,
                                   nind = 1,
                                   internoise = 0,
-                                  intranoise = NULL){
+                                  intranoise = 0){
   flog.appender(appender.console())
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number) with as many lines per individual as npoints
@@ -707,12 +707,10 @@ generate.panel.1order <- function(time,
                                        k = kvec[.GRP],
                                        yeq = yeqvec[.GRP])$y, by = id ]
   #Addition of intra-noise
-  if(!is.null(intranoise)){
-    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sd(signalraw)/sqrt(intranoise)), by = id ]
+
+    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sqrt(intranoise)*sd(signalraw)), by = id ]
     # data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
-  }else{
-    data[, signal := signalraw, by = id]
-  }
+
   class(data)<-c("doremidata","data.table","data.frame")
   return(data)
 }
@@ -730,7 +728,7 @@ generate.panel.1order <- function(time,
 #' @param nind  number of individuals.
 #' @param internoise Is the inter-individual noise added. The damping factor across individuals follows a normal distribution centered on the input parameter xi
 #' with a standard deviation of internoise*xi. The same applies to the other coefficients of the differential equation (T,k and yeq) and to the initial conditions (y0 and v0)
-#' @param intranoise Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise
+#' @param intranoise Is the noise to signal  ratio: dynamic noise added to each signal defined as the ratio between the variance  of the noise and the variance of the signal
 
 #' @keywords simulation, second order, differential equation
 #' @return Returns a data frame with signal and time values for the time and excitation vectors provided.
@@ -767,7 +765,7 @@ generate.panel.1order <- function(time,
 #'@import futile.logger
 generate.panel.2order <- function(time,
                                   excitation = NULL,
-                                  y0 = 0,
+                                  y0 = 1,
                                   v0 = 0,
                                   t0 = 0,
                                   xi = 0.1,
@@ -776,7 +774,7 @@ generate.panel.2order <- function(time,
                                   yeq = 0,
                                   nind = 1,
                                   internoise = 0,
-                                  intranoise = NULL){
+                                  intranoise = 0){
   flog.appender(appender.console())
   # Generating simulation data for a given excitation and parameters
   # Generating id column (id being the individual number)with as many lines per individual as npoints
@@ -830,12 +828,9 @@ generate.panel.2order <- function(time,
   #intranoise is the Signal to Noise ratio (SNR)
   #rnorm(signal) generates errors with mean 0 ans sd 1 then we need to calculate a scaling value
   #taken from https://stats.stackexchange.com/questions/31158/how-to-simulate-signal-noise-ratio
-  if(!is.null(intranoise)){
-    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sd(signalraw)/sqrt(intranoise)), by = id ]
-    # data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
-  }else{
-    data[, signal := signalraw, by = id]
-  }
+
+    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sqrt(intranoise)*sd(signalraw)), by = id ]
+
   class(data)<-c("doremidata","data.table","data.frame")
   return(data)
 }
@@ -996,8 +991,7 @@ analyze.1order <- function(data,
   if(any(intdata$timedup)){
     flog.error("Input data.table contains duplicated time points.")
     stop("Input data.table contains duplicated time points.\n")
-  }
-  else  intdata[, timedup := NULL]
+  }else  intdata[, timedup := NULL]
 
   #Verifying column names repeated in data table.
   if(any(duplicated(colnames(intdata)))){stop("Input datatable contains duplicated column names.\n")}
@@ -1022,8 +1016,8 @@ analyze.1order <- function(data,
 
 
   #Calculation of the signal rollmean and first derivative of the signal column
-  dermethod<-paste0("calculate.",dermethod)
-  derivate <-get(dermethod)
+  dermethod <- paste0("calculate.",dermethod)
+  derivate <- get(dermethod)
   intdata[, signal_rollmean := derivate(signal, time, derparam, order)$dsignal[, 1], by = id]
   intdata[, signal_derivate1 := derivate(signal, time, derparam, order)$dsignal[, 2], by = id]
   intdata[, time_derivate := derivate(signal, time, derparam, order)$dtime, by = id]
