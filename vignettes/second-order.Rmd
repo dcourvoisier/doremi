@@ -25,11 +25,23 @@ library(gridExtra)
 set.seed(1)
 ```
 
+
+```{r, eval = FALSE, echo = FALSE}
+# to supress, just to test locally
+source("../R/doremi.R")
+source("../R/others.R")
+library(futile.logger)
+library(lme4)
+library(lmerTest)
+library(deSolve)
+library(zoo)
+```
+
 # SECOND ORDER DIFFERENTIAL EQUATIONS
 
 The differential equation considered in this case is the following:
 
-$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = ku(t)$$
+$$\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k\omega_{n}^2u(t)$$
 (1)
 
 Where:
@@ -87,9 +99,13 @@ $$\frac{dy}{dt}(t=0)=v_{0}$$
 The shape of the solution to equation (2) -also called trajectory, or system response in engineering- will change according to the values of the parameters $\xi$ and $\omega_{n}^2$ presented, specially the values of $\xi$, as this parameter will define if the behavior is divergent, oscillating or undamped, underdamped (oscillations decreasing exponentially) or overdamped (system going back to equilibrium without oscillations) as it can be seen in the figure below:
 
 ```{r different forms according to xi,fig.width = 5, fig.height = 4, fig.align = "center"}
-data11a <- rbindlist(lapply(seq(0,2,0.2), function(eps){
-  generate.2order(time = 0:49, y0 = 1, xi = eps, period = 30)[,xi := eps][]
-}))
+data11a <- rbindlist(lapply(seq(0,2,0.2), 
+                            function(eps){
+                              generate.2order(time = 0:49, 
+                                              y0 = 1, 
+                                              xi = eps, 
+                                              period = 20)[,xi := eps][]
+                            }))
 # plot
 ggplot2::ggplot(data11a,ggplot2::aes(t,y,color = as.factor(xi)))+
   ggplot2::geom_line() +
@@ -104,14 +120,12 @@ ggplot2::ggplot(data11a,ggplot2::aes(t,y,color = as.factor(xi)))+
 time <- 0:100
 data1 <- generate.panel.2order(time = time,
                                y0 = 10,
-                               v0 = 0,
                                xi = 0.1,
                                period = 30,
-                               k = 1,
                                yeq = 2,
                                nind = 6,
                                internoise = 0.3,
-                               intranoise = 5)
+                               intranoise = 0.1)
 data1
 ```
 
@@ -128,39 +142,29 @@ Very often in the literature, we find the use of the Damped Linear Oscillator (D
 ```{r simulation example2}
 data2a <- generate.panel.2order(time = 0:99,
                                y0 = 1,
-                               v0 = 0,
-                               xi = 0,
                                period = 30,
-                               k = 1,
-                               yeq = 0,
                                nind = 1,
-                               internoise = 0,
-                               intranoise = 5)
+                               intranoise = 0.2)
 data2b <- generate.panel.2order(time = 0:99,
                                y0 = 1,
-                               v0 = 0,
                                xi = 1,
                                period = 30,
-                               k = 1,
-                               yeq = 0,
-                               nind = 1,
-                               internoise = 0,
-                               intranoise = 5)
+                               intranoise = 0.2)
 data2c <- generate.panel.2order(time = 0:99,
                                y0 = 1,
-                               v0 = 0,
                                xi = 2,
                                period = 30,
-                               k = 1,
-                              yeq = 0,
-                               nind = 1,
-                               internoise = 0,
-                               intranoise = 5)
+                               intranoise = 0.2)
 
 ```
 
 ```{r plot example2,fig.width = 7, fig.height = 5, fig.align = "center"}
-grid.arrange(plot(data2a)+ggplot2::ggtitle("undamped, xi=0"), plot(data2b)+ggplot2::ggtitle("critically damped, xi=1"), plot(data2c)+ggplot2::ggtitle("overdamped, xi=2"), ncol= 3)
+grid.arrange(plot(data2a)+
+               ggplot2::ggtitle("undamped, xi=0"), 
+             plot(data2b)+
+               ggplot2::ggtitle("critically damped, xi=1"), 
+             plot(data2c)+
+               ggplot2::ggtitle("overdamped, xi=2"), ncol= 3)
 ```
 
 
@@ -239,15 +243,10 @@ In this example we will generate data for 5 individuals, that respond to a "step
 time <- 0:100
 data1 <- generate.panel.2order(time = time,
                                excitation = as.numeric(time>20),
-                               y0 = 0,
-                               v0 = 0,
                                xi = 0.1,
                                period = 30,
                                k = 1,
-                               yeq = 0,
-                               nind = 5,
-                               internoise = 0,
-                               intranoise = 0)
+                               nind = 5)
 ```
 
 Plotting once more the data with the plot method available in the package for doremidata objects:
@@ -264,15 +263,12 @@ The call to the function remains almost the same, this time with a signal to noi
 time <- 0:100
 data2 <- generate.panel.2order(time = time,
                                excitation = as.numeric(time>20),
-                               y0 = 0,
-                               v0 = 0,
                                xi = 0.1,
                                period = 30,
                                k = 1,
-                               yeq = 0,
                                nind = 5,
                                internoise = 0.3,
-                               intranoise = 5)
+                               intranoise = 0.2)
 ```
 
 ```{r plot data2,fig.width = 7, fig.height = 6, fig.align = "center"}
@@ -288,14 +284,9 @@ As that point is not t0, in order to generate the whole curve, it is taken as in
 time <- 0:99
 data3 <- generate.2order(time = time,
                                excitation = as.numeric(time>20),
-                               y0 = 0,
-                               v0 = 0,
-                               t0 = 0,
-                               exc0 = 0,
                                xi = 0.1,
                                period = 30,
-                               k = 1,
-                               yeq = 0)
+                               k = 1)
 data3[t==43]
 ```
 For instance, taking the signal value in t=43 as initial value: y=1.077549. The speed at that point is dy=-1.311226e-01	and the excitation, 1.Then the call to the function will be in this case:
@@ -325,11 +316,19 @@ And it can be seen that the two curves overlap; that is, the function generate.2
 This package can also be used to simulate driven damped oscillators and to learn the effect that type of excitation can have in the dynamics of the system studied:
 
 ```{r simulation example4}
-t <-0:99
+t <- 0:99
 xi <- 0.2
 period <- 30
-dlo <- generate.2order(time = t,y0 = 1, xi = xi, period = period)
-driven_dlo <- generate.2order(time = t, excitation = 5*sin(t), y0 = 1, xi = xi, period = period)
+dlo <- generate.2order(time = t,
+                       y0 = 1, 
+                       xi = xi, 
+                       period = period)
+
+driven_dlo <- generate.2order(time = t, 
+                              excitation = 5*sin(t), 
+                              y0 = 1, 
+                              xi = xi, 
+                              period = period)
 ```
 
 ```{r simulation plot example4, fig.width = 5, fig.height = 4, fig.align = "center"}

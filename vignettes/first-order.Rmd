@@ -23,6 +23,18 @@ library(futile.logger)
 set.seed(1)
 ```
 
+
+```{r, eval = FALSE, echo = FALSE}
+# to supress, just to test locally
+source("../R/doremi.R")
+source("../R/others.R")
+library(futile.logger)
+library(lme4)
+library(lmerTest)
+library(deSolve)
+library(zoo)
+```
+
 # FIRST ORDER DIFFERENTIAL EQUATIONS
 
 The linear first order differential equation with constant coefficients model is given by the following equation:
@@ -41,13 +53,14 @@ Where:
 
 And regarding the coefficients:
   
-* $\gamma$ is the decay rate.Its inverse, \tau represents the characteristic response time of the solution of the differential equation (i.e. the time it takes to the system to go back to equilibrium)
+* $\gamma$ is the decay rate.Its inverse, $\tau$ represents the characteristic response time of the solution of the differential equation (i.e. the time it takes to the system to go back to equilibrium)
 
 * $k$ is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only for differential equations including an excitation term.
 
-* $yeq$ is the signal equilibrium value. Value reached when the excitation term is 0 or constant.
+* $yeq$ is the signal equilibrium value. Value reached when the excitation term is 0.
 
 It is common to find this equation with the excitation term set to 0, $u(t)=0$:
+
 $$\frac{dy}{dt}  + \gamma(y-y_{eq}) =  0$$ 
 
 The dynamics in this case follow and exponential decay of the form $y(t)=(y_0-yeq) e^{-\gamma t} + y_{eq}$ and are provoked either by a previous excitation that is no longer present or by the displacement of the system from its equilibrium position (i.e. an initial condition different from 0)
@@ -67,7 +80,6 @@ res1a <- generate.panel.1order(time = 0:99,
                                excitation = NULL,
                                y0 = 1,
                                t0 = 0,
-                               exc0 = 0,
                                tau = 10,
                                k = 1,
                                yeq = 0,
@@ -98,16 +110,17 @@ plot(res1a)
 ```  
 
 ### Example 1b - Changing initial condition, gain and equilibrium value
+
 In this example we will show the flexibility of the functions to add changes on the mentioned parameters. For this, we will simplify the form of the exitation to a simple pulse:
 
 ```{r changing initial condition res1b}
-res1b <- generate.panel.1order(time = 0:49,
-                               excitation = NULL,
+timevec <- 0:49
+res1b <- generate.panel.1order(time = timevec,
+                               excitation = as.numeric(timevec > 20),
                                y0 = 3,
                                t0 = 0,
-                               exc0 = 0,
                                tau = 5,
-                               k = 0,
+                               k = 1,
                                yeq = 1.5,
                                nind = 4,
                                internoise = 0,
@@ -120,7 +133,7 @@ plot(res1b) + scale_y_continuous(limits = c(0, 3))
 ```
 
 ### Example 2a - Generating signals with noise
-The call to the function remains almost the same, this time we have added a signal to noise ratio (STN) of 1/0.2=5 and a 40% inter-individual noise to visualize the different trajectories for the different individuals:
+The call to the function remains almost the same, this time we have added a noise to signal ratio of 0.2 and a 40% inter-individual noise to visualize the different trajectories for the different individuals:
 
 ```{r noise res2a}
 # Generation of signals with intra and inter-noise
@@ -128,13 +141,12 @@ res2a <- generate.panel.1order(time = 0:49,
                                excitation = NULL,
                                y0 = 1,
                                t0 = 0,
-                               exc0 = 0,
                                tau = 5,
                                k = 1,
                                yeq = 0,
                                nind = 6,
                                internoise = 0.4,
-                               intranoise = 5)
+                               intranoise = 0.1)
 ```
 
 ```{r noise plot res2a, fig.width = 7, fig.height = 6, fig.align = "center"}
@@ -153,13 +165,12 @@ data3 <- generate.panel.1order(time = 0:50,
                                excitation = NULL,
                                y0 = 0.5,
                                t0 = 0,
-                               exc0 = 0,
                                tau = 10,
                                k = 1,
                                yeq = 0,
                                nind = 3,
                                internoise = 0.2,
-                               intranoise = 100)
+                               intranoise = 0.1)
 ```
 
 ```{r analysis res3}
@@ -198,15 +209,10 @@ U1a <- generate.excitation(amplitude = 1,
                                
 res1a <- generate.panel.1order(time = U1a$t,
                                excitation = U1a$exc,
-                               y0 = 0,
-                               t0 = 0,
-                               exc0 = 0,
                                tau = 10,
                                k = 1,
-                               yeq = 0,
-                               nind = 4,
-                               internoise = 0,
-                               intranoise = 0)
+                               nind = 4)
+plot(res1a)
 ```
 ## Example 1b - Changing initial condition, gain and equilibrium value
 In this example we will show the flexibility of the functions to add changes on the mentioned parameters. For this, we will simplify the form of the exitation to a simple pulse:
@@ -222,14 +228,10 @@ U1b <- generate.excitation(amplitude = 1,
 res1b <- generate.panel.1order(time = U1b$t,
                                excitation = U1b$exc,
                                y0 = 3,
-                               t0 = 0,
-                               exc0 = 0,
                                tau = 10,
                                k = 5,
                                yeq = 2,
-                               nind = 4,
-                               internoise = 0,
-                               intranoise = 0)
+                               nind = 4)
 ```
 
 ```{r plot res1b,fig.width = 7, fig.height = 6, fig.align = "center"}
@@ -251,15 +253,12 @@ U2a <- generate.excitation(amplitude = 1,
                            minspacing = 20)
 res2a <- generate.panel.1order(time = U2a$t,
                                excitation = U2a$exc,
-                               y0 = 0,
-                               t0 = 0,
-                               exc0 = 0,
-                               tau = 10,
+                               tau = 6,
                                k = 1,
                                yeq = 0,
                                nind = 4,
-                               internoise = 0.4,
-                               intranoise = 5)
+                               internoise = 0.1,
+                               intranoise = 0.5)
 ```
 
 ```{r plot res2a,fig.width = 7, fig.height = 6, fig.align = "center"}
@@ -306,7 +305,7 @@ res3a <- analyze.1order(data = res2a,
                         signal = "signal",
                         dermethod = "gold",
                         derparam = 5,
-                        order = 1)
+                        order = 2)
 ```
 
 Now let’s take a look at the result. When calling the variable, the mean three coefficients of the differential equation found and the R2 are displayed:
@@ -399,15 +398,11 @@ In the following example, we will use the function `optimum_param` to find the e
 time <- 0:100
 simu_data <- generate.panel.1order(time = time,
                                    excitation = as.numeric(time>40),
-                                   y0 = 0,
-                                   t0 = 0,
-                                   exc0 = 0,
                                    tau = 10,
                                    k = 1,
-                                   yeq = 0,
                                    nind = 10,
                                    internoise = 0.2,
-                                   intranoise = 5)
+                                   intranoise = 0.2)
 ```
 
 ```{r plot,fig.width = 7, fig.height = 6, fig.align = "center"}
@@ -421,10 +416,10 @@ res3b<-optimum_param (data = as.data.table(simu_data),
                       time = "time",
                       signal = "signal",
                       model = "1order",
-                      dermethod = "glla",
-                      pmin = 3,
-                      pmax = 11,
-                      pstep = 2)
+                      dermethod = "fda",
+                      pmin = 0,
+                      pmax = 1,
+                      pstep = 0.1)
 res3b$analysis
 res3b$summary_opt
 res3b$d
@@ -455,12 +450,8 @@ u3 <- as.numeric(t>80 & t<85)
 et1 <- u1 + 3 * u2 + 5 * u3
 y1 <- generate.1order(time = t,
                       excitation = et1,
-                      y0 = 0,
-                      t0 = 0,
-                      exc0 = 0,
                       tau = 10,
-                      k = 1,
-                      yeq = 0)$y
+                      k = 1)$y
 #as we are using the $y argument of the object generated
 
 #Signals for the second individual;
@@ -468,12 +459,8 @@ y1 <- generate.1order(time = t,
 et2 <- u1 + 2.5 * u2 + 4 * u3
 y2 <- generate.1order(time = t,
                       excitation = et2,
-                      y0 = 0,
-                      t0 = 0,
-                      exc0 = 0,
                       tau = 10,
-                      k = 1,
-                      yeq = 0)$y 
+                      k = 1)$y 
 
 #Generating a table with the signals
 data4 <- data.frame(id = rep(c(1, 2), c(length(et1), length(et2))), 
@@ -528,15 +515,11 @@ When simulating signals with missing measurements, we show below how the analysi
 t <- 0:200
 data5 <- generate.panel.1order(time = t,
                                excitation = as.numeric(t>50 & t<100),
-                               y0 = 0,
-                               t0 = 0,
-                               exc0 = 0,
                                tau = 10,
                                k = 1,
-                               yeq = 0,
                                nind = 6,
                                internoise = 0.4,
-                               intranoise = 100)
+                               intranoise = 0.1)
 ```
 
 ```{r plot data5, fig.width = 7, fig.height = 6, fig.align = "center"}
@@ -553,10 +536,9 @@ data5rd <- data5rd[order(id,time)]
 In the next plot we show the selection of random points made on the full data set. The signal without noise has been represented in order show the selection of points made. However, the signal with noise will be used to carry out the analysis.
 
 ```{r plot missing data,fig.width = 7, fig.height = 6, fig.align = "center"}
-ggplot2::ggplot( data = data5 ) +
-  ggplot2::geom_point(ggplot2::aes(time,signalraw, colour = "Full data set. No noise"))+
+ggplot2::ggplot( data = data5rd ) +
   ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Excitation"))+
-  ggplot2::geom_point(data = data5rd, ggplot2::aes(time,signalraw, colour = "Random sampling"))+
+  ggplot2::geom_point(ggplot2::aes(time,signal, colour = "Random sampling"))+
   ggplot2::facet_wrap(~id)+
   ggplot2::labs(x = "Time (unit)",
            y = "Signal (unit)",
@@ -592,7 +574,7 @@ ggplot2::ggplot( data = data5 ) +
 
 # C - Applications
 
-## Measuring heart frequency during effort tests
+## Heart rate during effort tests
 
 Using the `cardio` dataset present in this package, we will apply the model to real heart frequency measurements. The data fields are described with detail in the pdf manual of the package, together with the source from which the data was obtained.
 In brief, the data consists on  heart rate measurements from 21 individuals carrying out an effort test on a cycle ergometer. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min).
@@ -619,12 +601,12 @@ As can be seen, the model reproduces reasonably well the variation of the heart 
 In the previous example, each one of the steps in the resistance load can be considered as a separated perturbation having an effect on heart rate. In this case, the functions will estimate different gains as explained, to account for each one of the contributions of the load to the total heart rate dynamics. 
 
 ```{r cardio multiple excitations}
-mydata<-cardio
+mydata <- cardio
 
 #Decomposing the load
 #Maximum number of extra columns to create
 Ncol <- max(mydata[,length(unique(load[load != 0])),by = id]$V1)
-emptycols<-c(paste0("input",1:Ncol))
+emptycols <- c(paste0("input",1:Ncol))
 
 # Creating column that contains unique values in load greater than 0 for decomposition
 mydata[,Ncol := length(unique(load[load != 0])),by = id]
@@ -632,7 +614,9 @@ mydata[,Ncol := length(unique(load[load != 0])),by = id]
 #Filling the created empty columns with the values
 for (i in 1:length(unique(mydata$id))){
   Ncol<-mydata[id==unique(mydata$id)[i],length(unique(load[load != 0]))]
-  mydata[id==unique(mydata$id)[i],emptycols[1:Ncol] := lapply(unique(load[load != 0]),function(x){ ifelse(load == x,x,0)}), by = id]
+  mydata[id==unique(mydata$id)[i],
+         emptycols[1:Ncol] := lapply(unique(load[load != 0]),function(x){ ifelse(load == x,x,0)}), 
+         by = id]
 }
 
 resc1b <- analyze.1order(data = mydata,

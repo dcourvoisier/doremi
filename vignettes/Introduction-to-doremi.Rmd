@@ -30,6 +30,7 @@ source("../R/doremi.R")
 source("../R/others.R")
 library(futile.logger)
 library(deSolve)
+library(zoo)
 ```
 
 The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
@@ -81,7 +82,9 @@ p1 <- ggplot2::ggplot(est_result$data)+
 variable2 <- generate.panel.2order(time = time,
                                   excitation = NULL,
                                   y0 = 10,
-                                  t0 = 0,period = 15,xi = 0.1,
+                                  t0 = 0,
+                                  period = 30,
+                                  xi = 0.1,
                                   nind = 1,
                                   intranoise = 1)
 
@@ -97,7 +100,7 @@ est_result2 <- analyze.2order(variable2,
                              time = "time",
                              signal = "signal",
                              dermethod = "glla",
-                             derparam = opt_par$d)
+                             derparam = opt_par2$d)
 
 p2 <- ggplot2::ggplot(est_result2$data)+
   ggplot2::geom_point(aes(time,signal,color = "variable"))+
@@ -116,7 +119,7 @@ gridExtra::grid.arrange(p1,p2,ncol = 2)
 ```
 
 
-The first step consist in the estimation of the derivatives, and the second one of the estimation of the differential equation coefficient thanks to a linear mixed-effects (multilevel) models. 
+The first step consist in the estimation of the derivatives, and the second one of the estimation of the differential equation coefficients thanks to a linear mixed-effects (multilevel) models. 
 
 # ESTIMATION OF THE DERIVATIVES
 
@@ -132,42 +135,91 @@ There are several way to estimate the derivative of a variable. Three are implem
 Let's presennt a simple example of the use and interest of these functions. Consider a variable of the time following $y(t) = t^2 $ with some measurement noise:
 
 
-
 ```{r}
 timevec <- seq(-5,5,0.2)
 noisevec <- rnorm(length(timevec),0,sd = 1)
-derivative_example <- data.table(expand.grid(list(time = timevec,
-                                                  embedding = 3:10,
-                                                  method = c("GLLA","GOLD","FDA"),
-                                                  der = 0:2)))
+signal <- timevec^2
+signal_noise <- signal + noisevec
+
+plot(timevec,signal_noise)
+```
+
+We now that the derivative of this function is $\dot{y}(t)=2t$. 
+As an example, we can use the `calculate.glla` function to estimate the first derivative over 9 points:
+
+```{r}
+der_est <- calculate.gold(time = timevec,
+               signal = signal_noise,
+               embedding = 9,
+               n = 2)
+
+plot(der_est$dtime,
+     der_est$dsignal[,2]
+     ,xlab = "time",
+     ylab = "first derivative")
+lines(timevec,2*timevec,col = 2)
+```
+
+Our three functions `calculate.gold`, `calculate.glla` and `calculate.fda` work in a similar manner: We need to give them the time vector, the signal we wish to derivate as a function of the time, the embedding number, and the maximal derivative order `n` we wish to calculate. 
+
+The functions output a `dsignal` data.frame with `n+1` column, each column corresponding to a derivative order (the first column is the zeroth order derivative estimate, the second one the first order derivative etc), and a `dtime` vector with the corresponding time.
+
+Let's now construct an example where we can see the effect of the number of point considered to evaluate different derivative order. We construct a long table, were the preceeding example is replicated for embedding dimension between 3 and 10, derivative order between 0 and 2, and for the three calculation methods:
+
+```{r}
+conditions <- CJ(embedding = 3:10,
+                 method = c("GLLA","GOLD","FDA"),
+                 der = 0:2)
+derivative_example <- conditions[,.(time = timevec),by = .(embedding,method,der)]
 derivative_example[,signal := time^2]
 derivative_example[,signal_noise := signal + noisevec]
 
 ggplot2::ggplot(derivative_example)+
   ggplot2::geom_point(aes(time,signal_noise))+
   ggplot2::theme_bw()+
-  ggplot2::lab(y = "y", 
+  ggplot2::labs(y = "y", 
                x = "t",
                title = "example variable for the estimation of derivatives")
 ```
 
-We know the first derivative is $\dot{y} = 2t$ and that the second derivative is $\ddot{y} = 2$. Lets us apply our three functions to estimate the zeroth, first and second order derivative (the zeroth order derivative is a smooth estimate of the variable) and compare with the true derivatives.
+
+We create a variable representing the true derivative.
 
 ```{r}
-derivative_example[,spar :=( embedding-3 )/7]
-# calculation of the derivatives with calculate.gold
+# assigning the true derivative for comparison
+derivative_example[der  == 1,truder := 2*time]
+derivative_example[der  == 2,truder := 2]
+derivative_example[der  == 0,truder := signal]
+```
+
+
+Lets us apply our three functions to estimate the zeroth, first and second order derivative (the zeroth order derivative is a smooth estimate of the variable) for various embedding number and compare with the true derivatives.
+In our example, we calculate for each value of embedding and for each value of derivativeorder the derivative. For example, for the gold method, we will do:
+
+```{r}
 derivative_example[method == "GOLD",
                    derivate := calculate.gold(time = time,
                                               signal = signal_noise,
                                               embedding = embedding,
                                               n = 2)$dsignal[,(der[1]+1)],
                    by =  .(embedding,der)]
+```
+
+and we will set the time for the derivative in a new variable/
+
+```{r}
 # set the corresponding derivative time
 derivative_example[method == "GOLD",
                    timeder := calculate.gold(time = time,
                                              signal = signal_noise,
                                              embedding = embedding,n = 2)$dtime,
                    by =  .(embedding,der)]
+```
+
+Doing the same for the other methods
+
+```{r}
+
 # calculation of the derivatives with calculate.glla
 derivative_example[method == "GLLA",
                    derivate := calculate.glla(time = time,
@@ -182,6 +234,7 @@ derivative_example[method == "GLLA",
                                              n = 2)$dtime,
                    by =  .(embedding,der)]
 # calculation of the derivatives with calculate.fda
+derivative_example[,spar :=( embedding-3 )/7]
 derivative_example[method == "FDA",
                    derivate := calculate.fda(time = time,
                                              signal = signal_noise,
@@ -192,10 +245,7 @@ derivative_example[method == "FDA",
                                             signal = signal_noise,
                                             spar = spar)$dtime,
                    by = .(spar,der)]
-# assigning the true derivative for comparison
-derivative_example[der  == 1,truder := 2*time]
-derivative_example[der  == 2,truder := 2]
-derivative_example[der  == 0,truder := signal]
+
 derivative_example[,derlegend := factor(der,levels = 0:2,labels = c("0th order","first order","second order"))]
 # plot of the results
 ggplot2::ggplot(derivative_example)+
@@ -240,15 +290,14 @@ The damping time is the characteristic response time of the solution to equation
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
 time <- 0:90
 exc <- rep(c(0,1,0),c(11,30,50))
-variable<- generate.1order(time = time,
+variable <- generate.1order(time = time,
                          excitation = exc,
                          y0 = 0,
                          t0 = 0,
-                         exc0 = 0,
                          tau = 5,
                          k = 1,
                          yeq = 0)
-variable<-cbind(data.table::as.data.table(variable),exc)
+
 ggplot2::ggplot(data = as.data.table(variable)) +
 ggplot2::ggtitle( "First order differential equation solution")+
   ggplot2::geom_line(ggplot2::aes(t,y, colour = "variable"))+
@@ -267,7 +316,6 @@ ggplot2::ggtitle( "First order differential equation solution")+
 
   ggplot2::annotate("text", x = 75, y = 0.7, label = "63% diff. max and eq. value", colour = "gray")+
   ggplot2::annotate("text", x = 75, y = 0.3*max(variable$y), label = "37% diff. max and eq. value", colour = "gray")+
-  
   ggplot2::labs(x = "Time (arb. unit)",
            y = "variable (arb. unit)",
            colour = "Legend")+
