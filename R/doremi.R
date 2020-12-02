@@ -739,9 +739,7 @@ generate.panel.1order <- function(time,
     nsd <- sd(tauvec)
     ninternoise <- nsd / tau
 
-    flog.warn("Some values for tau where negative when adding internoise. Negative decay times imply signals
-            that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
-            the normal distribution used has been truncated. The inter-individual noise added is of %f instead of %f.", round(ninternoise,2),internoise)
+    flog.warn("Some values for tau where negative when adding internoise. Negative decay times imply signals that increase exponentially (diverge). This model generates signals that are self-regulated and thus, the normal distribution used has been truncated. The inter-individual noise added is of %f instead of %f.", round(ninternoise,2),internoise)
   }
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
@@ -763,12 +761,12 @@ generate.panel.1order <- function(time,
 
 # generate.panel.2order ----------------------------------------------
 
-#' Generation of first order differential equation solutions for several individuals with intra and inter noise
+#' Generation of second order differential equation solutions for several individuals with intra-individual and inter-individual noise
 #'
-#' \code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
+#' \code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra-individual and inter-individual noise.
 #' The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
 #' It then calls the function \code{\link{generate.2order}} to generate a solution of a second order differential equation with these parameters for the nind individuals.
-#' Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
+#' Finally it adds measurement noise to each signal according to the value of the parameter intranoise.
 #'
 #' @inheritParams generate.2order
 #' @param nind  number of individuals.
@@ -813,7 +811,7 @@ generate.panel.2order <- function(time,
                                   excitation = NULL,
                                   y0 = 1,
                                   v0 = 0,
-                                  t0 = 0,
+                                  t0 = NULL,
                                   xi = 0.1,
                                   period = 10,
                                   k = 1,
@@ -841,7 +839,7 @@ generate.panel.2order <- function(time,
   #If any value of the decay time vector is negative, the original value is used instead at that position of the vector
   #this is because we are only interested in self-regulated signals, or oscillating but not divergent signals.
   if (any(xivec < 0)){
-    a <- 0.1 * min(diff(time)) #Threshold to truncate the xi distribution
+    a <- 0 #Threshold to truncate the xi distribution
     perc <- as.vector(prop.table(table(xivec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (decay times of 0 are thus also excluded)
     b <- as.vector(quantile(xivec, probs = 1 - perc)) #Calculation of the symmetrical threshold
 
@@ -853,9 +851,7 @@ generate.panel.2order <- function(time,
     nsd <- sd(xivec)
     ninternoise <- nsd / xi
 
-    flog.warn("Some values for xi where negative when adding internoise. Negative damping factors imply signals
-            which oscillations increase exponentially (diverge). This function is intended to generate signals that are self-regulated and thus,
-            the normal distribution used has been truncated. The inter-individual noise added is of ", round(ninternoise,2), " instead of ",internoise,".\n")
+    flog.warn("Some values for xi where negative when adding internoise. Negative damping factors imply signals which oscillations increase exponentially (diverge). This function is intended to generate signals that are self-regulated and thus, the normal distribution used has been truncated. The inter-individual noise added is of %f instead of %f.\n", round(ninternoise,2),internoise)
   }
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
@@ -871,11 +867,7 @@ generate.panel.2order <- function(time,
                                       yeq = yeqvec[.GRP])$y, by = id ]
 
   #Addition of intra-noise
-  #intranoise is the Signal to Noise ratio (SNR)
-  #rnorm(signal) generates errors with mean 0 ans sd 1 then we need to calculate a scaling value
-  #taken from https://stats.stackexchange.com/questions/31158/how-to-simulate-signal-noise-ratio
-
-    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sqrt(intranoise)*sd(signalraw)), by = id ]
+  data[, signal := signalraw + rnorm(.N,mean = 0,sd = sqrt(intranoise)*sd(signalraw)), by = id ]
 
   class(data)<-c("doremidata","data.table","data.frame")
   return(data)
