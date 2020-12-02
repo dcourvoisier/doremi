@@ -19,7 +19,7 @@
 #'
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
 #'
-#' order - the maximum derivative order n
+#' n - the maximum derivative order calculated n
 #'
 #' @examples
 #' #In the following example the derivatives for the function y(t) = t^2 are calculated.
@@ -114,7 +114,7 @@ calculate.gold <-  function(signal,
   returnobject <- list("dtime" = time_derivative,
                        "dsignal" = derivative,
                        "embedding" = embedding,
-                       "order" = n)
+                       "n" = n)
   return(returnobject)
 }
 
@@ -141,7 +141,7 @@ calculate.gold <-  function(signal,
 #'
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
 #'
-#' order - contains the order of the maximum derivative to calculate (introduced as input parameter)
+#' n - the maximum derivative order calculated n
 #' @examples
 #' #In the following example the derivatives for the function y(t) = t^2 are calculated.
 #' #The expected results are:
@@ -209,7 +209,7 @@ calculate.glla <-  function(signal,
   returnobject <- list("dtime" = time_derivative,
                        "dsignal" = derivative,
                        "embedding" = embedding,
-                       "order" = order)
+                       "n" = order)
   return(returnobject)
 }
 # calculate.fda ----------------------------------------------------------
