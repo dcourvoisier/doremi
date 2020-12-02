@@ -652,12 +652,13 @@ generate.2order <- function(time = 0:100,
 }
 # generate.panel.1order ----------------------------------------------
 
-#' Generation of first order differential equation solutions for several individuals with intra and inter noise
+#' Generation of first order differential equation solutions for several individuals with intra-individual
+#' and inter-individual noise
 #'
-#' \code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
-#' The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
-#' It then calls the function \code{\link{generate.1order}} to generate a solution of a first order differential equation with these parameters for the nind individuals.
-#' Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
+#' \code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra-individual and inter-individual noise.
+#' For a panel of nind individual, the function generates
+#' nind solutions of a first order differential equation with constant coefficients distributed along a normal distribution.
+#' Measurement noise is added to each individual signal according to the value of the intranoise parameter.
 #'
 #' @inheritParams generate.1order
 #' @param nind  number of individuals.
@@ -702,7 +703,7 @@ generate.2order <- function(time = 0:100,
 generate.panel.1order <- function(time,
                                   excitation = NULL,
                                   y0 = 0,
-                                  t0 = 0,
+                                  t0 = NULL,
                                   tau = 10,
                                   k = 1,
                                   yeq = 0,
@@ -726,8 +727,8 @@ generate.panel.1order <- function(time,
 
   #If any value of the decay time vector is negative, the original value is used instead at that position of the vector
   if (any(tauvec <= 0)){
-    a <- 0.1 * deltatf #Threshold to truncate the tau distribution
-    perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.1*deltatf (decay times of 0 are thus also excluded)
+    a <- 0.01 * tau #Threshold to truncate the tau distribution
+    perc <- as.vector(prop.table(table(tauvec < a)))[2] #Calculation of the percentile of elements that are <0.01*tau (decay times of 0 are thus also excluded)
     b <- as.vector(quantile(tauvec, probs = 1 - perc)) #Calculation of the symmetrical threshold
 
     #Truncating the normal distribution to these two thresholds
@@ -740,7 +741,7 @@ generate.panel.1order <- function(time,
 
     flog.warn("Some values for tau where negative when adding internoise. Negative decay times imply signals
             that increase exponentially (diverge). This model generates signals that are self-regulated and thus,
-            the normal distribution used has been truncated. The inter-individual noise added is of %d instead of %d.", round(ninternoise,2),internoise)
+            the normal distribution used has been truncated. The inter-individual noise added is of %f instead of %f.", round(ninternoise,2),internoise)
   }
   #Addition of inter-noise
   #Creating the signals for each individual taking the parameters for that individual from the normal distribution vectors
@@ -754,10 +755,9 @@ generate.panel.1order <- function(time,
                                        yeq = yeqvec[.GRP])$y, by = id ]
   #Addition of intra-noise
 
-    data[, signal := signalraw + rnorm(.N,mean = 0,sd = sqrt(intranoise)*sd(signalraw)), by = id ]
-    # data[, signal := signalraw + sqrt(var(signalraw)/(intranoise*var(rnorm(signalraw))))*rnorm(signalraw), by = id ]
+  data[, signal := signalraw + rnorm(.N,mean = 0,sd = sqrt(intranoise)*sd(signalraw)), by = id ]
 
-  class(data)<-c("doremidata","data.table","data.frame")
+  class(data) <- c("doremidata","data.table","data.frame")
   return(data)
 }
 
