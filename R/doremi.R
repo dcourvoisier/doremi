@@ -371,8 +371,8 @@ generate.excitation = function(amplitude = 1,
 #'
 #' \code{generate.1order} returns a data frame containing the time (supplied as input) and the solution to a first order
 #' differential equation. The coefficients are provided as inputs, as well as the initial condition
-#' \deqn{\frac{dy(t)}{dt} - \frac{(y(t) - yeq)}{\tau}  =  \frac{k}{\tau} u(t)}
-#' Where y(t) is the signal, dy(t) its derivative, \eqn{\tau} is the decay rate, k the gain and yeq the equilibrium value.
+#' \deqn{\frac{dy(t)}{dt} + \frac{(y(t) - yeq)}{\tau}  =  \frac{k}{\tau} u(t)}
+#' Where y(t) is the signal, dy(t) its derivative, \eqn{\tau} is the decay time, k the gain and yeq the equilibrium value.
 #' u(t) is the source term of the equation, that is an external excitation perturbing the dynamics.
 #' The latter is provided as input or is set to null. The numerical solution is generated with deSolve.
 #' @param time Is a vector containing the time values corresponding to the excitation signal.
@@ -877,43 +877,48 @@ generate.panel.2order <- function(time,
 #' DOREMI first order analysis function
 #'
 #' \code{analyze.1order}  estimates the coefficients of a first order differential equation of the form:
-#' \deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
+#' \deqn{\frac{dy}{dt}(t) + \gamma (y(t) - yeq) = \gamma k*u(t)}
 #' using linear mixed-effect models.
-#' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is an external excitation perturbing the dynamics.
+#' Where y(t) is the individual's signal,\eqn{\gamma} the decay rate (and \eqn{\tau = 1/\gamma the decay time}),
+#' \eqn{\frac{dy(t)}{dt}} is the derivative and u(t) is an external excitation perturbing the dynamics.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
-#' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+#' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 #' of the linear mixed-effects regression.
-#' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' @param input Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
 #' and build the estimated curve.
 #' The function will consider as an excitation each column of data having a name contained in the input vector.
 #' The function will return a coefficient for each one of the excitation variables included in the input vector.
-#' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
+#' @param time Is a CHARACTER containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
-#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
-#' @param dermethod is the derivative estimation method. The following methods are available: "gold","glla" and "fda"
+#' @param signal Is a CHARACTER containing the NAME of the column of the data frame containing the SIGNAL to be studied.
+#' @param dermethod is the derivative estimation method. default is "gold".
+#' The values are "gold","glla" and "fda", corresponding to the use of
+#' \code{calculate.gold}, \code{calculate.glla} or \code{calculate.fda} to estimate the derivatives
 #' @param derparam If dermethod "glla" or "gold" are chosen, it is the embedding number, a positive integer containing the number of points to be used for the calculation of the derivatives.
-#' Its value by default is 2 as at least two points are needed for the calculation of the first derivative. If dermethod "fda" is chosen, this parameter is
-#' spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis)
-#' @param order is the maximum order of the derivative to estimate. Using an order higher than that of the maximum derivative to estimate (1 in first order differential equations and
-#' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
+#' Default is 3. At least two points are needed for the calculation of the first derivative. If dermethod "fda" is chosen, this parameter is
+#' spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis).
+#' In this case, the value should be between 0 and 1, see \code{?smooth.spline}
+#' @param order is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
+#' Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1. Useful for debugging.
 #' @keywords analysis, first order, exponential
 #' @return Returns a summary of the fixed components estimated by the linear regression for the three coefficients: decay time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
 #' @details The analysis performs the following linear mixed-effects regression:
-#' \deqn{y_{ij}'  \sim   b_{0} +b_{0j}+b_{1} y_{ij}+b_{2} U_{ij}+u_{1j} y_{ij}+u_{2j} U_{ij}+e_{ij}}
+#' \deqn{ \dot{y_{ij}} \sim   b_{0} +b_{0j} + (b_{1}+b_{1j}) y_{ij}+ (b_{2}+b_{2j}) u_{ij} +e_{ij}}
 #' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
-#' \eqn{y_{ij}'} is the derivative calculated on embedding points and
-#' y and U are the signal and the excitation averaged on embedding points.
+#' \eqn{\dot{y_{ij}}} is the derivative calculated on embedding points and
+#' \eqn{y_{ij}} and \eqn{u_{ij}} are the signal and the excitation averaged on embedding points.
 #' The coefficients estimated to characterize the signal are calculated as follows:
 #' \itemize{
-#'   \item decay time, tau:  \eqn{\tau _{j} =  \frac{1}{ \gamma _{j} }}  with \eqn{\gamma _{j} =  b_{1} + u_{1j} }
-#'   \item Gain, k: \eqn{\gamma _{j} = \frac{b_{2} + u_{2j}}{\gamma _{j}}}. It is the proportionality between the excitation and the
-#'   difference between the maximum value reached by the signal and its initial value.
-#'   \item Equilibrium value, yeq: \eqn{yeq _{j} = \frac{b_{0} + b_{0j}}{\gamma _{j}}}. It is the stable value reached in the absence of excitation.
+#'   \item decay time, tau:  \eqn{\tau =  \frac{1}{  b_{1} }}  with \eqn{\gamma =  b_{1}  }
+#'   \item Gain, k: \eqn{\gamma = \frac{b_{2} }{\gamma }}. It is the proportionality between the stationary increase of the signal and
+#'   the excitation increase that caused it. We call the coefficient \eqn{b_2} kgamma.
+#'   \item Equilibrium value, yeq: \eqn{yeq = \frac{b_{0}}{\gamma}}}. It is the sttionary value reached in the absence of excitation. We call \eqn{b_0}
+#'   yeqgamma
 #' }
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal can be reconstructed for
@@ -922,20 +927,24 @@ generate.panel.2order <- function(time,
 #' \enumerate{
 #'  \item data- A data.frame including the input data, the intermediate calculations used to prepare the variables for
 #'   the fit and the estimated trajectories for each individual.
+#'\enumerate{
+#'     \item signal_rollmean - calculation of the moving average of the signal over embedding points.
 #'
-#'     signal_rollmean - calculation of the moving average of the signal over embedding points.
+#'     \item signal_derivate1 - calculation of the first derivative of the signal with the gold,glla or fda methods in embedding points.
 #'
-#'     signal_derivate1 - calculation of the first derivative of the signal with the gold,glla or fda methods in embedding points.
+#'     \item time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
-#'     time_derivate - calculation of the moving average of the time vector over embedding points.
+#'     \item input_rollmean - calculation of the moving average of the excitation vector over embedding points.
 #'
-#'     input_rollmean - calculation of the moving average of the excitation vector over embedding points.
-#'
-#'     estimated- the estimated signal calculated using deSolve's ode function with a first order model, the excitation provided as input and the decay time,
-#'     excitation coefficient and equilibrium value obtained from the fit.
-#'  \item resultid- A data.frame including for each individual, listed by id number, the decay time, the excitation coefficient and the
-#'  equilibrium value (see variables presented in the Details section).
-#'  \item resultmean- A data.frame including the fixed effects of the three coefficients mentioned above and the R2 resulting from an estimation based on this coefficients
+#'     \item estimated - the estimated signal calculated using generate.1order with the excitation provided as input and the estimated decay time,
+#'     gain and equilibrium value obtained from the regression. The initial condition y0 and t0 are the first value of the moving averaged
+#'     signal (signal_rollmean) and time (time_derivate)
+#'     }
+#'  \item resultmean- A data.frame including the fixed effects of the coefficients estimated from the regression gamma, yeqgamma and the kgamma for each excitation considered,
+#'  with their associated standard error gamma_std, yeqgamma_std and kgamma_std,
+#'  together with the derived coefficient tau (the decay time), yeq (the equilibrium value) and k (the gain)
+#'  \item resultid- A data.frame including for each individual, listed by id number,  gamma, yeqgamma and the kgamma, together with the decay time tau,
+#'  the gain k and the equilibrium value yeq
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
@@ -945,6 +954,7 @@ generate.panel.2order <- function(time,
 #'  \item spar - contains the smoothing parameter used for the estimation of the derivatives using splines (method "fda")
 #' }
 #' @seealso \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
+#' and \code{\link{generate.1order}} the function to generate the solution of the frst order differential equation
 #' @examples
 #' myresult <- analyze.1order(data = cardio,
 #'                   id = "id",
@@ -1102,13 +1112,17 @@ analyze.1order <- function(data,
 
     #The second table contains the mean values for gamma and thao for all the individuals (single line)
     #Generate mean results with convergence criterions
-    resultmean <- setDT(list(id = "All"))
+    resultmean <- data.table(id = "All",
+                             gamma = -1*summary$coefficients["signal_rollmean","Estimate"],
+                             gamma_std = summary$coefficients["signal_rollmean","Std. Error"],
+                             yeqgamma = summary$coefficients["(Intercept)","Estimate"],
+                             yeqgamma_std = summary$coefficients["(Intercept)","Std. Error"])
 
     # calculate the decay time for all signal columns: -1/damping_coeff
-    resultmean[, tau := -1L/summary$coefficients["signal_rollmean", "Estimate"]]
+    resultmean[, tau := 1L/gamma]
 
     # Extract the intercept coeff (equilibrium value)
-    resultmean[, yeq := summary$coefficients["(Intercept)","Estimate"] * resultmean[, tau]]
+    resultmean[, yeq := yeqgamma/gamma]
 
     if(nind > 1){
       #The third table contains the results for gamma and thao for each individual (one line per individual)
@@ -1116,11 +1130,12 @@ analyze.1order <- function(data,
       setkey(resultid, id) #sorts the data table by id
 
       # decay time in resultid
-      resultid[, tau := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
-
+      resultid[, gamma := -1*summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"], by = id]
+      resultid[, yeqgamma := summary$coefficients["(Intercept)","Estimate"] + random$id[.GRP,"(Intercept)"], by = id]
+      resultid[, tau := 1/gamma]
       # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
       # Offset in resultid
-      resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
+      resultid[, yeq := yeqgamma/gamma, by = id]
 
       # Generation of the estimated signal for all id using analyze.1order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
       # Write a warning if any of the decay times calculated was negative
@@ -1167,12 +1182,16 @@ analyze.1order <- function(data,
       intdata[, totalexc := 0]
       intdata[, totalexcroll := 0]
       for (i in 1:length(input)){ #For loop to go through all the inputs
-        resultmean[, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] * resultmean[, tau]]
+        resultmean[, paste0(doremiexc[i],"_kgamma") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] ]
+        resultmean[, paste0(doremiexc[i],"_kgamma_std") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Std. Error"] ]
+        resultmean[, paste0(doremiexc[i],"_k") := get(paste0(doremiexc[i],"_kgamma"))*tau]
 
         #If variation of the excitation coefficient across individuals needed:
         #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
         #Excitation coefficient in resultid
         if(nind > 1){  #Several individuals
+          resultid[, paste0(doremiexc[i],"_kgamma") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
+                                                     random$id[.GRP,paste0(doremiexc[i], "_rollmean")], by = id]
           resultid[, paste0(doremiexc[i],"_k") := (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
                                                      random$id[.GRP,paste0(doremiexc[i], "_rollmean")]) * resultid[.GRP, tau], by = id]
           intdata[, totalexc := totalexc +  (summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] +
@@ -1253,7 +1272,7 @@ analyze.1order <- function(data,
   if(!is.null(resultmean)){setnames(resultmean, rmeannames, rmeannamesnew)}
 
   #Output the results of the function
-  #Excitation string
+  #Excitation CHARACTER
   #If there is no excitation term
   if (noinput){str_exc <- 0
   }else{str_exc <- input} # If there is one OR SEVERAL excitation columns
@@ -1272,17 +1291,17 @@ analyze.1order <- function(data,
 #' which the user can choose the derivative estimation method (through the parameter dermethod) and then the
 #' coefficients are then estimated through a linear mixed-effect model.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
-#' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+#' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 #' of the linear mixed-effects regression.
-#' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' @param input Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. If no excitation term is supplied, one of the initial conditions is different from 0 (signal or derivative) and xi<1 the function will estimate
 #' a damped linear oscillator (DLO)
-#' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
+#' @param time Is a CHARACTER containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
-#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
+#' @param signal Is a CHARACTER containing the NAME of the column of the data frame containing the SIGNAL to be studied.
 #' @param dermethod is the derivative estimation method. The following methods are available: "gold","glla" and "fda"
 #' @param derparam If dermethod "glla" or "gold" are chosen, it is the embedding number, a positive integer containing the number of points to be used for the calculation of the derivatives.
 #' Its value by default is 3 as at least three points are needed for the calculation of the second derivative. If dermethod "fda" is chosen, this parameter is
@@ -1624,7 +1643,7 @@ analyze.2order <- function(data,
   if(!is.null(resultmean)){setnames(resultmean, rmeannames, rmeannamesnew)}
 
   #Output the results of the function
-  #Excitation string
+  #Excitation CHARACTER
   #If there is no excitation term
   if (noinput){str_exc <- 0
   }else{str_exc <- input} # If there is one OR SEVERAL excitation columns
@@ -1639,19 +1658,19 @@ analyze.2order <- function(data,
 #' \code{optimum_param}  calculates the optimum parameter for derivative estimation by varying the latter in a range introduced as input and keeping the parameter and
 #' coefficients having the R2 closest to 1.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
-#' @param id Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+#' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 #' of the linear mixed-effects regression.
-#' @param input Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' @param input Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
 #' and build the estimated curve.
 #' The function will consider as an excitation each column of data having a name contained in the input vector.
 #' The function will return a coefficient for each one of the excitation variables included in the input vector.
-#' @param time Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
+#' @param time Is a CHARACTER containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
-#' @param signal Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.
+#' @param signal Is a CHARACTER containing the NAME of the column of the data frame containing the SIGNAL to be studied.
 #' @param dermethod is the derivative estimation method. The methods currently available are: "gold","glla" and "fda" (see their respective function for more details)
 #' @param model is the model to be used for analysis of the signal. The models available are "1order" and "2order"
 #' @param pmin is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
