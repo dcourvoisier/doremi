@@ -17,7 +17,7 @@
 #' dsignal- is a data.frame containing n+1 columns and the same number of rows as the signal.
 #' The column k is the k-1 order derivative of the signal over embedding points.
 #'
-#' embedding- contains the number of points used for the derivative calculation, which is constant.
+#' embedding- number of points used for the derivative calculation.
 #'
 #' n - the maximum derivative order calculated n
 #'
@@ -126,20 +126,19 @@ calculate.gold <-  function(signal,
 #' This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 #' @param signal is the input vector containing the data from which the derivatives are estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
-#' @param n is the maximum order of the derivative to calculate
 #' @param embedding is an integer indicating the embedding dimension, that is the number of points to consider for derivative calculation.
 #' Embedding must be at least #' 2 for the calculation of the first derivative (first order models) and at least 3 for the calculation of
 #' the second derivative (second order models).
+#' @param n is the maximum order of the derivative to calculate
 #' @keywords derivative, embedding dimension, rollmean
 #' @return Returns a list containing three columns:
 #'
 #' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 #'
-#' dsignal- is a data.frame containing three columns and the same number of rows as the signal.
-#' The first column is the moving average of the signal over embedding points, the second is the first derivative,
-#' and the third is the second derivative.
+#' dsignal- is a data.frame containing n+1 columns and the same number of rows as the signal.
+#' The column k is the k-1 order derivative of the signal over embedding points.
 #'
-#' embedding- contains the number of points used for the derivative calculation, which is constant.
+#' embedding- number of points used for the derivative calculation.
 #'
 #' n - the maximum derivative order calculated n
 #' @examples
@@ -224,7 +223,7 @@ calculate.glla <-  function(signal,
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param spar is the smoothing parameter used by the roughness penalty function in the smooth.spline R function.
-#' @param order not used
+#' @param n not used
 #' @keywords derivative, fda, spline
 #' @return Returns a list containing three columns:
 #'
@@ -367,50 +366,86 @@ generate.excitation = function(amplitude = 1,
   return(data)
 }
 # generate.1order ----------------------------------------------------
-#' Generation of the first order differential equation solution with deSolve
+#' Generation of the first order differential equation solution with deSolve, for given fixed coefficients
+#' and initial condition
 #'
-#' \code{generate.1order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a first order
-#' differential equation whith the coefficients are provided as inputs:
-#' \deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
-#' Where y(t) is the signal, dy(t) its derivative, \eqn{\gamma} is the damping rate, k the gain and yeq the equilibrium value.
-#' u(t) is an external excitation perturbing the dynamics.
-#' The latter is also provided as input and it can be null (then the solution
-#' will be a decreasing exponential). The numerical solution is generated with deSolve.
+#' \code{generate.1order} returns a data frame containing the time (supplied as input) and the solution to a first order
+#' differential equation. The coefficients are provided as inputs, as well as the initial condition
+#' \deqn{\frac{dy(t)}{dt} - \frac{(y(t) - yeq)}{\tau}  =  \frac{k}{\tau} u(t)}
+#' Where y(t) is the signal, dy(t) its derivative, \eqn{\tau} is the decay rate, k the gain and yeq the equilibrium value.
+#' u(t) is the source term of the equation, that is an external excitation perturbing the dynamics.
+#' The latter is provided as input or is set to null. The numerical solution is generated with deSolve.
 #' @param time Is a vector containing the time values corresponding to the excitation signal.
-#' @param excitation Is a vector containing the values of the excitation signal.
-#' @param y0 Signal initial value y(t=t0)
-#' @param t0 Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
-#' within the interval defined by it)
+#' @param excitation Is a vector containing the values of the excitation signal (u(t) in the equation). If NULL, it is considered to be 0.
+#' @param y0 Signal initial value y(t=t0). Default is 0
+#' @param t0 Time corresponding to the signal initial value y(t=t0). Default is the minimum value of the time vector.
+#' Must be a value between minimum and maximum value of the time vector
 #' @param tau Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
-#' @param k Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
-#' for differential equations including an excitation term.
-#' @param yeq Signal equilibrium value. Value reached when the excitation term is 0 or constant.
+#' @param k Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+#' Only relevent if the excitation is non null.
+#' @param yeq Signal equilibrium value. Stationary value when the excitation term is 0.
 #' @keywords first order differential equation, constant coefficients
-#' @return Returns a list containing two elements:
+#' @return Returns a data.table containing three elements:
 #' \itemize{
 #'   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a first order differential equation with the constant
 #'   coefficients provided as input.
 #'   \item  t is a vector containing the corresponding time values
+#'   \item exc
 #' }
 #' @examples
-#' generate.1order()
 #' generate.1order(t0 = 2.5,y0 = 2)
-#' generate.1order(time = 0:49, excitation = c(rep(0,10),rep(1,40)))
+#' test <- generate.1order(time = 0:49, excitation = c(rep(0,10),rep(1,40)))
+#' plot(test$t,test$y)
+#' lines(test$t,test$exc,col = 2)
+#'
+#' ### see the influence of tau
+#' library(magrittr)
+#' lapply(1:5*4,function(x){
+#' tmp <- generate.1order(t0 = 0,
+#'                        y0 = 2,
+#'                        tau = x)
+#' tmp[,tau := as.factor(x)][]
+#' }) %>%
+#'   rbindlist() %>%
+#'   ggplot(aes(t,y,color = tau))+
+#'   geom_line()
+#'
+#' ### effect of the gain
+#'
+#'   lapply(1:5,function(x){
+#' tmp <- generate.1order(
+#'   time = 1:100,
+#'   excitation = as.numeric(1:100 > 50),
+#'   y0 = 0,
+#'   tau = 10,
+#'   k = x)
+#' tmp[,k := as.factor(x)][]
+#' }) %>%
+#'   rbindlist() %>%
+#'   ggplot()+
+#'   geom_line(aes(t,y,color = k))+
+#'   geom_line(aes(t,exc,color = "excitation"))
+
+
 #'@export
 #'@importFrom deSolve ode
 #'@import futile.logger
 generate.1order <- function(time = 0:100,
-                            excitation = as.numeric(0:100>50),
+                            excitation = NULL,
                             y0 = 0,
-                            t0 = 0,
+                            t0 = NULL,
                             tau = 10,
                             k = 1,
                             yeq = 0){
+
   flog.appender(appender.console())
   #Error management
   #If excitation is not supplied, then creation of an empty vector
   if(is.null(excitation)){excitation <- rep(0,length(time))}
+
+  #If t0 is not supplied, then set to min value of time vector
+  if(is.null(t0)){t0 <- min(time,na.rm = T)}
 
   #If excitation is a scalar, the function warns the user that it should be a vector containing the values of the excitation signal
   if (length(excitation) <= 1 | length(excitation) != length(time)) {
@@ -429,6 +464,10 @@ generate.1order <- function(time = 0:100,
     stop("Excitation should be a vector.")
   }
 
+  # order excitation
+  excitation <- excitation[order(time)]
+  #order time vector
+  time <- time[order(time)]
 
   #Initial values
   state <- c(y = y0)
@@ -442,7 +481,6 @@ generate.1order <- function(time = 0:100,
              list(-(1/tau)*y + k/tau*u + yeq/tau)})
 
     }
-
 
     if(t0>time[1]){ # if t0 is superior to the firts time in timevec,
       #then there is two side of the curve to reconstruct
@@ -466,7 +504,7 @@ generate.1order <- function(time = 0:100,
       # remove duplicated initial value
       out <- out[!duplicated(out),]
       if(!t0 %in% time){#if t0 wasn't in original time vector, suppress it, otherwise it won't match the initial time points given when building the table
-        out <- out[!time == t0]
+        out <- out[time != t0]
       }
     }else{
       excf <- approxfun(time,excitation, rule = 2)
@@ -474,7 +512,7 @@ generate.1order <- function(time = 0:100,
     }
     names(out)<-c("t","y")
     out[,exc := excitation]
-    out
+    return(out)
   }
 }
 # generate.2order ----------------------------------------------------
