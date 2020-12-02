@@ -3,24 +3,23 @@
 #'
 #' \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
 #' method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
-#' This method allows calculating over a number of measurement points (called the embedding number) the first derivative with errors uncorrelated with the signal.
+#' This method allows calculating over a number of measurement points (called the embedding number) derivatives with uncorrelated errors.
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param embedding is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
 #' two points are needed for the calculation of the first derivative and at least 3 for the calculation of the second derivative.
-#' @param n is the maximum order of derivative to estimate ("m" in the cited paper)
+#' @param n is the maximum order of derivative to estimate.
 #' @keywords derivative, embed, rollmean
-#' @return Returns a list containing the following columns:
+#' @return Returns a list containing the following elements:
 #'
 #' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 #'
-#' dsignal- is a data.frame containing three columns and the same number of rows as the signal.
-#' The first column is the moving average of the signal over embedding points, the second is the first derivative,
-#' and the third is the second derivative.
+#' dsignal- is a data.frame containing n+1 columns and the same number of rows as the signal.
+#' The column k is the k-1 order derivative of the signal over embedding points.
 #'
 #' embedding- contains the number of points used for the derivative calculation, which is constant.
 #'
-#' order - contains the order of the maximum derivative to calculate (introduced as input parameter)
+#' order - the maximum derivative order n
 #'
 #' @examples
 #' #In the following example the derivatives for the function y(t) = t^2 are calculated.
@@ -428,8 +427,8 @@ generate.1order <- function(time = 0:100,
   if (is.matrix(excitation) | is.character(excitation)){
     flog.error("Excitation should be a vector.")
     stop("Excitation should be a vector.")
-  } 
-    
+  }
+
 
   #Initial values
   state <- c(y = y0)
@@ -443,11 +442,11 @@ generate.1order <- function(time = 0:100,
              list(-(1/tau)*y + k/tau*u + yeq/tau)})
 
     }
-    
-    
-    if(t0>time[1]){ # if t0 is superior to the firts time in timevec, 
+
+
+    if(t0>time[1]){ # if t0 is superior to the firts time in timevec,
       #then there is two side of the curve to reconstruct
-      
+
       # in case t0 is not in the time vec, create exc0, the extrapolated value of excitation at t0
       extrapol <- lm(excitation~time,data = data.frame(time = c(last(time[time<t0]),first(time[time>t0])),
                                                        excitation = c(last(excitation[time<t0]),first(excitation[time>t0])) ))
@@ -551,7 +550,7 @@ generate.2order <- function(time = 0:100,
   if (!is.vector(excitation)){
     flog.error("Excitation should be a vector.")
     stop("Excitation should be a vector.")
-  } 
+  }
 
   #Initial values
   state <- c(y1 = y0, y2 = v0)
@@ -571,9 +570,9 @@ generate.2order <- function(time = 0:100,
     }
 
 
-    if(t0>time[1]){ # if t0 is superior to the firts time in timevec, 
+    if(t0>time[1]){ # if t0 is superior to the firts time in timevec,
       #then there is two side of the curve to reconstruct
-      
+
       # in case t0 is not in the time vec, create exc0, the extrapolated value of excitation at t0
       extrapol <- lm(excitation~time,data = data.frame(time = c(last(time[time<t0]),first(time[time>t0])),
                                                        excitation = c(last(excitation[time<t0]),first(excitation[time>t0])) ))
@@ -940,7 +939,7 @@ analyze.1order <- function(data,
   if(verbose){flog.threshold(INFO)}else{
     flog.threshold(WARN)
   } #if verbose is false, it only displays warnings and errors, otherwise it displays also info messages
-  
+
   # Error management
   errorcheck(intdata,signal)
   if (!is.null(id)){ #Several individuals
@@ -1316,7 +1315,7 @@ analyze.2order <- function(data,
   flog.appender(appender.console())
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
-  
+
   if(verbose){flog.threshold(INFO)}else{
     flog.threshold(WARN)
   } #if verbose is false, it only displays warnings and errors, otherwise it displays also info messages
@@ -1681,7 +1680,7 @@ optimum_param <- function(data,
   if(any(pmax>Npoints)){
     flog.error("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
     stop("Error: pmax is the maximum number of points used to estimate the derivatives and it can't be greater than the total number of points provided in the data.")
-    
+
   }
   #Defining function to test if pstep is integer (as according to the function's help, is.integer(x) doesn't indicate if x is an integer)
   is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
@@ -1692,7 +1691,7 @@ optimum_param <- function(data,
     stop("For the fda derivative estimation method, the smooth.spline option advises to use a pmin of 0 and a pmax of 1. Even though it is not a necessary
          condition, we have set the range at [-2,2] so please modify accordingly.")
   }
-  
+
   if(!model %in% c("1order","2order")){
     stop("the model should be either 1order or 2order")
   }
