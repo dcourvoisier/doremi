@@ -28,9 +28,13 @@ knitr::opts_chunk$set(
 ```{r, eval = FALSE, echo = FALSE}
 source("../R/doremi.R")
 source("../R/others.R")
+library(ggplot2)
+library(data.table)
 library(futile.logger)
 library(deSolve)
 library(zoo)
+library(lme4)
+library(lmerTest)
 ```
 
 The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
@@ -323,42 +327,11 @@ ggplot2::ggtitle( "First order differential equation solution")+
   ggplot2::theme(legend.position = "top", plot.title = ggplot2::element_text(hjust = 0.5))
 ```
 
-* $k$ is the gain.  It indicates the proportionality between the maximal amplitude the variable can reach and the excitation.
+* $k$ is the gain.  It indicates the proportionality between the stationary increase of $y$ and the constant excitation increase that caused it.
 
 * $y_{eq}$ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
 
-Once the derivative estimated, doremi performs the following linear mixed-effect regression derived from equation \ref{1}:
-
-\begin{equation}
-\dot{y}_{ij} \sim b_{0}+b_{0j}+b_{1}y_{ij}+b_{2}U_{ij}+u_{1j}y_{ij}+u_{2j}U_{ij}+e_{ij} 
-\label{eq2}
-\end{equation}
-
-where:
-  
-* i accounts for the time
-
-* j accounts for the different individuals
-
-* $\dot{y}_{ij}$ is the derivative estimated through one of the derivative estimation methods available in the package (gold, glla and fda) calculated on embedding points (gold, glla) or estimated on the time points provided (fda) 
-
-* $y_{ij}$ and $U_{ij}$ are the variable and the excitation averaged on embedding points (gold, glla) or the originals provided (fda)
-
-* $e_{ij}$ is the error term (residuals)
-
-Note that random effects are estimated for the intercept ($b_{0} + b_{0j}$), variable ($b_{1} + u_{1j}$) and excitation terms ($b_{2} + u_{2j}$), so that individuals can have different coefficients (initial condition, damping time, gain and equilibrium value).
-
-The coefficients aforementioned can be thus calculated as:
-
-* Decay time: $\tau_{j} = \frac{1}{\gamma_{j}}$  with $\gamma_{j} =  b_{1} + u_{1j}$
-
-* Gain: $k_{j} = \frac{b_{2} + u_{2j}}{\gamma_{j}}$
-
-* Equilibrium value: $yeq_{j} = \frac{b_{0} + b_{0j} }{\gamma _{j}}$ 
-
-The estimation is performed using the function `lmer` if there are several individuals or `lm` if there is a single individual.
-
-With the above estimated parameters, the estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
+Once the derivative estimated, doremi performs the a linear mixed-effect regression to estimated these  parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
 
 # SECOND ORDER DIFERENTIAL EQUATION MODEL
 
@@ -374,7 +347,7 @@ Where:
 
 * $y(t)$ is the variable to be analyzed
 
-* $\dot{y}(t)$ is its first derivative
+* $\frac{dy}{dt}$ is its first derivative
 
 * $\frac{d^2y}{dt}$ is its second derivative
 
@@ -391,9 +364,9 @@ And regarding the coefficients:
      $\xi=1$	Critically damped
      $\xi>1$	Over-damped, no oscillations in the return to equilibrium
 
-* $k$ is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only for differential equations including an excitation term.
+* $k$ is the gain. It is the proportionnality between the stationary increase of the signal $y$ and the excitation increase that caused it. It is thus relevant only for differential equations including an excitation term.
 
-* $y_{eq}$ is the variable equilibrium value, i.e. the value reached when the excitation term is 0 or constant.
+* $y_{eq}$ is the variable equilibrium value, i.e. the stationary value when the excitation term is 0 or constant.
 
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
@@ -430,7 +403,7 @@ These are functions that allow the user to generate data following the first/sec
 * **generate.1order/generate.2order:** generate the solution of equation (1)/(3) with the coefficients and excitation provided as input.
 
 
-* **generate.panel.1order/generate.panel.2order:** generate the solution of equation (1)/(3) for a given excitation and for a number of individuals, dynamic noise and variability between individuals provided as input.
+* **generate.panel.1order/generate.panel.2order:** generate the solution of equation (1)/(3) for a given excitation and for a number of individuals, measurement noise and variability between individuals provided as input.
 
 ### Analysis functions
 These functions allow to analyze a set of data and verify how close it is to being a solution of a first/second order differential equation with constant coefficients by following a two-step estimation method (derivative estimation first and then estimation of the coefficients through a multilevel regression).
