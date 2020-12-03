@@ -1008,11 +1008,16 @@ analyze.1order <- function(data,
   }
   if (!is.null(input)){
     errorcheck(intdata, input)
-    for (i in 1:length(input)){ #For loop to go through all the inputs
-      if(all(intdata[, diff(get(input)), by = id]$V1 == 0) == TRUE){
-        noinput <- TRUE
-        flog.warn("Excitation signal is constant. Adjustment will consist on exponential fit")
-      } #If input is constant
+    which_to_remove <- sapply(1:length(input),function(i){
+      all(intdata[, diff(get(input[i])), by = id]$V1 == 0)
+    })
+    intdata[,c(input[which_to_remove]) := NULL]
+    input <- input[!which_to_remove]
+    flog.warn(paste0("Excitation signal ",c(input[which_to_remove])," is constant and is removed."))
+
+    if(all(which_to_remove)){
+      noinput <- TRUE
+      flog.warn("All Excitation signals are constant. Adjustment will consist on exponential fit.")
     }
   }else{
     #If no input argument is provided, a warning will be generated indicating that the input has been set to 0.
@@ -1137,10 +1142,12 @@ analyze.1order <- function(data,
       # decay time in resultid
       resultid[, gamma := -1*summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"], by = id]
       resultid[, yeqgamma := summary$coefficients["(Intercept)","Estimate"] + random$id[.GRP,"(Intercept)"], by = id]
-      resultid[, tau := 1/gamma]
+
+      resultid[, tau := -1L/(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
+
       # Extract the intercept (equilibrium value) calculated for each individual (present in random, regression table)
       # Offset in resultid
-      resultid[, yeq := yeqgamma/gamma, by = id]
+      resultid[, yeq := (summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"]) * resultid[.GRP, tau], by = id]
 
       # Generation of the estimated signal for all id using analyze.1order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
       # Write a warning if any of the decay times calculated was negative
@@ -1434,11 +1441,17 @@ analyze.2order <- function(data,
   }
   if (!is.null(input)){
     errorcheck(intdata, input)
-    for (i in 1:length(input)){ #For loop to go through all the inputs
-      if(all(intdata[, diff(get(input)), by = id]$V1 == 0) == TRUE){
-        noinput <- TRUE
-        flog.warn("Excitation signal is constant. Adjustment will consist on exponential fit.")
-      } #If input is constant
+
+    which_to_remove <- sapply(1:length(input),function(i){
+      all(intdata[, diff(get(input[i])), by = id]$V1 == 0)
+    })
+    intdata[,c(input[which_to_remove]) := NULL]
+    input <- input[!which_to_remove]
+    flog.warn(paste0("Excitation signal ",c(input[which_to_remove])," is constant and is removed."))
+
+    if(all(which_to_remove)){
+      noinput <- TRUE
+      flog.warn("All Excitation signals are constant. Adjustment will consist on exponential fit.")
     }
   }else{
     #If no input argument is provided, a warning will be generated indicating that the input has been set to 0.
