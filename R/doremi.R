@@ -906,19 +906,24 @@ generate.panel.2order <- function(time,
 #' Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1. Useful for debugging.
 #' @keywords analysis, first order, exponential
-#' @return Returns a summary of the fixed components estimated by the linear regression for the three coefficients: decay time, excitation coefficient and equilibrium value and the R2 resulting from this estimation
+#' @return Returns a summary of the fixed effect coefficients estimated by the linear regression
 #' @details The analysis performs the following linear mixed-effects regression:
-#' \deqn{ \dot{y_{ij}} \sim   b_{0} +b_{0j} + (b_{1}+b_{1j}) y_{ij}+ (b_{2}+b_{2j}) u_{ij} +e_{ij}}
+#' \deqn{ \dot{y_{ij}} \sim   (b_{0} +b_{0j}) + (b_{1}+b_{1j}) y_{ij}+ (b_{2}+b_{2j}) u_{ij} +e_{ij}}
 #' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
 #' \eqn{\dot{y_{ij}}} is the derivative calculated on embedding points and
 #' \eqn{y_{ij}} and \eqn{u_{ij}} are the signal and the excitation averaged on embedding points.
-#' The coefficients estimated to characterize the signal are calculated as follows:
+#' The fixed effect coefficients estimated from the regression are:
 #' \itemize{
-#'   \item decay time, tau:  \eqn{\tau =  \frac{1}{  b_{1} }}  with \eqn{\gamma =  b_{1}  }
-#'   \item Gain, k: \eqn{\gamma = \frac{b_{2} }{\gamma }}. It is the proportionality between the stationary increase of the signal and
-#'   the excitation increase that caused it. We call the coefficient \eqn{b_2} kgamma.
-#'   \item Equilibrium value, yeq: \eqn{yeq = \frac{b_{0}}{\gamma}}}. It is the sttionary value reached in the absence of excitation. We call \eqn{b_0}
-#'   yeqgamma
+#'   \item gamma: \eqn{b_1} (\eqn{\gamma} from the differential equation)
+#'   \item kgamma: \eqn{b_2} (\eqn{k\gamma} from the differential equation)
+#'   \item yeqgamma: \eqn{b_0} (\eqn{\gamma y_{eq}} from the differential equation)
+#' }
+#' The coefficients derived to characterize the signal are calculated as follows:
+#' \itemize{
+#'   \item the decay time, tau:  \eqn{\tau =  \frac{1}{  b_1 } = \frac{1}{\gamma}}
+#'   \item the gain, k: \eqn{\gamma = \frac{b_2}{b_1}}. It is the proportionality between the stationary increase of the signal and
+#'   the excitation increase that caused it.
+#'   \item the equilibrium value, yeq: \eqn{yeq = \frac{b_0}{b_1}}. It is the stationary value reached in the absence of excitation.
 #' }
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal can be reconstructed for
@@ -1285,11 +1290,13 @@ analyze.1order <- function(data,
 #' DOREMI second order analysis function
 #'
 #' \code{analyze.2order}  estimates the coefficients of a second order differential equation of the form:
-#' \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 (y - y_{eq}) = k*u(t) }
-#' Where y(t) is the individual's signal, \eqn{\dot{y}(t)} is the derivative and u(t) is the excitation.
-#' The function estimates the coefficients \eqn{\xi, \omega_{n}, k} and \eqn{y_{eq}} using a two step procedure in
-#' which the user can choose the derivative estimation method (through the parameter dermethod) and then the
-#' coefficients are then estimated through a linear mixed-effect model.
+#' \deqn{\frac{d^2y}{dt}(t) + 2\xi\omega_{n}\frac{dy}{dt}(t) + \omega_{n}^2 (y - y_{eq}) = \omega_{n}^2 k*u(t) }
+#' Where y(t) is the individual's signal, \eqn{\frac{dy}{dt}(t)} is its first derivative,\eqn{\frac{d^2y}{dt}(t)}  its second derivative
+#' and u(t) is the excitation.
+#' The function estimates the coefficients \eqn{2\xi\omega_{n}, \omega_{n}^2 k} and \eqn{\omega_{n}^2 y_{eq}},
+#' from which the oscillation period T, the damping ratio \eqn{\xi}, the equilibrium \eqn{y_{eq}} value and the gain k can be derived.
+#' Th estimation is based on a two step procedure: the first step sonsist in estimating the derivatives to then estimate in a second step the differential equation
+#' coefficients through a linear mixed-effect model. Three different method to estimate the derivative during the first step are proposed.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
 #' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
@@ -1310,8 +1317,27 @@ analyze.1order <- function(data,
 #' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @keywords analysis, second order
-
-#' @return Returns a summary of the fixed components for the coefficients: damping factor, period, gain and equilibrium value and the R2 resulting from the estimation.
+#' @return Returns a summary of the fixed effect coefficients (see details)
+#' @details The analysis performs the following linear mixed-effects regression:
+#' \deqn{ \ddot{y_{ij}} \sim   (b_{0} +b_{0j}) + (b_{1}+b_{1j}) \dot{y_{ij}} + (b_{2}+b_{2j}) y_{ij} + (b_{3}+b_{3j}) u_{ij} + e_{ij}}
+#' with i accounting for the time and j for the different individuals. \eqn{e_{ij}} are the residuals,
+#' \eqn{\dot{y_{ij}}} is the first derivative and \eqn{\ddot{y_{ij}}} the second derivative calculated on embedding points, and
+#' \eqn{y_{ij}} and \eqn{u_{ij}} are the signal and the excitation averaged on embedding points.
+#' The fixed effect coefficients estimated from the regression are:
+#' \itemize{
+#'   \item xi2omega: \eqn{b_1} (\eqn{2\xi\omega^2} from the differential equation)
+#'   \item omega2: \eqn{b_2} (\eqn{\omega^2} from the differential equation)
+#'   \item komega2: \eqn{b_3} (\eqn{k\omega^2} from the differential equation)
+#'   \item yeqomega2: \eqn{b_0} (\eqn{\omega^2 y_{eq}} from the differential equation)
+#' }
+#' The coefficients derived to characterize the signal are calculated as follows:
+#' \itemize{
+#'   \item the oscillation period  \eqn{T = \sqrt{ \frac{2\pi}{ b_2 }}}
+#'   \item the damping factor xi: \eqn{xi = \frac{b_1}{2*\sqrt{b_2}}}
+#'   \item the gain, k: \eqn{k = \frac{b_3}{b_1}}. It is the proportionality between the stationary increase of the signal and
+#'   the excitation increase that caused it.
+#'   \item the equilibrium value, yeq: \eqn{yeq = \frac{b_0}{b_2}}. It is the stationary value reached in the absence of excitation.
+#' }
 #' The estimation is performed using the function lmer if there are several individuals or lm if there is only one.
 #' With the above estimated parameters, the estimated signal is reconstructed for
 #' each individual by using the generate.2order function of this package (based on deSolve's ode function).
@@ -1319,21 +1345,24 @@ analyze.1order <- function(data,
 #' \enumerate{
 #'  \item data- A data.frame including the input data, the intermediate calculations used to prepare the variables for
 #'   the fit and the estimated trajectories for each individual.
+#'   \enumerate{
 #'
-#'     signal_rollmean - calculation of the moving average of the signal over embedding points.
+#'     \item signal_rollmean - calculation of the o order derivative of the signal over embedding points.
 #'
-#'     signal_derivate1 - calculation of the first derivative of the signal with the chosen method in embedding points/with smoothing parameter spar
+#'     \item signal_derivate1 - calculation of the first derivative of the signal with the chosen method in embedding points/with smoothing parameter spar
 #'
-#'     signal_derivate2 - calculation of the second derivative of the signal with the chosen method in embedding points/with smoothing parameter spar
+#'     \item signal_derivate2 - calculation of the second derivative of the signal with the chosen method in embedding points/with smoothing parameter spar
 #'
-#'     time_derivate - calculation of the moving average of the time vector over embedding points.
+#'     \item time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
-#'     input_rollmean - calculation of the moving average of the excitation vector over embedding points.
+#'     \item input_rollmean - calculation of the moving average of the excitation vector over embedding points.
 #'
-#'     estimated- the estimated signal calculated using deSolve's ode function with a second order model, the excitation provided as input and the
+#'     \item estimated - the estimated signal calculated using deSolve's ode function with a second order model, the excitation provided as input and the
 #'     coefficients obtained from the fit.
+#'     }
 #'  \item resultid- A data.frame including for each individual, listed by id number, the coefficients calculated (thus fixed + random component)
-#'  \item resultmean- A data.frame including the fixed effects of the coefficients mentioned above and the R2 resulting from the estimation
+#'  \item resultmean- A data.frame including the fixed effects of the coefficients mentioned above with their standard error, the coefficients characterizing the signal shape
+#'  (i.e. the period, the damping factor, the gain and the equilibrium value), and the R2 resulting from the estimation
 #'  \item regression- A list containing the summary of the linear mixed-effects regression.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
@@ -1343,14 +1372,30 @@ analyze.1order <- function(data,
 #'  the smoothing parameter spar if the chosen method is fda
 #' }
 #' @seealso \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar
+#' See \code{\link{generate.2order} for the generation of the solution of the second order differential equation.
 #' @examples
-#' myresult <- analyze.2order(data = cardio,
-#'                   id = "id",
-#'                   input = "load",
-#'                   time = "time",
-#'                   signal = "hr",
-#'                   dermethod = "gold",
-#'                   derparam = 5)
+#' # generate a panel of oscillating signals
+#' test <- generate.panel.2order(time = 0:100,
+#'                               excitation = as.numeric(0:100>50),
+#'                               period = 15,
+#'                               xi = 0.3,
+#'                               k = 2,
+#'                               internoise = 0.2,
+#'                               intranoise = 0.3,
+#'                               nind = 10)
+#'
+#'# plot the signal to analyze
+#' ggplot(test,aes(time,signal,color = as.factor(id)))+
+#'   geom_line()
+#'
+#'# analyze them
+#' res <- analyze.2order(data = test,
+#'                       id = "id",
+#'                       input = "excitation",
+#'                       time =  "time",
+#'                       signal = "signal",
+#'                       derparam = 13)
+#' res
 #'@export
 #'@import data.table
 #'@importFrom lmerTest lmer
@@ -1504,13 +1549,13 @@ analyze.2order <- function(data,
     #Generate mean results with convergence criterions
     resultmean <- data.table(omega2 = -1*summary$coefficients["signal_rollmean","Estimate"],
                              omega2_std = summary$coefficients["signal_rollmean","Std. Error"],
-                             esp2omega = -1*summary$coefficients["signal_derivate1","Estimate"],
+                             xi2omega = -1*summary$coefficients["signal_derivate1","Estimate"],
                              esp2omega_std = summary$coefficients["signal_derivate1","Std. Error"],
                              yeqomega2 = summary$coefficients["(Intercept)","Estimate"],
                              yeqomega2_std = summary$coefficients["(Intercept)","Std. Error"])
     resultmean[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NaN)]
     resultmean[, wn := ifelse(omega2>0,sqrt(omega2),NaN)]
-    resultmean[, xi := ifelse(omega2>0,esp2omega/(2*sqrt(omega2)),NaN)]
+    resultmean[, xi := ifelse(omega2>0,xi2omega/(2*sqrt(omega2)),NaN)]
     resultmean[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NaN)]
 
     if(nind > 1){
@@ -1519,12 +1564,12 @@ analyze.2order <- function(data,
       setkey(resultid, id) #sorts the data table by id
 
       resultid[, omega2 := -(summary$coefficients["signal_rollmean","Estimate"] + random$id[.GRP,"signal_rollmean"]), by = id]
-      resultid[, esp2omega := -(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
+      resultid[, xi2omega := -(summary$coefficients["signal_derivate1","Estimate"] + random$id[.GRP,"signal_derivate1"]), by = id]
       resultid[, yeqomega2 := summary$coefficients["(Intercept)", "Estimate"] + random$id[.GRP, "(Intercept)"], by = id]
 
       resultid[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NaN)]
       resultid[, wn := ifelse(omega2>0,sqrt(omega2),NaN)]
-      resultid[, xi := ifelse(omega2>0,esp2omega/(2*sqrt(omega2)),NaN)]
+      resultid[, xi := ifelse(omega2>0,xi2omega/(2*sqrt(omega2)),NaN)]
       resultid[, yeq := ifelse(omega2>0,yeqomega2/(omega2),NaN)]
 
       # Generation of the estimated signal for all id using analyze.2order generate FOR SEVERAL INDIVIDUALS (will be added to the $data object)
@@ -1543,6 +1588,7 @@ analyze.2order <- function(data,
     if(!noinput){
       for (i in 1:length(input)){ #For loop to go through all the inputs
         resultmean[, paste0(doremiexc[i],"_komega2") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]]
+        resultmean[, paste0(doremiexc[i],"_komega2_std") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Std. Error"]]
         resultmean[omega2>0, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]/resultmean$omega2]
         #If variation of the excitation coefficient across individuals needed:
         #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
