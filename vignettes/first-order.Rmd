@@ -104,7 +104,14 @@ The estimation is performed using the function `lmer` if there are several indiv
 
 ## Simulating data 
 
-In this section, we present increasingly complex examples of data simulation for the first order differential equation model functions included in the package.
+Two functions are available to simulate data in the package: `generate.1order` simulate the solution of the differential equation for a gievn vector of time, and the parameters tau = $\tau$, y0 = $y(t=0)$,yeq = $y_{eq}$, k = $k$ and the vector of excitation $u(t)$. The function create a data.table with a column t for the time, y for the signal, and exc for the excitation.
+
+```{r}
+test <- generate.1order(0:100,y0 = 10,tau = 10)
+plot(test$t,test$y)
+```
+
+The function `generate.panel.1order` uses `generate.1order` to generate a panel of `nind` individuals, with measurement noise and inter-individual noise.
 
 ### Example 1a - Generating signals with no noise
 
