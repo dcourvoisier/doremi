@@ -946,7 +946,7 @@ generate.panel.2order <- function(time,
 #'     signal (signal_rollmean) and time (time_derivate)
 #'     }
 #'  \item resultmean- A data.frame including the fixed effects of the coefficients estimated from the regression gamma, yeqgamma and the kgamma for each excitation considered,
-#'  with their associated standard error gamma_std, yeqgamma_std and kgamma_std,
+#'  with their associated standard error gamma_stde, yeqgamma_stde and kgamma_stde,
 #'  together with the derived coefficient tau (the decay time), yeq (the equilibrium value) and k (the gain)
 #'  \item resultid- A data.frame including for each individual, listed by id number,  gamma, yeqgamma and the kgamma, together with the decay time tau,
 #'  the gain k and the equilibrium value yeq
@@ -1124,9 +1124,9 @@ analyze.1order <- function(data,
     #Generate mean results with convergence criterions
     resultmean <- data.table(id = "All",
                              gamma = -1*summary$coefficients["signal_rollmean","Estimate"],
-                             gamma_std = summary$coefficients["signal_rollmean","Std. Error"],
+                             gamma_stde = summary$coefficients["signal_rollmean","Std. Error"],
                              yeqgamma = summary$coefficients["(Intercept)","Estimate"],
-                             yeqgamma_std = summary$coefficients["(Intercept)","Std. Error"])
+                             yeqgamma_stde = summary$coefficients["(Intercept)","Std. Error"])
 
     # calculate the decay time for all signal columns: -1/damping_coeff
     resultmean[, tau := 1L/gamma]
@@ -1195,7 +1195,7 @@ analyze.1order <- function(data,
       intdata[, totalexcroll := 0]
       for (i in 1:length(input)){ #For loop to go through all the inputs
         resultmean[, paste0(doremiexc[i],"_kgamma") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"] ]
-        resultmean[, paste0(doremiexc[i],"_kgamma_std") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Std. Error"] ]
+        resultmean[, paste0(doremiexc[i],"_kgamma_stde") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Std. Error"] ]
         resultmean[, paste0(doremiexc[i],"_k") := get(paste0(doremiexc[i],"_kgamma"))*tau]
 
         #If variation of the excitation coefficient across individuals needed:
@@ -1561,11 +1561,11 @@ analyze.2order <- function(data,
     #The second table contains the mean values for gamma and thao for all the individuals (single line)
     #Generate mean results with convergence criterions
     resultmean <- data.table(omega2 = -1*summary$coefficients["signal_rollmean","Estimate"],
-                             omega2_std = summary$coefficients["signal_rollmean","Std. Error"],
+                             omega2_stde = summary$coefficients["signal_rollmean","Std. Error"],
                              xi2omega = -1*summary$coefficients["signal_derivate1","Estimate"],
-                             esp2omega_std = summary$coefficients["signal_derivate1","Std. Error"],
+                             esp2omega_stde = summary$coefficients["signal_derivate1","Std. Error"],
                              yeqomega2 = summary$coefficients["(Intercept)","Estimate"],
-                             yeqomega2_std = summary$coefficients["(Intercept)","Std. Error"])
+                             yeqomega2_stde = summary$coefficients["(Intercept)","Std. Error"])
     resultmean[,period := ifelse(omega2>0,2*pi/sqrt(omega2),NaN)]
     resultmean[, wn := ifelse(omega2>0,sqrt(omega2),NaN)]
     resultmean[, xi := ifelse(omega2>0,xi2omega/(2*sqrt(omega2)),NaN)]
@@ -1601,7 +1601,7 @@ analyze.2order <- function(data,
     if(!noinput){
       for (i in 1:length(input)){ #For loop to go through all the inputs
         resultmean[, paste0(doremiexc[i],"_komega2") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]]
-        resultmean[, paste0(doremiexc[i],"_komega2_std") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Std. Error"]]
+        resultmean[, paste0(doremiexc[i],"_komega2_stde") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Std. Error"]]
         resultmean[omega2>0, paste0(doremiexc[i],"_k") := summary$coefficients[paste0(doremiexc[i], "_rollmean"), "Estimate"]/resultmean$omega2]
         #If variation of the excitation coefficient across individuals needed:
         #And for each individual: the mean coeff (sumary$coeff) + the variation per Individual (in random)
@@ -1627,8 +1627,12 @@ analyze.2order <- function(data,
       }
     }else{ #there is no input
       flog.info("No input. Setting gain to 0.")
-      resultmean[, Komega2 := 0]
-      if(nind>1){resultid[, Komega2 := 0]}
+      resultmean[, komega2 := NA]
+      resultmean[, k := NA]
+      if(nind>1){
+        resultid[, komega2 := NA]
+        resultid[, k := NA]
+        }
     }
 
     #The estimated signal is calculated by calling ode function in deSolve (through function "generate.2order"). As we will have a decomposition
