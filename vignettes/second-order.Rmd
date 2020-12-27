@@ -206,7 +206,7 @@ The different parts of the resulting doremi object are the same as those for the
 res1
 ```
 
-Beware that, as known in the two-steps procedures, and as in the first order case, the estimation of derivatives is a source of vias and thus the error terms provided by the regression are not final. Nevertheless, it is possible to obtain from the summary of the regression the standard errors calculated for the coefficients estimated that will be $\zeta$, $\eta$ (see equations 3 and 4) and $y_{eq}\zeta$ if the equilibrium value is different from 0.
+Beware that, as known in the two-steps procedures, and as in the first order case, the estimation of derivatives is a source of bias and thus the error terms provided by the regression are not final. Nevertheless, it is possible to obtain from the summary of the regression the standard errors calculated for the coefficients estimated that will be $\zeta$, $\eta$ (see equations 3 and 4) and $y_{eq}\zeta$ if the equilibrium value is different from 0.
 
 In the resultid object, the first columns are the terms resulting from the regression:
 
@@ -288,7 +288,7 @@ And, as it can be seen in the figures, the coefficients change according to the 
 
 ### Example 3 - Using an initial condition in a time different from t0=0
 
-The functions to generate the solution of the second order differential equation allow to specify the time for which the initial condition (y0 and v0) are given. This time must be between the minimum and the maximum value of the time vector given to eh function. Below an example to show that it works. Let us first create a signal with y0 and v0 = 0 for t0 = 0
+The functions to generate the solution of the second order differential equation allow to specify the time for which the initial condition (y0 and v0) are given. This time must be between the minimum and the maximum value of the time vector given to the function. Below an example to show that it works. Let us first create a signal with y0 and v0 = 0 for t0 = 0
 ```{r example3}
 time <- 0:99
 data3 <- generate.2order(time = time,
@@ -400,7 +400,7 @@ plot(res2)
 
 ### Example 3 - Enhancing the fit by changing the embedding number/ smoothing parameter.
 
-As it was mentioned before, the estimation of derivatives is a source of vias. The previous fit can be enhanced in three ways:
+As it was mentioned before, the estimation of derivatives is a source of bias. The previous fit can be enhanced in three ways:
 
 * By changing the embedding number/smoothing parameter
 
