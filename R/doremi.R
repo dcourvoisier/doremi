@@ -123,7 +123,7 @@ calculate.gold <-  function(signal,
 #'
 #' \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method
 #' described in \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}.
-#' This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
+#' This method estimates the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 #' @param signal is the input vector containing the data from which the derivatives are estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param embedding is an integer indicating the embedding dimension, that is the number of points to consider for derivative calculation.
@@ -225,7 +225,7 @@ calculate.glla <-  function(signal,
 #' @param spar is the smoothing parameter used by the roughness penalty function in the smooth.spline R function.
 #' @param n not used
 #' @keywords derivative, fda, spline
-#' @return Returns a list containing three columns:
+#' @return Returns a list containing two elements:
 #'
 #' dtime- contains the initial time values provided.
 #'
@@ -260,7 +260,7 @@ calculate.fda <-  function(signal,
 #' \code{generate.excitation} generates a vector of randomly located square pulses
 #' with a given amplitude, duration and spacing between the pulses. A pulse is where the excitation passes from value 0 to value amplitude
 #' for a given duration and then returns back to 0, thus producing a square shape.
-#' @param amplitude  is vector of values different than 0 indicating the amplitude of the excitation. It should contain as many values
+#' @param amplitude  is a vector of values different from 0 indicating the amplitude of the excitation. It should contain as many values
 #' as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 #' all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
 #' have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).
@@ -270,8 +270,8 @@ calculate.fda <-  function(signal,
 #' all the pulses are covered.
 #' @param deltatf is a value greater than 0 indicating the time step between two consecutive data points.
 #' @param tmax is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.
-#' @param minspacing as pulses are generated randomly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
-#' overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.
+#' @param minspacing as pulses are generated randomly, minspacing is a value greater than or equal to 0 that indicates minimum spacing between pulses, thus avoiding
+#' overlapping of the pulses in time. A value of 0 indicates that pulses can follow one another.
 #' @keywords excitation, simulation
 #' @return Returns two vectors:
 #'
@@ -281,7 +281,7 @@ calculate.fda <-  function(signal,
 #' @details Used for simulations in the context of the package. Beware that the following condition should apply:
 #' \deqn{tmax >= (duration+minspacing)*nexc}
 #' so that the pulses "fit" in the time lapse defined.
-#' Compared to \code{pulsew} from the \code{seewave} package this function can generate pulses of different duration and amplitude.
+#' Compared to \code{pulsew} from the \code{seewave} package, this function can generate pulses of different duration and amplitude.
 #' @examples
 #' generate.excitation (amplitude = 3,
 #'                      nexc = 6,
@@ -383,7 +383,7 @@ generate.excitation = function(amplitude = 1,
 #' @param tau Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
 #' @param k Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
-#' Only relevent if the excitation is non null.
+#' Only relevant if the excitation is non null.
 #' @param yeq Signal equilibrium value. Stationary value when the excitation term is 0.
 #' @keywords first order differential equation, constant coefficients
 #' @return Returns a data.table containing three elements:
@@ -935,7 +935,7 @@ generate.panel.2order <- function(time,
 #'\enumerate{
 #'     \item signal_rollmean - calculation of the moving average of the signal over embedding points.
 #'
-#'     \item signal_derivate1 - calculation of the first derivative of the signal with the gold,glla or fda methods in embedding points.
+#'     \item signal_derivate1 - calculation of the first derivative of the signal with the gold, glla or fda methods in embedding points.
 #'
 #'     \item time_derivate - calculation of the moving average of the time vector over embedding points.
 #'
@@ -945,12 +945,12 @@ generate.panel.2order <- function(time,
 #'     gain and equilibrium value obtained from the regression. The initial condition y0 and t0 are the first value of the moving averaged
 #'     signal (signal_rollmean) and time (time_derivate)
 #'     }
-#'  \item resultmean- A data.frame including the fixed effects of the coefficients estimated from the regression gamma, yeqgamma and the kgamma for each excitation considered,
+#'  \item resultmean - A data.frame including the fixed effects of the coefficients estimated from the regression gamma, yeqgamma and the kgamma for each excitation considered,
 #'  with their associated standard error gamma_stde, yeqgamma_stde and kgamma_stde,
 #'  together with the derived coefficient tau (the decay time), yeq (the equilibrium value) and k (the gain)
-#'  \item resultid- A data.frame including for each individual, listed by id number,  gamma, yeqgamma and the kgamma, together with the decay time tau,
+#'  \item resultid - A data.frame including, for each individual listed by id number,  gamma, yeqgamma and the kgamma, together with the decay time tau,
 #'  the gain k and the equilibrium value yeq
-#'  \item regression- A list containing the summary of the linear mixed-effects regression.
+#'  \item regression - A list containing the summary of the linear mixed-effects regression.
 #'
 #'  As seen in the Description section, the print method by default prints only the resultmean element. Each one of the other objects
 #'  can be accessed by indicating $ and their name after the result, for instance, for a DOREMI object called "result", it is possible
@@ -1719,7 +1719,7 @@ analyze.2order <- function(data,
 #' Function to find the optimum parameter for derivative estimation (embedding or spar according to derivative estimation method chosen)
 #'
 #' \code{optimum_param}  calculates the optimum parameter for derivative estimation by varying the latter in a range introduced as input and keeping the parameter and
-#' coefficients having the R2 closest to 1.
+#' coefficients having the $R^2$ closest to 1.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
 #' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
@@ -1740,13 +1740,13 @@ analyze.2order <- function(data,
 #' @param pmax is the maximum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
 #' @param pstep is the step that will be considered when varying the parameter. For instance pmin=3, pmax=7 and pstep=2 and dermethod="gold" will make the embedding number take
 #' the values 3,5 and 7.
-#' @param verbose Is a boolean that displays status messages of the function (and functions it calls) when set to 1.
+#' @param verbose Is a boolean that displays status messages of the function (and functions it calls) when set to TRUE.
 #' @keywords optimum, embedding number, smoothing parameter, derivative
 #' @return Returns a list of three objects:
 #' \itemize{
 #'   \item  analysis is a data.frame containing the resultmean object of the analysis made (result of the analyze.1order or analyze.2order function
-#'   according to model chosen) with the different values of embedding/spar and the resulting R2.
-#'   \item  summary_opt is a data.frame containing the analysis that had the best R2 from the analysis data.frame previously mentioned
+#'   according to model chosen) with the different values of embedding/spar and the resulting $R^2$.
+#'   \item  summary_opt is a data.frame containing the analysis that had the best $R^2$ from the analysis data.frame previously mentioned
 #'   \item d contains the optimum value of the embedding/spar
 #' }
 #' @seealso \code{\link{analyze.1order}} and \code{\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
