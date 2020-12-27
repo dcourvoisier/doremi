@@ -67,9 +67,9 @@ The dynamics in this case follow and exponential decay of the form $y(t)=(y_0-ye
 
 # Two steps analysis procedure
 
-The estimation of the fixed effect coefficients of the differential equation is performed in two steps. The first step consist in estimating the first derivative, using one of the three method proposed.
+The estimation of the fixed effect coefficients of the differential equation is performed in two steps. The first step consists in estimating the first derivative, using one of the three methods proposed.
 
-The second step consist in performing the following multilevel regression:
+The second step consists in performing the following linear mixed-effects regression:
 
 \begin{equation}
 \dot{y}_{ij} \sim (b_{0}+b_{0j})+ (b_1 + b_{1j})y_{ij}+ (b_2 + b_{2j}) U_{ij}+e_{ij} 
@@ -81,18 +81,18 @@ where:
 * i accounts for the time
 * j accounts for the different individuals
 * $\dot{y}_{ij}$ is the derivative estimated through one of the derivative estimation methods available in the package (gold, glla and fda) calculated on embedding points (gold, glla) or estimated on the time points provided (fda) 
-* $y_{ij}$ and $U_{ij}$ are the variable and the excitation averaged on embedding points (gold, glla) or the originals provided (fda)
+* $y_{ij}$ and $U_{ij}$ are the variable and the excitation averaged on embedding points (gold, glla) or the original values provided (fda)
 * $e_{ij}$ is the error term (residuals)
 
 Note that random effects are estimated for the intercept ($b_{0} + b_{0j}$), variable ($b_{1} + b_{1j}$) and excitation terms ($b_{2} + b_{2j}$), so that individuals can have different coefficients (initial condition, damping time, gain and equilibrium value).
 
-The fixed effect coefficient estimated from the regression are
+The fixed effect coefficients estimated from the regression are:
 
 * $ gamma =  b_{1} $
 * $yeqgamma =  b_{0} $
 * $kgamma =  b_{2} $
 
-The coefficients of the diferential equation can be thus calculated as:
+The coefficients of the diferential equation can thus be calculated as:
 
 * Decay time: $tau = \tau = \frac{1}{b_{1}}$  
 * Gain: $k = \frac{b_{2} }{b_{1}}$
@@ -104,7 +104,7 @@ The estimation is performed using the function `lmer` if there are several indiv
 
 ## Simulating data 
 
-Two functions are available to simulate data in the package: `generate.1order` simulate the solution of the differential equation for a gievn vector of time, and the parameters tau = $\tau$, y0 = $y(t=0)$,yeq = $y_{eq}$, k = $k$ and the vector of excitation $u(t)$. The function create a data.table with a column t for the time, y for the signal, and exc for the excitation.
+Two functions are available to simulate data in the package: `generate.1order` simulates the solution of the differential equation for a given vector of time, and the parameters tau = $\tau$, y0 = $y(t=0)$,yeq = $y_{eq}$, k = $k$ and the vector of excitation $u(t)$. The function create a data.table with a column t for the time, y for the signal, and exc for the excitation.
 
 ```{r}
 test <- generate.1order(0:100,y0 = 10,tau = 10)
@@ -124,7 +124,7 @@ res1a <- generate.panel.1order(time = 0:99,
                                nind = 4)
 ```
 
-As it can be seen, it can be specified to the function whether there is an excitation or not by setting the input to NULL or directly ignoring it in the input arguments. The function returns a data.table with the class 'doremidata'. As any data.table, it can be visualized using the `str` or `head` functions or entering the variable name.
+It can be specified to the function whether there is an excitation or not by either setting the input to NULL or directly ignoring it in the input arguments. The function returns a data.table with the class 'doremidata'. As any data.table, it can be visualized using the `str` or `head` functions or entering the variable name.
 ```{r res1a}
 res1a
 ```
@@ -137,7 +137,7 @@ Where:
 
 * signalraw is the signal without noise
 
-* signal is the signal with noise (in this case, the values of this column are the same as those of the signalraw column and in the plot, you will see that both lines are overlapped). 
+* signal is the signal with noise (in this case, the values of this column are the same as those of the signalraw column and in the plot, and thus both lines are overlapped in the plot below). 
 
 
 Plotting the data with the plot method available in the package for doremidata objects is quite straight forward:
@@ -147,7 +147,7 @@ plot(res1a)
 
 ### Example 1b - Changing initial condition, gain and equilibrium value
 
-In this example we will show the flexibility of the functions to add changes on the mentioned parameters. For this, we will simplify the form of the exitation to a simple step:
+In this example, we show the flexibility of the functions to add changes on the mentioned parameters. For this, we simplify the form of the exitation to a simple step:
 
 ```{r changing initial condition res1b}
 timevec <- 0:49
@@ -165,7 +165,7 @@ plot(res1b) + scale_y_continuous(limits = c(0, 3))
 ```
 
 ### Example 2a - Generating signals with noise
-The call to the function remains almost the same, this time we have added a noise to signal ratio of 0.2 and a 40% inter-individual noise to visualize the different trajectories for the different individuals:
+The call to the function remains almost the same, with two additional arguments: a noise to signal ratio, set at 0.2, and an interindividual noise set at 40%. We can then visualize the different trajectories for the different individuals:
 
 ```{r noise res2a}
 # Generation of signals with intra and inter-noise
@@ -218,7 +218,7 @@ The data.table `result_id` gives the coeficients estimated for each individual:
 res3$resultid
 ```
 
-It is possible to use the `plot` funciton directly on the result of the analysis:
+It is possible to use the `plot` function directly on the result of the analysis:
 
 ```{r  analysis plot res3,fig.width = 7, fig.height = 6, fig.align = "center"}
 #Plotting
@@ -249,7 +249,7 @@ res1a <- generate.panel.1order(time = U1a$t,
 plot(res1a)
 ```
 ## Example 1b - Changing initial condition, gain and equilibrium value
-In this example we will show the flexibility of the functions to add changes on the mentioned parameters. For this, we will simplify the form of the exitation to a simple pulse:
+In this example we show the flexibility of the functions to add changes on the mentioned parameters. For this, we simplify the form of the exitation to a simple pulse:
 
 ```{r changing initial condition}
 U1b <- generate.excitation(amplitude = 1,
@@ -272,7 +272,9 @@ res1b <- generate.panel.1order(time = U1b$t,
 plot(res1b)
 ```
 
-And it can be observed how the system tends to equilibrum (2) from the initial condition (3) then to a new equilibrium after perturbed by the excitation (saturation at $yeq + ku(t)=2 + 5*1=7$) and then new return to equilibrium after the excitation is gone.
+And it can be observed how the system tends to equilibrum (2) from the initial condition (3) then to a new equilibrium after being perturbed by the excitation (saturation at $yeq + ku(t)=2 + 5*1=7$) and then returns to equilibrium after the excitation is gone.
+
+# Delphine: why is equilibrium lower than previous values 
 
 ## Example 2 - Generating signals with noise
 The call to the function remains almost the same, this time we have added a signal to noise ratio (STN) of 1/0.2=5 and a 40% inter-individual noise to visualize the different trajectories for the different individuals:
@@ -341,12 +343,12 @@ res3a <- analyze.1order(data = res2a,
                         derparam = 3)
 ```
 
-Now let’s take a look at the result. When calling the variable, the fixed effect coefficients of regression with their associated standard error, the derived coefficient characterizing the signal shape (the decay time tau, the equilibrium value yeq and the gain k), and the R2 are displayed:
+Now let’s take a look at the result. When calling the variable, the fixed effect coefficients of the regression with their associated standard error, the derived coefficient characterizing the signal shape (the decay time tau, the equilibrium value yeq and the gain k), and the R2 are displayed:
   
 ```{r analysis res3a print}
 res3a 
 ```
-The signal analyzed was generate with tau = 10, yeq = 0, and k = 1. 
+The signal analyzed was generated with tau = 10, yeq = 0, and k = 1. 
   
 This is a simplified view of the results. The analysis function supplies an object of class “doremi” that contains in fact several lists. It is possible to explore the full result values by using the function "summary" for doremi objects (see the section on methods created for doremi objects at the end of this vignette).
 
@@ -363,10 +365,11 @@ head(res3a$data)
 Where:
   
 * signal_rollmean contains the zeroth order derivative of the input signal in embedding points provided by `gold` or `glla`, or the smoothing performed by `fda`.
+# Delphine: is this zeroth order really necessary or could we say something simpler
 
 * signal_derivate1 contains the first derivate of signal, calculated by using one of the derivative estimation methods available (`gold`, `glla`, `fda`).
 
-* time_derivate contains the values of time in which the derivative has been evaluated.
+* time_derivate contains the values of time in which the derivative was evaluated.
 
 * excitation_rollmean contains the roll mean of the excitation signal in embedding points (gold, glla) or in the initial time points provided (`fda`).
 
@@ -379,7 +382,7 @@ res3a$regression
 
 Where we have the random and fixed effects and the residuals calculated by the function `lmer` or `lm` depending on if the sample had several or one individual respectively. 
 
-Beware that, as known in the two-steps procedures, the estimation of derivatives is a source of bias and thus the error terms provided by the regression are not final. 
+Beware that, as known in most two-steps procedures, the estimation of derivatives reduces variance, and thus the error terms provided by the regression are not final. 
 
 The following table contains the fixed effect coefficients (result displayed by default when calling a doremi variable, as mentioned before):
 
@@ -412,10 +415,10 @@ plot(res3a, id = 3)
 plot(res3a, id = c(1,4))
 ```
 
-Finally, the result contains the derivative method used and the embedding number/smoothing parameter used for further reference.
+Finally, the results contain the derivative method used and the embedding number/smoothing parameter used for further reference.
 
 ## Example 3b - Enhancing the fit by changing the embedding number/ smoothing parameter.
-As it was mentioned before, the estimation of derivatives is a source of bias. It is possible to enhance the quality of the fit in three ways:
+As mentioned before, the estimation of derivatives before model fit is a source of error underestimation. It is possible to enhance the quality of the fit in three ways:
 
 * By changing the embedding number/smoothing parameter
 
@@ -423,14 +426,14 @@ As it was mentioned before, the estimation of derivatives is a source of bias. I
 
 * By changing the derivation method
 
-In the following example, we will use the function `optimum_param` to find the embedding number that provides the closest R2 to 1. The other ways can be tested "manually" by calling the other functions, for instance, in a simulation study.
-Let us first generate some data to analyze:
+In the following example, we will use the function `optimum_param` to find the embedding number that provides the closest $R^2$ to 1. The other ways can be tested "manually" by calling the other functions, for instance, in a simulation study.
+Let us reuse the data from res2a:
 
 
 ```{r}
 plot(res2a)
 ```
-
+# Delphine: it seems strange to use the plot function to generate data. I suggested a modification of the sentence just before the call to plot
 
 ```{r res3b}
 res3b <- optimum_param (data = res2a,
@@ -448,9 +451,12 @@ res3b$summary_opt
 res3b$d
 ```
 
-And it can be seen that, from the range provided, an embedding number of 7 produces the best fit and that the coefficients are closer to their true values than the ones estimated in the previous example.
+# Delphine: j'ai une dizaine de message de warning comme ci-dessous:
+#length(LHS)==0; no columns to delete or assign RHS to.WARN [2020-12-27 12:30:52] Excitation signal  is constant and is removed.
+# Puis j'obtiens 11 et non 7
+And can be seen that from the range provided, an embedding number of 7 produces the best fit and the coefficients are closer to their true values than the ones estimated in the previous example.
 
-THe optimum_param function, generates an object of class "doremiparam". If we want to graphically see the evolution of the coefficients according to the embedding number, we can easily plot the results with the `plot` function too:
+THe optimum_param function generates an object of class "doremiparam". If we want to graphically see the evolution of the coefficients according to the embedding number, we can easily plot the results with the `plot` function too:
 
 ```{r plot res3b,fig.width = 7, fig.height = 6, fig.align = "center"}
 plot(res3b)
@@ -493,7 +499,7 @@ data4 <- data.frame(id = rep(c(1, 2), c(length(et1), length(et2))),
                  signalcol = c(y1, y2))
 ```
 
-We have in data4 a signal, whose dynamics has been provoked by three excitation with different gains: k =  1, 3 and 5 for id = 1, k = 1, 2.5 and 4 for id = 2. We can see in the graph below that each excitation is identical but provoke a different change of the signal:
+We have in data4 a signal, whose dynamics was created by three excitations with different gains: k =  1, 3 and 5 for id = 1, k = 1, 2.5 and 4 for id = 2. We can see in the graph below that each excitation is identical but generates a different change of the signal:
 
 ```{r plot example4,fig.width = 7, fig.height = 4, fig.align = "center"}
 #Plotting signals
@@ -526,7 +532,7 @@ res4$resultid
 
 ```
 
-Here, we recover the estimated gains for each individual in the `resultid` table. It can be seen that they are a good approximation of the coefficients introduced, using this small sample of 2 individuals.
+Here, we recover the estimated gains for each individual in the `resultid` table. They are a good approximation of the coefficients introduced, using this small sample of 2 individuals.
 
 ```{r fig.width = 7, fig.height = 4, fig.align = "center"}
 #Plotting signals
@@ -534,9 +540,9 @@ plot(res4)
 ```
 
 
-## Example 5 - Analyzing data when there are some missing points in the signal
+## Example 5 - Analyzing data with missing values in the signal
 
-When simulating signals with missing measurements, we show below how the analysis function still manages to retrieve a reasonable accurate fit:
+We examine how the analysis function still manages to retrieve an accurate fit from signals with missing measurements:
 
 ```{r example5}
 t <- 0:200
@@ -560,7 +566,7 @@ data5rd <- as.data.table(data5[sample(nrow(data5), nrow(data5)/3), ])
 data5rd <- data5rd[order(id,time)]
 ```
 
-In the next plot we show the selection of random points made on the full data set. The signal without noise has been represented in order show the selection of points made. However, the signal with noise will be used to carry out the analysis.
+In the next plot we show the selection of random points made on the full data set, and also represent the signal without noise. The signal with noise will be used to carry out the analysis.
 
 ```{r plot missing data,fig.width = 7, fig.height = 6, fig.align = "center"}
 ggplot2::ggplot( data = data5rd ) +
@@ -581,7 +587,8 @@ res7 <- analyze.1order(data = data5rd,
                        time ="time",
                        signal = "signal")
 ```
-
+# message de warning à nouveau
+#length(LHS)==0; no columns to delete or assign RHS to.WARN [2020-12-27 12:37:30] Excitation signal  is constant and is removed.
 
 ```{r  plot res7,fig.width = 7, fig.height = 6, fig.align = "center"}
 ggplot2::ggplot( data = data5 ) +
