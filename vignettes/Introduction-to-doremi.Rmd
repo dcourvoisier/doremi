@@ -37,238 +37,90 @@ library(lme4)
 library(lmerTest)
 ```
 
-The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) model included in this package is to fit trends of homeostasis and return to equilibrium in noisy data. Doremi estimates the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
+The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) package is to provide methods to estimate the dynamics parameters of self-regulated homeostatic systems experiencing multiple excitations. To do so, doremi provides functions to generate solutions of a first or second order differential equation, functions to estimate the derivative of a given variable, and functions to estimate the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
 
-An example of the estimation it can perform is shown on the graph below
+In this vignette, you will find two examples of analysis that can be performed with doremi in the [examples section](#example), a short presentation of what a first or second order differential equation is in the [first](#first) or [second](#second) order differential equation sections, and a list of the functions included in the package in the [last section](#functions).
+
+# EXAMPLES {#example}
+
+Two examples of analysis are shown below. We will later detail and describe the arguments of the different functions.
+Let us consider a variable following a first order differential equation and set out of equilibrium by a given excitation function. It can be generated as follows:
 
 ```{r}
+# create a time vector
 time <- 0:90
+# crete an excitation mechanism
 exc <- rep(c(0,1,0),c(11,30,50))
+
+## first order example
+# generate simulated data
 variable <- generate.panel.1order(time = time,
                            excitation = exc,
-                           y0 = 0,
-                           t0 = 0,
                            tau = 5,
-                           k = 1,
-                           yeq = 0,
                            nind = 1,
                            intranoise = 1)
 
+plot(variable)
+```
 
-opt_par <- optimum_param(variable,
-                         input = "excitation",
-                         time = "time",
-                         signal = "signal",
-                         dermethod = "gold",
-                         model = "1order",
-                         pmin = 3,
-                         pmax = 23,
-                         pstep = 1)
+The green dots are the noisy variable following a first order differential equation model that we want to analyze. The blue curve is the same without noise (i.e. the solution of the differential equation for the given parameters). 
+The analysis can be simply performed by calling a single function:
+
+```{r}
 est_result <- analyze.1order(variable,
                              input = "excitation",
                              time = "time",
                              signal = "signal",
                              dermethod = "gold",
-                             derparam = opt_par$d)
+                             derparam = 13)
+```
 
-p1 <- ggplot2::ggplot(est_result$data)+
-  ggplot2::geom_point(aes(time,signal,color = "variable"))+
+The results can be plotted easily:
+
+```{r}
+plot(est_result)+
   ggplot2::geom_line(data = variable,aes(time,signalraw,color = "underlying model"))+
-  ggplot2::geom_line(aes(time,excitation,color = "excitation"))+
-  ggplot2::geom_line(aes(time,signal_estimated,color = "estimate"))+
-  ggplot2::labs(color = "",
-       y = "",
-       title = "estimation of first order\n differential equation parameters")+
-  ggplot2::theme_bw()+
-  ggplot2::theme(legend.position = c(1,1),
-        legend.justification = c(1,1),legend.background = element_blank())
+  ggplot2::labs(y = "",
+       title = "estimation of first order\n differential equation parameters")
+```
 
+The blue curve is the curve reconstructed from the estimated coefficients, to be compared to magenta curve, representing the model underlying the noisy data analyzed. The `est_result` object contains all estimated coefficients.
+
+The same can be performed for a noisy signal following a second order diferential equation driven by the same excitation:
+
+```{r}
 variable2 <- generate.panel.2order(time = time,
-                                  excitation = NULL,
-                                  y0 = 10,
-                                  t0 = 0,
+                                  excitation = exc,
                                   period = 30,
+                                  y0 = 0,
                                   xi = 0.1,
                                   nind = 1,
                                   intranoise = 1)
 
-opt_par2 <- optimum_param(variable2,
-                         time = "time",
-                         signal = "signal",
-                         dermethod = "glla",
-                         model = "2order",
-                         pmin = 3,
-                         pmax = 23,
-                         pstep = 1)
+plot(variable2)
+```
+
+```{r}
 est_result2 <- analyze.2order(variable2,
+                              input = "excitation",
                              time = "time",
                              signal = "signal",
                              dermethod = "glla",
-                             derparam = opt_par2$d)
+                             derparam = 14)
 
-p2 <- ggplot2::ggplot(est_result2$data)+
-  ggplot2::geom_point(aes(time,signal,color = "variable"))+
+plot(est_result2)+
   ggplot2::geom_line(data = variable2,aes(time,signalraw,color = "underlying model"))+
-  ggplot2::geom_line(aes(time,signal_estimated,color = "estimate"))+
   ggplot2::labs(color = "",
        y = "",
-       title = "estimation of second order \ndifferential equation parameters")+
-  ggplot2::theme_bw()+
-  ggplot2::theme(legend.position = c(1,1),
-        legend.justification = c(1,1),legend.background = element_blank())
-
-
-
-gridExtra::grid.arrange(p1,p2,ncol = 2)
+       title = "estimation of second order \ndifferential equation parameters")
 ```
 
+The first step of the analysis consist in estimating the time derivatives of the variable. Several methods are proposed. They all depend on the number of point they consider (the embedding number) or on a smoothing parameter. More detail can be found in the [section detailing the package functions](#functions) and in the [cignette associated](derivatives.html).
+Once the derivatives are estimated, the constant coefficients of the first or second order differential equation can be estimated by a simple linear mixed-effects (multilevel) regression. As the embedding number or smoothing parameter affects the estimation of the derivatives, it will also impact the quality of the estimation of the differential equation coefficients. The package doremi provides a function **optimum_param:** which estimates the optimum embedding number (gold/glla) or smoothing parameter (fda) by varying the latter in a range provided as input and keeping the parameter that produces the optimal estimation. 
 
-The first step consist in the estimation of the derivatives, and the second one of the estimation of the differential equation coefficients thanks to a linear mixed-effects (multilevel) models. 
+# FIRST ORDER DIFERENTIAL EQUATION MODEL {#first}
 
-# ESTIMATION OF THE DERIVATIVES
-
-There are several way to estimate the derivative of a variable. Three are implemented in our package, with the following functions:
-
-  * **calculate.glla:**, calculates the derivative using GLLA - Generalized Local Linear Approximation - method described \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}. This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
-
-  * **calculate.gold:**, calculates the derivative using GOLD - Generalized Orthogonal Local Derivative - method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the variable. 
-  
-  * **calculate.fda:**, calculates the derivative using FDA - Functional Data Analysis - method. It generates a B-spline function controled by a smoothing parameter that fits the outcome to be studied, to then estimates the derivative of that function. 
-  
-  
-Let's presennt a simple example of the use and interest of these functions. Consider a variable of the time following $y(t) = t^2 $ with some measurement noise:
-
-
-```{r}
-timevec <- seq(-5,5,0.2)
-noisevec <- rnorm(length(timevec),0,sd = 1)
-signal <- timevec^2
-signal_noise <- signal + noisevec
-
-plot(timevec,signal_noise)
-```
-
-We now that the derivative of this function is $\dot{y}(t)=2t$. 
-As an example, we can use the `calculate.glla` function to estimate the first derivative over 9 points:
-
-```{r}
-der_est <- calculate.gold(time = timevec,
-               signal = signal_noise,
-               embedding = 9,
-               n = 2)
-
-plot(der_est$dtime,
-     der_est$dsignal[,2]
-     ,xlab = "time",
-     ylab = "first derivative")
-lines(timevec,2*timevec,col = 2)
-```
-
-Our three functions `calculate.gold`, `calculate.glla` and `calculate.fda` work in a similar manner: We need to give them the time vector, the signal we wish to derivate as a function of the time, the embedding number, and the maximal derivative order `n` we wish to calculate. 
-
-The functions output a `dsignal` data.frame with `n+1` column, each column corresponding to a derivative order (the first column is the zeroth order derivative estimate, the second one the first order derivative etc), and a `dtime` vector with the corresponding time.
-
-Let's now construct an example where we can see the effect of the number of point considered to evaluate different derivative order. We construct a long table, were the preceeding example is replicated for embedding dimension between 3 and 10, derivative order between 0 and 2, and for the three calculation methods:
-
-```{r}
-conditions <- CJ(embedding = 3:10,
-                 method = c("GLLA","GOLD","FDA"),
-                 der = 0:2)
-derivative_example <- conditions[,.(time = timevec),by = .(embedding,method,der)]
-derivative_example[,signal := time^2]
-derivative_example[,signal_noise := signal + noisevec]
-
-ggplot2::ggplot(derivative_example)+
-  ggplot2::geom_point(aes(time,signal_noise))+
-  ggplot2::theme_bw()+
-  ggplot2::labs(y = "y", 
-               x = "t",
-               title = "example variable for the estimation of derivatives")
-```
-
-
-We create a variable representing the true derivative.
-
-```{r}
-# assigning the true derivative for comparison
-derivative_example[der  == 1,truder := 2*time]
-derivative_example[der  == 2,truder := 2]
-derivative_example[der  == 0,truder := signal]
-```
-
-
-Lets us apply our three functions to estimate the zeroth, first and second order derivative (the zeroth order derivative is a smooth estimate of the variable) for various embedding number and compare with the true derivatives.
-In our example, we calculate for each value of embedding and for each value of derivativeorder the derivative. For example, for the gold method, we will do:
-
-```{r}
-derivative_example[method == "GOLD",
-                   derivate := calculate.gold(time = time,
-                                              signal = signal_noise,
-                                              embedding = embedding,
-                                              n = 2)$dsignal[,(der[1]+1)],
-                   by =  .(embedding,der)]
-```
-
-and we will set the time for the derivative in a new variable/
-
-```{r}
-# set the corresponding derivative time
-derivative_example[method == "GOLD",
-                   timeder := calculate.gold(time = time,
-                                             signal = signal_noise,
-                                             embedding = embedding,n = 2)$dtime,
-                   by =  .(embedding,der)]
-```
-
-Doing the same for the other methods
-
-```{r}
-
-# calculation of the derivatives with calculate.glla
-derivative_example[method == "GLLA",
-                   derivate := calculate.glla(time = time,
-                                              signal = signal_noise,
-                                              embedding = embedding,
-                                              n = 2)$dsignal[,(der[1]+1)],
-                   by =  .(embedding,der)]
-derivative_example[method == "GLLA",
-                   timeder := calculate.glla(time = time,
-                                             signal = signal_noise,
-                                             embedding = embedding,
-                                             n = 2)$dtime,
-                   by =  .(embedding,der)]
-# calculation of the derivatives with calculate.fda
-derivative_example[,spar :=( embedding-3 )/7]
-derivative_example[method == "FDA",
-                   derivate := calculate.fda(time = time,
-                                             signal = signal_noise,
-                                             spar = spar)$dsignal[,(der[1]+1)],
-                   by = .(spar,der)]
-derivative_example[method == "FDA",
-                   timeder := calculate.fda(time = time,
-                                            signal = signal_noise,
-                                            spar = spar)$dtime,
-                   by = .(spar,der)]
-
-derivative_example[,derlegend := factor(der,levels = 0:2,labels = c("0th order","first order","second order"))]
-# plot of the results
-ggplot2::ggplot(derivative_example)+
-  ggplot2::geom_line(aes(timeder,derivate,color = as.factor(embedding)),size = 0.8)+
-  ggplot2::geom_line(aes(time,truder),color = "black",size = 0.1)+
-  ggplot2::facet_grid(derlegend~method,scales = "free")+
-  ggplot2::labs(color = "Embedding",
-       x = "time",
-       y = "")+
-  ggplot2::scale_color_viridis_d(option = "C")+
-  ggplot2::theme_bw()
-```
-
-In the above example, the derivatives estimated for different embedding number or smoothing parameters are represented in colour, and the true derivatives in black. We see that these different functions manage provide an estimation of the derivatives with a precision depending on the embedding number or the smoothing parameter. As visible in the example above with FDA, there is an optimum value of the smoothing parameter or embedding number for which the derivative estimated is the closest to the true derivative.
-
-Once the derivatives are estimated, the constant coefficients of the first or second order differential equation can be estimated by a simple linear regression. As the embedding number or smoothing parameter affects the estimation of the derivatives, it will also impact the quality of the estimation of the differential equation coefficients. The package doremi provides a function **optimum_param:** which estimates the optimum embedding number (gold/glla) or smoothing parameter (fda) by varying the latter in a range provided as input and keeping the parameter that produces the R2 of the final estimate the closest to 1 (optimum). 
-
-
-# FIRST ORDER DIFERENTIAL EQUATION MODEL
+We will shortly describe the first order differential equation and its coefficients here. A more detailed explanation of the possible analysis for a variable following a first order differential equation can be found in this [vignette](first-order.html).
 
 A first order differential equation with constantcoefficient for the variable $y$ function of the variable $t$ (here the time) is:
 
@@ -296,11 +148,8 @@ time <- 0:90
 exc <- rep(c(0,1,0),c(11,30,50))
 variable <- generate.1order(time = time,
                          excitation = exc,
-                         y0 = 0,
-                         t0 = 0,
                          tau = 5,
-                         k = 1,
-                         yeq = 0)
+                         k = 1)
 
 ggplot2::ggplot(data = as.data.table(variable)) +
 ggplot2::ggtitle( "First order differential equation solution")+
@@ -331,17 +180,17 @@ ggplot2::ggtitle( "First order differential equation solution")+
 
 * $y_{eq}$ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
 
-Once the derivative estimated, doremi performs the a linear mixed-effect regression to estimated these  parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
+Once the derivative estimated, doremi performs a linear mixed-effect regression to estimated these parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
 
-# SECOND ORDER DIFERENTIAL EQUATION MODEL
+# SECOND ORDER DIFERENTIAL EQUATION MODEL {#second}
 
+We will shortly describe the second order differential equation and its coefficients here. A more detailed explanation of the possible analysis for a variable following a second order differential equation can be found in this [vignette](second-order.html).
 The differential equation considered in this case is the following:
 
 \begin{equation}
 \frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = \omega_{n}^2(y_{eq} + k U(t)) 
 \label{eq3}
 \end{equation}
-
 
 Where:
 
@@ -393,23 +242,25 @@ ggplot2::ggplot(variable)+
   ggplot2::theme(legend.position = "top", plot.title = ggplot2::element_text(hjust = 0.5))
 ```
 
-# FUNCTIONS INCLUDED ON THE PACKAGE
+# FUNCTIONS INCLUDED ON THE PACKAGE {#functions}
 
 The doremi package contains three types of functions:
 
 ### Simulation functions
+
 These are functions that allow the user to generate data following the first/second order differential equation models (i.e. solution of equations (1)/(3)). More specifically:
 
 * **generate.1order/generate.2order:** generate the solution of equation (1)/(3) with the coefficients and excitation provided as input.
 
-
 * **generate.panel.1order/generate.panel.2order:** generate the solution of equation (1)/(3) for a given excitation and for a number of individuals, measurement noise and variability between individuals provided as input.
 
+* **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only, can be use to generate the excitation variables that are introduced as input for the generate.xorder and generate.panel.xorder functions).
+
 ### Analysis functions
+
 These functions allow to analyze a set of data and verify how close it is to being a solution of a first/second order differential equation with constant coefficients by following a two-step estimation method (derivative estimation first and then estimation of the coefficients through a multilevel regression).
 
-
-* **analyze.1order/analyze.2order:** these functions perform estimate the derivatives of the datacto be analyzed by three methods:
+* **analyze.1order/analyze.2order:** these functions perform estimate the derivatives of the data to be analyzed by three methods:
 
   *GOLD- Generalized Orthogonal Local Derivative, method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the variable. 
   
@@ -418,14 +269,19 @@ These functions allow to analyze a set of data and verify how close it is to bei
   *FDA- Functional Data Analysis. This method creates a function that fits the data and then derives it to evaluate the derivatives in those same points. 
   
   The analyze.1order/analyze.2order functions use one of these three methods according to what is set as input and then, once the derivatives are estimated, they are used as a known term in the multilevel regression so that the coefficients of the equation are the only unknowns and can be estimated through the fit. Once the coefficients are estimated, the estimated 1st order/2nd order variable is generated from these and the R2 is calculated and provided as a result. The estimation of the derivatives, summary of the regression, coefficients found for each individual (random coefficients of the regression) and for the group (fixed coefficients) are also provided. 
-
-### Other functions
-These functions are used by or together with the simulation and/or analysis functions but they can also be used independently:
-
-* **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only, can be use to generate the excitation variables that are introduced as input for the generate.xorder and generate.panel.xorder functions).
+  
+  * **optimum_param:** calculates the optimum embedding number (gold/glla) or smoothing parameter (fda) for derivative estimation by varying the latter in a range provided as input and keeping the parameter that produces the R2 the closest to 1 (optimum). It provides as output the optimum parameter found, the coefficients estimated with it and the R2 calculated.
+  
+### derivative functions
 
 * **calculate.gold:** calculates the derivative of a group of data points by using the GOLD method as mentioned.
+
 * **calculate.glla:** idem for the GLLA method.
+
 * **calculate.fda:** idem for the FDA method.
 
-* **optimum_param:** calculates the optimum embedding number (gold/glla) or smoothing parameter (fda) for derivative estimation by varying the latter in a range provided as input and keeping the parameter that produces the R2 the closest to 1 (optimum). It provides as output the optimum parameter found, the coefficients estimated with it and the R2 calculated.
+
+
+
+
+
