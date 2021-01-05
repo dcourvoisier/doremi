@@ -49,7 +49,7 @@ Let us consider a variable following a first order differential equation and set
 ```{r}
 # create a time vector
 time <- 0:90
-# crete an excitation mechanism
+# create an excitation mechanism
 exc <- rep(c(0,1,0),c(11,30,50))
 
 ## first order example
@@ -86,7 +86,7 @@ plot(est_result)+
 
 The blue curve is the curve reconstructed from the estimated coefficients, to be compared to magenta curve, representing the model underlying the noisy data analyzed. The `est_result` object contains all estimated coefficients.
 
-The same can be performed for a noisy signal following a second order diferential equation driven by the same excitation:
+The same can be performed for a noisy signal following a second order differential equation driven by the same excitation:
 
 ```{r}
 variable2 <- generate.panel.2order(time = time,
@@ -115,14 +115,14 @@ plot(est_result2)+
        title = "estimation of second order \ndifferential equation parameters")
 ```
 
-The first step of the analysis consist in estimating the time derivatives of the variable. Several methods are proposed. They all depend on the number of point they consider (the embedding number) or on a smoothing parameter. More detail can be found in the [section detailing the package functions](#functions) and in the [cignette associated](derivatives.html).
-Once the derivatives are estimated, the constant coefficients of the first or second order differential equation can be estimated by a simple linear mixed-effects (multilevel) regression. As the embedding number or smoothing parameter affects the estimation of the derivatives, it will also impact the quality of the estimation of the differential equation coefficients. The package doremi provides a function **optimum_param:** which estimates the optimum embedding number (gold/glla) or smoothing parameter (fda) by varying the latter in a range provided as input and keeping the parameter that produces the optimal estimation. 
+The first step of the analysis consists in estimating the time derivatives of the variable. Several methods are proposed. They all depend on the number of point they consider (the embedding number) or on a smoothing parameter. More detail can be found in the [section detailing the package functions](#functions) and in the [vignette associated](derivatives.html).
+Once the derivatives are estimated, the constant coefficients of the first or second order differential equation can be estimated by a simple linear mixed-effects (multilevel) regression. As the embedding number or smoothing parameter affects the estimation of the derivatives, it will also impact the quality of the estimation of the differential equation coefficients. The package doremi provides a function **optimum_param** which estimates the optimum embedding number (gold/glla) or smoothing parameter (fda) by varying the latter in a range provided as input and keeping the parameter that produces the optimal estimation. 
 
 # FIRST ORDER DIFERENTIAL EQUATION MODEL {#first}
 
 We will shortly describe the first order differential equation and its coefficients here. A more detailed explanation of the possible analysis for a variable following a first order differential equation can be found in this [vignette](first-order.html).
 
-A first order differential equation with constantcoefficient for the variable $y$ function of the variable $t$ (here the time) is:
+A first order differential equation with constant coefficient for the variable $y$ function of the variable $t$ (here the time) is:
 
 \begin{equation}
 \frac{1}{\gamma} \dot{y}(t) + y(t) = kU(t) + y_{eq}
@@ -140,7 +140,7 @@ Where:
 
 The coefficients are:
 
-* $\gamma$ the damping rate, the inverse of which is the damping time $\tau = \frac{1}{\gamma}$. The damping rate is the proportionality between the variable change an its value when the excitation term is 0.
+* $\gamma$ the damping rate, the inverse of which is the damping time $\tau = \frac{1}{\gamma}$. The damping rate is the proportionality between the variable change and its value when the excitation term is 0.
 The damping time is the characteristic response time of the solution to equation (1). When the excitation starts, the variable reaches its new value and $\tau$ corresponds to the time needed to reach 63% of the difference between the maximum value and the initial value (it can be verified by substituting t=\tau in the equation above). After an excitation, when the variable returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value. Figure 1 presents both the damping time $\tau$ for the increase and decrease of the variable. 
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
@@ -180,7 +180,7 @@ ggplot2::ggtitle( "First order differential equation solution")+
 
 * $y_{eq}$ is the equilibrium value, that is, the value the system has when there is no excitation and no remaining effect of previous excitation (i.e., when t tends to infinity).
 
-Once the derivative estimated, doremi performs a linear mixed-effect regression to estimated these parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
+Once the derivative estimated, doremi performs a linear mixed-effect regression to estimate these parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
 
 # SECOND ORDER DIFERENTIAL EQUATION MODEL {#second}
 
@@ -206,14 +206,14 @@ And regarding the coefficients:
   
 * $\omega_{n} = \frac{2\pi}{period}$ is the system's natural frequency, the frequency with which the system would oscillate if there were no damping. The term $\omega_{n}^2$ represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
 
-* $\xi$ is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable). The term $2\xi\omega_n$ thus represents the respective contribution of the inertia, the friction and the attraction to the equilibrium. The value of $\xi$ determines the shape of the system time response, which can be:
+* $\xi$ is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable). The term $2\xi\omega_n$ thus represents the respective contribution of the inertia, the friction, and the attraction to the equilibrium. The value of $\xi$ determines the shape of the system time response, which can be:
      $\xi<0$	Unstable, oscillations of increasing magnitude
      $\xi=0$	Undamped, oscillating
      $0<\xi<1$	Underdamped or simply "damped"
      $\xi=1$	Critically damped
      $\xi>1$	Over-damped, no oscillations in the return to equilibrium
 
-* $k$ is the gain. It is the proportionnality between the stationary increase of the signal $y$ and the excitation increase that caused it. It is thus relevant only for differential equations including an excitation term.
+* $k$ is the gain. It is the proportionality between the stationary increase of the signal $y$ and the excitation increase that caused it. It is thus relevant only for differential equations including an excitation term.
 
 * $y_{eq}$ is the variable equilibrium value, i.e. the stationary value when the excitation term is 0 or constant.
 
@@ -254,7 +254,7 @@ These are functions that allow the user to generate data following the first/sec
 
 * **generate.panel.1order/generate.panel.2order:** generate the solution of equation (1)/(3) for a given excitation and for a number of individuals, measurement noise and variability between individuals provided as input.
 
-* **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only, can be use to generate the excitation variables that are introduced as input for the generate.xorder and generate.panel.xorder functions).
+* **generate.excitation:** generates a random succession of squared pulses for a given number of points, number of pulses, amplitude and duration (used for simulation purposes only, can be used to generate the excitation variables that are introduced as input for the generate.xorder and generate.panel.xorder functions).
 
 ### Analysis functions
 
@@ -262,7 +262,7 @@ These functions allow to analyze a set of data and verify how close it is to bei
 
 * **analyze.1order/analyze.2order:** these functions perform estimate the derivatives of the data to be analyzed by three methods:
 
-  *GOLD- Generalized Orthogonal Local Derivative, method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the variable. 
+  *GOLD- Generalized Orthogonal Local Derivative, method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non-constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the variable. 
   
   *GLLA- Generalized Local Linear Approximation, method described \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}. This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
   
@@ -279,9 +279,3 @@ These functions allow to analyze a set of data and verify how close it is to bei
 * **calculate.glla:** idem for the GLLA method.
 
 * **calculate.fda:** idem for the FDA method.
-
-
-
-
-
-
