@@ -367,7 +367,6 @@ head(res3a$data)
 Where:
   
 * signal_rollmean contains the zeroth order derivative of the input signal in embedding points provided by `gold` or `glla`, or the smoothing performed by `fda`.
-# Delphine: is this zeroth order really necessary or could we say something simpler
 
 * signal_derivate1 contains the first derivate of signal, calculated by using one of the derivative estimation methods available (`gold`, `glla`, `fda`).
 
