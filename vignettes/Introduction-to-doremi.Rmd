@@ -1,17 +1,11 @@
 ---
-output:
-  html_document: default
-  pdf_document: default
----
----
 title: "Introduction-to-doremi"
-author: "Adriana Uribe"
-date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette 
 vignette: >
   %\VignetteIndexEntry{Introduction-to-doremi}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+---
 
 ```{r, include = FALSE}
  library(ggplot2)
@@ -37,13 +31,15 @@ library(lme4)
 library(lmerTest)
 ```
 
-The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) package is to provide methods to estimate the dynamics parameters of self-regulated homeostatic systems experiencing multiple excitations. To do so, doremi provides functions to generate solutions of a first or second order differential equation, functions to estimate the derivative of a given variable, and functions to estimate the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
+The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) package is to provide methods to estimate the dynamics parameters of self-regulated homeostatic systems experiencing multiple excitations. To do so, doremi provides functions to generate solutions of a first or second order differential equation, functions to estimate the derivatives of a given variable, and functions to estimate the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
 
-In this vignette, you will find two examples of analysis that can be performed with doremi in the [examples section](#example), a short presentation of what a first or second order differential equation is in the [first](#first) or [second](#second) order differential equation sections, and a list of the functions included in the package in the [last section](#functions).
+In this introduction vignette, you will find in the [examples section](#example) two examples of analysis that can be performed with doremi, a short presentation of what a first or second order differential equation is in the [first](#first) or [second](#second) order differential equation sections, and a list of the functions included in the package in the [last section](#functions).
+
+The detail of the analysis when supposing that the studied variable follows a first or second order differential equation is detailed in the associated vignettes for the [first](first-order.html) or [second](sedond-order.html). The functions used to calculate the derivatives are detailed in the [derivatives](derivatives.html) vignette.
 
 # EXAMPLES {#example}
 
-Two examples of analysis are shown below. We will later detail and describe the arguments of the different functions.
+Two examples of analysis are shown below. Detailed use of the functions can be found in the vignettes for the analyss based on a [first](first-order.html) or [second](sedond-order.html) order differential equation.
 Let us consider a variable following a first order differential equation and set out of equilibrium by a given excitation function. It can be generated as follows:
 
 ```{r}
@@ -52,8 +48,8 @@ time <- 0:90
 # create an excitation mechanism
 exc <- rep(c(0,1,0),c(11,30,50))
 
-## first order example
 # generate simulated data
+set.seed(123)
 variable <- generate.panel.1order(time = time,
                            excitation = exc,
                            tau = 5,
@@ -67,7 +63,7 @@ The green dots are the noisy variable following a first order differential equat
 The analysis can be simply performed by calling a single function:
 
 ```{r}
-est_result <- analyze.1order(variable,
+est_result <- analyze.1order(data = variable,
                              input = "excitation",
                              time = "time",
                              signal = "signal",
@@ -84,21 +80,24 @@ plot(est_result)+
        title = "estimation of first order\n differential equation parameters")
 ```
 
-The blue curve is the curve reconstructed from the estimated coefficients, to be compared to magenta curve, representing the model underlying the noisy data analyzed. The `est_result` object contains all estimated coefficients.
+The blue curve is the curve reconstructed from the coefficients estimated by the analysis, to be compared to the magenta curve, representing the model underlying the noisy data analyzed. The `est_result` object contains all estimated coefficients.
 
-The same can be performed for a noisy signal following a second order differential equation driven by the same excitation:
+The same can be performed for a noisy signal following a second order differential equation driven by the same excitation. Let us generate noisy data driven by the excitation and governed bty a seocnd order differential equation:
 
 ```{r}
+set.seed(123)
 variable2 <- generate.panel.2order(time = time,
                                   excitation = exc,
                                   period = 30,
                                   y0 = 0,
                                   xi = 0.1,
                                   nind = 1,
-                                  intranoise = 1)
+                                  intranoise = 0.8)
 
 plot(variable2)
 ```
+
+We can perform the analysis based on the second order differential equation:
 
 ```{r}
 est_result2 <- analyze.2order(variable2,
@@ -144,17 +143,18 @@ The coefficients are:
 The damping time is the characteristic response time of the solution to equation (1). When the excitation starts, the variable reaches its new value and $\tau$ corresponds to the time needed to reach 63% of the difference between the maximum value and the initial value (it can be verified by substituting t=\tau in the equation above). After an excitation, when the variable returns to a lower equilibrium level, the damping time corresponds to the time needed to reach ~37% (1/e) of the difference between the level reached and the equilibrium value. Figure 1 presents both the damping time $\tau$ for the increase and decrease of the variable. 
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
-time <- 0:90
-exc <- rep(c(0,1,0),c(11,30,50))
+time <- seq(0,100,0.1)
+exc <- as.numeric(time >= 10 & time <= 40)
 variable <- generate.1order(time = time,
                          excitation = exc,
-                         tau = 5,
+                         y0 = 0,
+                         tau = 10,
                          k = 1)
 
 ggplot2::ggplot(data = as.data.table(variable)) +
 ggplot2::ggtitle( "First order differential equation solution")+
   ggplot2::geom_line(ggplot2::aes(t,y, colour = "variable"))+
-  ggplot2::geom_line(ggplot2::aes(t,exc, colour = "Excitation"))+
+  ggplot2::geom_line(ggplot2::aes(t,exc, colour = "Excitation"),size = 1.5)+
   ggplot2::geom_hline(yintercept=0.63*max(variable$y), linetype="dashed", colour = "gray")+
   ggplot2::geom_hline(yintercept=0.37*max(variable$y), linetype="dashed", colour = "gray")+
   ggplot2::geom_vline(xintercept=variable$t[variable$y==max(variable$y)], colour = "gray")+
@@ -184,7 +184,7 @@ Once the derivative estimated, doremi performs a linear mixed-effect regression 
 
 # SECOND ORDER DIFERENTIAL EQUATION MODEL {#second}
 
-We will shortly describe the second order differential equation and its coefficients here. A more detailed explanation of the possible analysis for a variable following a second order differential equation can be found in this [vignette](second-order.html).
+We will in this section shortly describe the second order differential equation and its coefficients. A more detailed explanation of the possible analysis for a variable following a second order differential equation can be found in this [vignette](second-order.html).
 The differential equation considered in this case is the following:
 
 \begin{equation}
@@ -217,18 +217,19 @@ And regarding the coefficients:
 
 * $y_{eq}$ is the variable equilibrium value, i.e. the stationary value when the excitation term is 0 or constant.
 
+Once the derivative estimated, doremi performs a linear mixed-effect regression to estimate these parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
+
+We can use `generate.2order` to generate a solution of this differential equation, for a given $U(t)$, a period of 15, and a daming factor of 0.2:
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
 time <- 0:130
 excitation <- c(rep(0,30),rep(1,50),rep(0,51))
 variable <- generate.2order(time = time,
                             excitation = excitation,
-                            y0 = 0,
-                            v0 = 0,
                             xi = 0.2,
                             period = 15,
-                            k = 1,
-                            yeq = )
+                            k = 1)
+
 ggplot2::ggplot(variable)+
   ggplot2::ggtitle( "Second order differential equation solution")+
   ggplot2::geom_line(aes(t,y,color = "variable"))+

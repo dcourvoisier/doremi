@@ -1011,10 +1011,11 @@ analyze.1order <- function(data,
     which_to_remove <- sapply(1:length(input),function(i){
       all(intdata[, diff(get(input[i])), by = id]$V1 == 0)
     })
-    intdata[,c(input[which_to_remove]) := NULL]
-    input <- input[!which_to_remove]
-    flog.warn(paste0("Excitation signal ",c(input[which_to_remove])," is constant and is removed."))
-
+    if(any(which_to_remove)){
+      intdata[,c(input[which_to_remove]) := NULL]
+      input <- input[!which_to_remove]
+      flog.warn(paste0("Excitation signal ",c(input[which_to_remove])," is constant and is removed."))
+    }
     if(all(which_to_remove)){
       noinput <- TRUE
       flog.warn("All Excitation signals are constant. Adjustment will consist on exponential fit.")
@@ -1441,14 +1442,14 @@ analyze.2order <- function(data,
   }
   if (!is.null(input)){
     errorcheck(intdata, input)
-
     which_to_remove <- sapply(1:length(input),function(i){
       all(intdata[, diff(get(input[i])), by = id]$V1 == 0)
     })
-    intdata[,c(input[which_to_remove]) := NULL]
-    input <- input[!which_to_remove]
-    flog.warn(paste0("Excitation signal ",c(input[which_to_remove])," is constant and is removed."))
-
+    if(any(which_to_remove)){
+      intdata[,c(input[which_to_remove]) := NULL]
+      input <- input[!which_to_remove]
+      flog.warn(paste0("Excitation signal ",c(input[which_to_remove])," is constant and is removed."))
+    }
     if(all(which_to_remove)){
       noinput <- TRUE
       flog.warn("All Excitation signals are constant. Adjustment will consist on exponential fit.")

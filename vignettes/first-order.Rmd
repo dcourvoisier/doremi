@@ -151,6 +151,7 @@ In this example, we show the flexibility of the functions to add changes on the 
 
 ```{r changing initial condition res1b}
 timevec <- 0:49
+set.seed(123)
 res1b <- generate.panel.1order(time = timevec,
                                excitation = as.numeric(timevec > 20),
                                y0 = 3,
@@ -169,6 +170,7 @@ The call to the function remains almost the same, with two additional arguments:
 
 ```{r noise res2a}
 # Generation of signals with intra and inter-noise
+set.seed(123)
 res2a <- generate.panel.1order(time = 0:49,
                                y0 = 1,
                                tau = 5,
@@ -189,6 +191,7 @@ We will test how the analysis functions fit a decreasing exponential, as is the 
 
 ```{r analysis example3}
 #Simulating data with these hypothesis
+set.seed(123)
 data3 <- generate.panel.1order(time = 0:50,
                                y0 = 0.5,
                                tau = 10,
@@ -232,38 +235,42 @@ Analyzing the signals with noise generated above, we can verify that the paramet
 # Simulating data
 ## Example 1a - Generating signals with no noise
 
-In this example we will generate data for 4 individuals, with a decay time of 10s for an excitation vector formed by 3 pulses of amplitude 1 and duration 10s distributed randomly in a time period of 100s, with a minimum spacing between pulses of 20 s and with no noise. That is, the signal follows exactly the differential equation (no measurement noise) with no variation of the decay time, the gain and the equilibrium value across individuals (no interindividual noise). 
+To generate the excitation process perturbing the system we want to simulate, wa can use the `generate.excitation` function, which generate a sequence of squarre pulses of a given length randomly distributed:
+
+```{r}
+set.seed(123)
+U <- generate.excitation(nexc = 3, # number of squarre pulses
+                           duration = 10, # pulse duration
+                           deltatf = 1, # time spacing between points
+                           tmax = 100, # maximum time
+                           minspacing = 20) # minimum spacin between squarre pulses
+plot(U$t,U$exc)
+```
+
+Note that the time vector and excitation vector can be of any form and created by the user.
+
+In this example we will use the excitation vector we just generated and the `generate.panel.1order` function to generate the variable following the first order differential equation for 4 individuals with a decay time of 10s. The signal follows exactly the differential equation (no measurement noise) with no variation of the decay time, the gain and the equilibrium value across individuals (no interindividual noise). 
 ```{r excitation term example1a}
-U1a <- generate.excitation(amplitude = 1,
-                           nexc = 3,
-                           duration = 10,
-                           deltatf = 1,
-                           tmax = 100,
-                           minspacing = 20)
-                               
-res1a <- generate.panel.1order(time = U1a$t,
-                               excitation = U1a$exc,
+
+res1a <- generate.panel.1order(time = U$t,
+                               excitation = U$exc,
                                tau = 10,
                                k = 1,
                                nind = 4)
 plot(res1a)
 ```
+
 ## Example 1b - Changing initial condition, gain and equilibrium value
-In this example we show the flexibility of the functions to add changes on the mentioned parameters. For this, we simplify the form of the exitation to a simple pulse:
+
+Using the same excitation process, but changing the initial condition, the gain the the equilibrium value:
 
 ```{r changing initial condition}
-U1b <- generate.excitation(amplitude = 1,
-                           nexc = 1,
-                           duration = 50,
-                           deltatf = 1,
-                           tmax = 100,
-                           minspacing = 20)
-                               
-res1b <- generate.panel.1order(time = U1b$t,
-                               excitation = U1b$exc,
-                               y0 = 3,
+
+res1b <- generate.panel.1order(time = U$t,
+                               excitation = U$exc,
+                               y0 = 5,
                                tau = 10,
-                               k = 5,
+                               k = 3,
                                yeq = 2,
                                nind = 4)
 ```
@@ -272,27 +279,23 @@ res1b <- generate.panel.1order(time = U1b$t,
 plot(res1b)
 ```
 
-And it can be observed how the system tends to equilibrum (2) from the initial condition (3) then to a new equilibrium after being perturbed by the excitation (saturation at $yeq + ku(t)=2 + 5*1=7$) and then returns to equilibrium after the excitation is gone.
+And it can be observed how the system tends to equilibrum ($t_{eq} = 2$) from the initial condition ($y_0 = 3$) after being perturbed by the excitations.
 
-# Delphine: why is equilibrium lower than previous values 
 
 ## Example 2 - Generating signals with noise
-The call to the function remains almost the same, this time we have added a signal to noise ratio (STN) of 1/0.2=5 and a 40% inter-individual noise to visualize the different trajectories for the different individuals:
+
+The call to the function remains almost the same, this time we have added a Noise to Signal ratio of 2 (the variance of noise is twice the variance of the underlying signal) and a 20% inter-individual noise (that is the parameters gain, equilibrium value, the initial value $y_0$ and $\tau$ of each individual are sampled on a gaussian centered on the parameter value with a standard deviation of 20% its values) to visualize the different trajectories for the different individuals:
 
 ```{r example2}
 # Generation of signals with intra and inter-noise
-U2a <- generate.excitation(amplitude = 1,
-                           nexc = 3,
-                           duration = 10,
-                           deltatf = 1,
-                           tmax = 100,
-                           minspacing = 20)
-res2a <- generate.panel.1order(time = U2a$t,
-                               excitation = U2a$exc,
+res2a <- generate.panel.1order(time = U$t,
+                               excitation = U$exc,
                                tau = 10,
                                k = 1,
                                nind = 4,
-                               internoise = 0.1,
+                               yeq = 2,
+                               y0 = 2,
+                               internoise = 0.2,
                                intranoise = 2)
 ```
 
@@ -307,8 +310,7 @@ plot(res2a)
 In this case, we can reuse one of the signals from the previous example
 
 ```{r example3}
-data3 <- data.frame(U2a, 
-                 signalcol = res2a[id==1]$signal)
+data3 <- res2a[id==1]
 ```
 
 As the table contains data from a single individual,  the `id` parameter has been omitted when calling the function.
@@ -316,9 +318,9 @@ As the table contains data from a single individual,  the `id` parameter has bee
 ```{r res3}
 #Analyzing
 res3 <- analyze.1order(data = data3,
-                      input = "exc",
-                      time ="t",
-                      signal = "signalcol",
+                      input = "excitation",
+                      time ="time",
+                      signal = "signal",
                       verbose=T)
 res3
 ```
@@ -331,7 +333,7 @@ plot(res3)
 ## Example 3a - Analyzing data with several individuals and some inter and intra-individual noise
 
 Analyzing the data generated in the example 2 above (table res2a), the user must specify the name of the columns containing the id of the participants, the excitation, and the signal.
-As several methods are available for the estimation of the derivatives, the user needs to specify which method to use (`gold` is the default) and the embedding dimension by modifying the parameter "derparam" (see the package pdf manual for more details).
+As several methods are available for the estimation of the derivatives, the user needs to specify which method to use (`gold` is the default) and the embedding dimension by modifying the parameter `derparam` (see the package pdf manual for more details).
 
 ```{r analysis res3a}
 res3a <- analyze.1order(data = res2a,
@@ -430,11 +432,6 @@ In the following example, we will use the function `optimum_param` to find the e
 Let us reuse the data from res2a:
 
 
-```{r}
-plot(res2a)
-```
-# Delphine: it seems strange to use the plot function to generate data. I suggested a modification of the sentence just before the call to plot
-
 ```{r res3b}
 res3b <- optimum_param (data = res2a,
                       id = "id",
@@ -451,10 +448,8 @@ res3b$summary_opt
 res3b$d
 ```
 
-# Delphine: j'ai une dizaine de message de warning comme ci-dessous:
-#length(LHS)==0; no columns to delete or assign RHS to.WARN [2020-12-27 12:30:52] Excitation signal  is constant and is removed.
-# Puis j'obtiens 11 et non 7
-And can be seen that from the range provided, an embedding number of 7 produces the best fit and the coefficients are closer to their true values than the ones estimated in the previous example.
+
+And can be seen that from the range provided, an embedding number of `{r} res3b$d` produces the best fit and the coefficients are closer to their true values than the ones estimated in the previous example.
 
 THe optimum_param function generates an object of class "doremiparam". If we want to graphically see the evolution of the coefficients according to the embedding number, we can easily plot the results with the `plot` function too:
 
@@ -546,6 +541,7 @@ We examine how the analysis function still manages to retrieve an accurate fit f
 
 ```{r example5}
 t <- 0:200
+set.seed(123)
 data5 <- generate.panel.1order(time = t,
                                excitation = as.numeric(t>50 & t<100),
                                tau = 10,
@@ -562,20 +558,15 @@ plot(data5)
 
 ```{r missing data}
 #Keeping one third of the rows selected randomly from the full data set
-data5rd <- as.data.table(data5[sample(nrow(data5), nrow(data5)/3), ])
+set.seed(123)
+data5rd <- data5[sample(nrow(data5), nrow(data5)/3), ]
 data5rd <- data5rd[order(id,time)]
 ```
 
 In the next plot we show the selection of random points made on the full data set, and also represent the signal without noise. The signal with noise will be used to carry out the analysis.
 
 ```{r plot missing data,fig.width = 7, fig.height = 6, fig.align = "center"}
-ggplot2::ggplot( data = data5rd ) +
-  ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Excitation"))+
-  ggplot2::geom_point(ggplot2::aes(time,signal, colour = "Random sampling"))+
-  ggplot2::facet_wrap(~id)+
-  ggplot2::labs(x = "Time (unit)",
-           y = "Signal (unit)",
-           colour = "")
+plot(data5rd)
 ```
 
 Then analyzing and visualizing the random points selection:
@@ -587,23 +578,12 @@ res7 <- analyze.1order(data = data5rd,
                        time ="time",
                        signal = "signal")
 ```
-# message de warning à nouveau
-#length(LHS)==0; no columns to delete or assign RHS to.WARN [2020-12-27 12:37:30] Excitation signal  is constant and is removed.
+
 
 ```{r  plot res7,fig.width = 7, fig.height = 6, fig.align = "center"}
-ggplot2::ggplot( data = data5 ) +
-  ggplot2::geom_line(ggplot2::aes(time,signalraw, colour = "Original signal"))+
-  ggplot2::geom_line(ggplot2::aes(time,excitation,colour = "Excitation"))+
-  ggplot2::geom_point(data = data5rd, ggplot2::aes(time,signal, colour = "Random sampled signal"))+
-  ggplot2::geom_line(data = res7$data, ggplot2::aes(time,signal_estimated, colour = "Estimated signal. Missing data points"))+
-  ggplot2::facet_wrap(~id)+
-  ggplot2::labs(x = "Time (unit)",
-           y = "Signal (unit)",
-           colour = "") +
-  ggplot2::theme(legend.position = "top",
-        plot.title = element_text(hjust = 0.5))
-
-
+plot(res7)+
+  ggplot2::geom_line(data = data5,
+                     ggplot2::aes(time,signalraw, colour = "Original signal"))
 ```
 
 # C - Applications
@@ -611,11 +591,17 @@ ggplot2::ggplot( data = data5 ) +
 ## Heart rate during effort tests
 
 Using the `cardio` dataset present in this package, we will apply the model to real heart frequency measurements. The data fields are described with detail in the pdf manual of the package, together with the source from which the data was obtained.
-In brief, the data consists on  heart rate measurements from 21 individuals carrying out an effort test on a cycle ergometer. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min).
+The data consists in  heart rate measurements from 21 individuals carrying out an effort test on a cycle ergometer. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min). Here is an example of these data:
+
+```{r}
+ggplot2::ggplot(cardio[id == 2],aes(x = time))+
+  geom_point(aes(y = hr,color = "heart rate (beat/s)"))+
+  geom_line(aes(y = load,color = "effort load (W)"))
+```
+
+We can perfrom the analysis using `analyze.1order`:
 
 ```{r cardio data}
-
-
 resc1a <- analyze.1order(data = cardio,
                  id = "id",
                  input = "load",
@@ -625,7 +611,7 @@ resc1a <- analyze.1order(data = cardio,
                  derparam = 5)
 ```
 
-Plotting analysis results for all 21 participants. Note that omitting the argument `id` would lead to only the first 6 participants being plotted by default.
+And use the `plot` function to plott the analysis results for all 21 participants. Note that omitting the argument `id` would lead to only the first 6 participants being plotted by default.
 
 ```{r plot cardio data,fig.width = 7, fig.height = 16, fig.align = "center"}
 plot(resc1a, id = 1:21) + 
@@ -634,12 +620,15 @@ plot(resc1a, id = 1:21) +
 
 As can be seen, the model reproduces reasonably well the variation of the heart rate, and can be used to fully characterize the heart rate dynamics with three simple parameters: the resting heart rate (the equilibrium value), the characteristic time of heart rate change (the decay time), and the increase of heart rate for a given effort (the gain).
 
+Such analysis has been used in [(Mongin et al., 2020)](https://doi.org/10.1080/00273171.2020.1754155) and [Mongin et al., 2020](https://doi.org/10.1038/s41598-020-69218-1).
+
 ## Measuring heart frequency during effort tests by considering several excitations
+
 In the previous example, each one of the steps in the resistance load can be considered as a separated perturbation having an effect on heart rate. In this case, the functions will estimate different gains as explained, to account for each one of the contributions of the load to the total heart rate dynamics. 
+Let us first create a new column for each step of effort load:
 
-```{r cardio multiple excitations}
+```{r cardio multiple excitations generate}
 mydata <- cardio[id %in% 1:10]
-
 # create a index indicate which step of the exercise test 
 mydata[,load_idx := rleid(load),by = id]
 # transforming to large format, to have one column per workload step
@@ -648,6 +637,12 @@ mydata_large <- dcast(id + time + hr  ~ paste0("load_",load_idx),data = mydata,v
 load_cols <- paste0("load_",1:max(mydata$load_idx))
 mydata_large[,c(load_cols) := lapply(.SD,function(col) fifelse(is.na(col),0,col)),.SDcols = load_cols]
 
+head(mydata_large)
+```
+
+To consider each effort step as an independent excitation associated with its own gain, we can use `analyze.1order` and give the vector of the excitation column as `id` argument: 
+
+```{r cardio multiple excitations}
 # analyzing
 resc1b <- analyze.1order(data = mydata_large,
                         id = "id",
@@ -669,6 +664,7 @@ In the plot, each workload step of the exercise test appear in one different col
 plot(resc1b,id=1:10)+ ggplot2::facet_wrap(~id,ncol=3,scales="free")
 ```
 
+This analysis has been the main one in [Mongin et al.](https://doi.org/10.1088/1361-6579/abbb6e) and used in [Mongin et al.](https://doi.org/10.1109/ESGCO49734.2020.9158156).
 
 ## Measurements of response time of individuals when carrying out mental rotation tasks
 

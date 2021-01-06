@@ -20,7 +20,7 @@ library(doremi)
 
 # ESTIMATION OF THE DERIVATIVES
 
-There are several way to estimate the derivative of a variable. Three are implemented in our package, with the following functions:
+There are several way to estimate the derivative of a variable. Three are implemented in the doremi package, with the following functions:
 
   * **calculate.glla:**, calculates the derivative using GLLA - Generalized Local Linear Approximation - method described \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}. This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 
