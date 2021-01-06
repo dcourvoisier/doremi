@@ -1,6 +1,7 @@
 ## Release summary
 
-Minor update. Set seed so that vignette examples are reproductible as requested by CRAN. Other minor changes implemented. Details are in the NEWS.md file.
+Major update and resubmission. We did not manage to impleent the correction before CRAN rejected.
+New analysis functions, new vignettes. Change of maintainer, who will be Denis Mongin
 
 ## R CMD check results
 
