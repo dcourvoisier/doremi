@@ -10,6 +10,9 @@ vignette: >
 ```{r options, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  fig.align="center",
+  fig.width = 5,
+  fig.height = 5,
   comment = "#>"
 )
 ```
@@ -40,7 +43,7 @@ Where:
 
 And regarding the coefficients:
   
-* $\omega_{n} = \frac{2\pi}{T}$ is the system's natural frequency, the frequency with which the system would oscillate if there were no damping. $T$ is the corresponding period of oscilltion. The term $\omega_{n}^2$ represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
+* $\omega_{n} = \frac{2\pi}{T}$ is the system's natural frequency, the frequency with which the system would oscillate if there were no damping. $T$ is the corresponding period of oscillation. The term $\omega_{n}^2$ represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example of a mass attached to a spring, this term would represent the ratio of the spring constant and the object's mass.
 
 * $\xi$ is the damping ratio. It represents the friction that damps the oscillation of the system (slows the rate of change of the variable). The value of $\xi$ determines the shape of the system time response, which can be:
      $\xi<0$	Unstable, oscillations of increasing magnitude
@@ -49,7 +52,7 @@ And regarding the coefficients:
      $\xi=1$	Critically damped
      $\xi>1$	Over-damped, no oscillations in the return to equilibrium
 
-* $k$ is the gain. It represents the proportionnality between the stationary increase of $y$ and the constant increase of $u$ that caused it.
+* $k$ is the gain. It represents the proportionality between the stationary increase of $y$ and the constant increase of $u$ that caused it.
 
 * $yeq$ is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.
 

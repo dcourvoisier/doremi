@@ -34,8 +34,8 @@ generate.panel.2order(
 
 \item{period}{is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned}
 
-\item{k}{Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
-Only relevent if the excitation is non null.}
+\item{k}{Default is 1. It represents the proportionality between the stationary increase of signal and the excitation increase that caused it.
+Only relevant if the excitation is non null.}
 
 \item{yeq}{is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.}
 
@@ -80,8 +80,5 @@ generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
 \code{\link{generate.2order}} for calculation of the numerical solution to the second order differential equation
 and \code{\link{generate.excitation}} for excitation signal generation
 }
-\keyword{differential}
-\keyword{equation}
-\keyword{order,}
-\keyword{second}
-\keyword{simulation,}
+\keyword{second-order}
+\keyword{simulation}

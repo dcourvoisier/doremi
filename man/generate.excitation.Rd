@@ -65,5 +65,5 @@ generate.excitation (amplitude = c(1,10,20),
                      tmax = 100,
                      minspacing = 10)
 }
-\keyword{excitation,}
+\keyword{excitation}
 \keyword{simulation}

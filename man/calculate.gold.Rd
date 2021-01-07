@@ -30,7 +30,7 @@ n - the maximum derivative order calculated n
 }
 \description{
 \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
-method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
+method described in \doi{10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
 This method allows calculating over a number of measurement points (called the embedding number) derivatives with uncorrelated errors.
 }
 \examples{
@@ -42,6 +42,5 @@ signal <- time^2
 result <- calculate.gold(signal = signal, time = time, embedding = 5)
 
 }
-\keyword{derivative,}
-\keyword{embed,}
-\keyword{rollmean}
+\keyword{derivative}
+\keyword{embedding-number}

@@ -26,7 +26,7 @@ optimum_param(
 If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 of the linear mixed-effects regression.}
 
-\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 If this parameter is not entered when calling the function,
 the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
@@ -44,7 +44,7 @@ it is assumed that time steps are of 1 unit and the time vector is generated int
 \item{model}{is the model to be used for analysis of the signal. The models available are "1order" and "2order"}
 
 \item{order}{is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
-Using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
+Using a higher order can enhance derivative estimation (see \doi{10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
 
 \item{pmin}{is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)}
 
@@ -88,16 +88,13 @@ resgold <- optimum_param (data=s2,
                           model = "2order",
                           dermethod = "gold",
                           pmin = 3,
-                          pmax = 15,
-                          pstep = 1,
+                          pmax = 13,
+                          pstep = 2,
                           verbose = TRUE)
 }
 \seealso{
 \code{\link{analyze.1order}} and \code{\link{analyze.2order}} for the estimation of equation coefficients in signals following a first and second order differential equation respectively
 }
 \keyword{derivative}
-\keyword{embedding}
-\keyword{number,}
-\keyword{optimum,}
-\keyword{parameter,}
-\keyword{smoothing}
+\keyword{embedding-number}
+\keyword{optimum}

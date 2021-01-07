@@ -31,8 +31,8 @@ generate.2order(
 
 \item{period}{is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned}
 
-\item{k}{Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
-Only relevent if the excitation is non null.}
+\item{k}{Default is 1. It represents the proportionality between the stationary increase of signal and the excitation increase that caused it.
+Only relevant if the excitation is non null.}
 
 \item{yeq}{is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.}
 }
@@ -48,7 +48,7 @@ Returns a data.table containing four elements:
 }
 \description{
 \code{generate.2order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a second order
-differential equation whith constant coefficients that are provided as inputs:
+differential equation with constant coefficients that are provided as inputs:
 \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = \omega_{n}^2 k*u(t)}
 Where:
 y(t) is the signal, \eqn{\frac{dy}{dt}} its derivative and \eqn{\frac{d^2y}{dt}} its second derivative
@@ -74,9 +74,5 @@ will be a damped linear oscillator when the initial condition is different from 
 generate.2order(time=0:249,excitation=c(rep(0,10),rep(1,240)),period=10)
 generate.2order(y0=10)
 }
-\keyword{coefficients}
-\keyword{constant}
-\keyword{differential}
-\keyword{equation,}
-\keyword{order}
-\keyword{second}
+\keyword{differential-equation}
+\keyword{second-order}

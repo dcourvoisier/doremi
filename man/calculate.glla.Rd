@@ -31,7 +31,7 @@ n - the maximum derivative order calculated n
 }
 \description{
 \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method
-described in \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}.
+described in \doi{10.4324/9780203864746}{Boker et al.(2010)}.
 This method estimates the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 }
 \examples{
@@ -43,7 +43,5 @@ signal <- time^2
 result <- calculate.glla(signal = signal, time = time, embedding = 5)
 
 }
-\keyword{derivative,}
-\keyword{dimension,}
-\keyword{embedding}
-\keyword{rollmean}
+\keyword{derivative}
+\keyword{embedding-number}

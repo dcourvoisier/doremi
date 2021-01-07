@@ -7,14 +7,14 @@
 Addition of a plot method to visualize the results of this function: evolution of R2 and parameter estimation with embedding number/smoothing parameter.
 4. Added functions for the generation of simulation signals following a second order differential equation and the corresponding analysis tools for this type of signals
 5. Modified the function that generates simulation signals. It now uses deSolve and it is able to generate a signal even for initial conditions different from t0=0
-6. Summary from analysis function gives the coefficients estimted by the regression with their standard errors, together with the transformed coefficients characteristic from the model
+6. Summary from analysis function gives the coefficients estimated by the regression with their standard errors, together with the transformed coefficients characteristic from the model
 7. Uses package futile.logger to log all events on the console (info, warning and errors). Info messages can be displayed by activating parameter "verbose=T"in analysis functions (first and second order).
-8. Four vignettes are given: an introduction vignette, a first-order vignette, the second order vignette and the derivaties vignette
+8. Four vignettes are given: an introduction vignette, a first-order vignette, the second order vignette and the derivatives vignette
 
 ### doremi v0.1.1 
 #### BUG FIXES
 #### Vignette
-1. Set seed in vignette so that the examples are reproductible.
+1. Set seed in vignette so that the examples are reproducible.
 #### Function remi
 1. In single individual fit, time column in object "estimated" was fixed to "time" whereas now, it is the name given to the time variable in the input data frame, as done for the multiple subjects case.
 2. When the data comes from a single individual and the parameter "id" is specified, there was an error because the function was trying to carry out a mixed-effects linear regression on a single individual.Corrected.

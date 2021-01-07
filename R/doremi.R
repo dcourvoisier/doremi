@@ -2,7 +2,7 @@
 #' Calculation of derivatives using the GOLD method
 #'
 #' \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
-#' method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
+#' method described in \doi{10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
 #' This method allows calculating over a number of measurement points (called the embedding number) derivatives with uncorrelated errors.
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
@@ -122,7 +122,7 @@ calculate.gold <-  function(signal,
 #' Calculation of derivatives using the GLLA method
 #'
 #' \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method
-#' described in \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}.
+#' described in \doi{10.4324/9780203864746}{Boker et al.(2010)}.
 #' This method estimates the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 #' @param signal is the input vector containing the data from which the derivatives are estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
@@ -212,11 +212,11 @@ calculate.glla <-  function(signal,
   return(returnobject)
 }
 # calculate.fda ----------------------------------------------------------
-#' Calculation of derivatives using the Functinal Data Analysis (FDA) method.
+#' Calculation of derivatives using the Functional Data Analysis (FDA) method.
 #'
 #' \code{calculate.fda} estimates the derivatives of a variable using the FDA
-#' method described in several sources, such as in \href{ISBN 978-0-387-98185-7}{Ramsay et al. (2009)}
-#' and  \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
+#' method described in several sources, such as in \doi{10.1007/b98888}{Ramsay et al. (2009)}
+#' and  \doi{10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
 #' This method estimates a spline function that fits all the data points and then derivates this function to estimate derivatives at those points.
 #' In order for the derivatives to exist, the function must be smooth. A roughness penalty function controlled by a smoothing parameter is then used.
 #' The estimations are done by using the R's base smooth.spline function.
@@ -382,7 +382,7 @@ generate.excitation = function(amplitude = 1,
 #' Must be a value between minimum and maximum value of the time vector
 #' @param tau Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 #' A negative value will produce divergence from equilibrium.
-#' @param k Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+#' @param k Signal gain. Default is 1. It represents the proportionality between the stationary increase of signal and the excitation increase that caused it.
 #' Only relevant if the excitation is non null.
 #' @param yeq Signal equilibrium value. Stationary value when the excitation term is 0.
 #' @keywords first-order differential-equation
@@ -521,7 +521,7 @@ generate.1order <- function(time = 0:100,
 #' Generation of the second order differential equation solution with deSolve
 #'
 #' \code{generate.2order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a second order
-#' differential equation whith constant coefficients that are provided as inputs:
+#' differential equation with constant coefficients that are provided as inputs:
 #' \deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = \omega_{n}^2 k*u(t)}
 #' Where:
 #' y(t) is the signal, \eqn{\frac{dy}{dt}} its derivative and \eqn{\frac{d^2y}{dt}} its second derivative
@@ -550,8 +550,8 @@ generate.1order <- function(time = 0:100,
 #' @param t0 is the time corresponding to the initial condition y0 and v0. Default is the minimum value of the time vector.
 #' @param xi is the damping factor. A negative value will produce divergence from equilibrium.
 #' @param period is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned
-#' @param k  Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
-#' Only relevent if the excitation is non null.
+#' @param k  Default is 1. It represents the proportionality between the stationary increase of signal and the excitation increase that caused it.
+#' Only relevant if the excitation is non null.
 #' @param yeq is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.
 #' @keywords second-order differential-equation
 #' @return Returns a data.table containing four elements:
@@ -884,7 +884,7 @@ generate.panel.2order <- function(time,
 #' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 #' of the linear mixed-effects regression.
-#' @param input Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' @param input Is a CHARACTER or a VECTOR OF CHARACTERS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
@@ -902,7 +902,7 @@ generate.panel.2order <- function(time,
 #' spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis).
 #' In this case, the value should be between 0 and 1, see \code{?smooth.spline}
 #' @param order is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
-#' Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
+#' Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \doi{10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1. Useful for debugging.
 #' @keywords analysis first-order exponential
 #' @return Returns a summary of the fixed effect coefficients estimated by the linear regression
@@ -957,8 +957,18 @@ generate.panel.2order <- function(time,
 #'  \item embedding - contains the embedding number used to generate the results (same as function input argument)
 #'  \item spar - contains the smoothing parameter used for the estimation of the derivatives using splines (method "fda")
 #' }
+#'
+#' SImulation presenting the statistical propoerties of the ethod can be found in \doi{10.1080/00273171.2020.1754155}(Mongin et al. (2020))
+#' Example of application of this function can be found in:
+#' \itemize{
+#'     \item \doi{10.1088/1361-6579/abbb6e}
+#'     \item \doi{10.1109/ESGCO49734.2020.9158156}
+#'     \item \doi{10.1080/00273171.2020.1754155}
+#'     \item \doi{10.1038/s41598-020-69218-1}
+#' }
+#'
 #' @seealso \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
-#' and \code{\link{generate.1order}} the function to generate the solution of the frst order differential equation
+#' and \code{\link{generate.1order}} the function to generate the solution of the first order differential equation
 #' @examples
 #' myresult <- analyze.1order(data = cardio,
 #'                   id = "id",
@@ -1304,13 +1314,13 @@ analyze.1order <- function(data,
 #' and u(t) is the excitation.
 #' The function estimates the coefficients \eqn{2\xi\omega_{n}, \omega_{n}^2 k} and \eqn{\omega_{n}^2 y_{eq}},
 #' from which the oscillation period T, the damping ratio \eqn{\xi}, the equilibrium \eqn{y_{eq}} value and the gain k can be derived.
-#' Th estimation is based on a two step procedure: the first step sonsist in estimating the derivatives to then estimate in a second step the differential equation
+#' Th estimation is based on a two step procedure: the first step consists in estimating the derivatives to then estimate in a second step the differential equation
 #' coefficients through a linear mixed-effect model. Three different method to estimate the derivative during the first step are proposed.
 #' @param data Is a data frame containing at least one column, that is the signal to be analyzed.
 #' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 #' of the linear mixed-effects regression.
-#' @param input Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' @param input Is a CHARACTER or a VECTOR OF CHARACTERS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. If no excitation term is supplied, one of the initial conditions is different from 0 (signal or derivative) and xi<1 the function will estimate
@@ -1323,7 +1333,7 @@ analyze.1order <- function(data,
 #' Its value by default is 3 as at least three points are needed for the calculation of the second derivative. If dermethod "fda" is chosen, this parameter is
 #' spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis)
 #' @param order is the maximum order of the derivative to estimate. Using an order higher than that of the maximum derivative to estimate (1 in first order differential equations and
-#' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
+#' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \doi{10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
 #' @keywords analysis second-order
 #' @return Returns a summary of the fixed effect coefficients (see details)
@@ -1729,7 +1739,7 @@ analyze.2order <- function(data,
 #' @param id Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 #' If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 #' of the linear mixed-effects regression.
-#' @param input Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+#' @param input Is a CHARACTER or a VECTOR OF CHARACTERS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 #' If this parameter is not entered when calling the function,
 #' the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 #' for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
@@ -1741,7 +1751,7 @@ analyze.2order <- function(data,
 #' @param signal Is a CHARACTER containing the NAME of the column of the data frame containing the SIGNAL to be studied.
 #' @param dermethod is the derivative estimation method. The methods currently available are: "gold","glla" and "fda" (see their respective function for more details)
 #' @param order is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
-#' Using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
+#' Using a higher order can enhance derivative estimation (see \doi{10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param model is the model to be used for analysis of the signal. The models available are "1order" and "2order"
 #' @param pmin is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
 #' @param pmax is the maximum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)

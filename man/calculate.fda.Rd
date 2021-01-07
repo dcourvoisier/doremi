@@ -2,7 +2,7 @@
 % Please edit documentation in R/doremi.R
 \name{calculate.fda}
 \alias{calculate.fda}
-\title{Calculation of derivatives using the Functinal Data Analysis (FDA) method.}
+\title{Calculation of derivatives using the Functional Data Analysis (FDA) method.}
 \usage{
 calculate.fda(signal, time, spar = NULL, order = NULL)
 }
@@ -26,8 +26,8 @@ and the third is the second derivative evaluated at those points.
 }
 \description{
 \code{calculate.fda} estimates the derivatives of a variable using the FDA
-method described in several sources, such as in \href{ISBN 978-0-387-98185-7}{Ramsay et al. (2009)}
-and  \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
+method described in several sources, such as in \doi{10.1007/b98888}{Ramsay et al. (2009)}
+and  \doi{10.1080/00273171.2015.1123138}{Chow et al. (2016)}.
 This method estimates a spline function that fits all the data points and then derivates this function to estimate derivatives at those points.
 In order for the derivatives to exist, the function must be smooth. A roughness penalty function controlled by a smoothing parameter is then used.
 The estimations are done by using the R's base smooth.spline function.
@@ -41,6 +41,6 @@ signal <- time^2
 result <- calculate.fda(signal = signal, time = time)
 
 }
-\keyword{derivative,}
-\keyword{fda,}
+\keyword{derivative}
+\keyword{fda}
 \keyword{spline}

@@ -23,7 +23,7 @@ analyze.1order(
 If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 of the linear mixed-effects regression.}
 
-\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 If this parameter is not entered when calling the function,
 the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
@@ -46,7 +46,7 @@ spar, the parameter related to the smoothing parameter lambda used in the penali
 In this case, the value should be between 0 and 1, see \code{?smooth.spline}}
 
 \item{order}{is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
-Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
+Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \doi{10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
 
 \item{verbose}{Is a boolean that displays status messages of the function when set to 1. Useful for debugging.}
 }
@@ -112,6 +112,15 @@ The function returns five objects:
  \item embedding - contains the embedding number used to generate the results (same as function input argument)
  \item spar - contains the smoothing parameter used for the estimation of the derivatives using splines (method "fda")
 }
+
+SImulation presenting the statistical propoerties of the ethod can be found in \doi{10.1080/00273171.2020.1754155}(Mongin et al. (2020))
+Example of application of this function can be found in:
+\itemize{
+    \item \doi{10.1088/1361-6579/abbb6e}
+    \item \doi{ESGCO49734.2020.9158156}
+    \item \doi{10.1080/00273171.2020.1754155}
+    \item \doi{10.1038/s41598-020-69218-1}
+}
 }
 \examples{
 myresult <- analyze.1order(data = cardio,
@@ -124,9 +133,8 @@ myresult <- analyze.1order(data = cardio,
 }
 \seealso{
 \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar.
-and \code{\link{generate.1order}} the function to generate the solution of the frst order differential equation
+and \code{\link{generate.1order}} the function to generate the solution of the first order differential equation
 }
-\keyword{analysis,}
+\keyword{analysis}
 \keyword{exponential}
-\keyword{first}
-\keyword{order,}
+\keyword{first-order}

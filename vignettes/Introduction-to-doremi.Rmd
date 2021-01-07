@@ -15,6 +15,9 @@ set.seed(1)
 knitr::opts_chunk$set(
   collapse = TRUE,
   warning = FALSE,
+  fig.align="center",
+  fig.width = 5,
+  fig.height = 5,
   comment = "#>"
 )
 ```
@@ -24,11 +27,11 @@ The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs
 
 In this introduction vignette, you will find in the [examples section](#example) two examples of analysis that can be performed with doremi, a short presentation of what a first or second order differential equation is in the [first](#first) or [second](#second) order differential equation sections, and a list of the functions included in the package in the [last section](#functions).
 
-The detail of the analysis when supposing that the studied variable follows a first or second order differential equation is detailed in the associated vignettes for the [first](first-order.html) or [second](sedond-order.html). The functions used to calculate the derivatives are detailed in the [derivatives](derivatives.html) vignette.
+The detail of the analysis when supposing that the studied variable follows a first or second order differential equation is detailed in the associated vignettes for the [first](first-order.html) or [second](second-order.html). The functions used to calculate the derivatives are detailed in the [derivatives](derivatives.html) vignette.
 
 # EXAMPLES {#example}
 
-Two examples of analysis are shown below. Detailed use of the functions can be found in the vignettes for the analyss based on a [first](first-order.html) or [second](sedond-order.html) order differential equation.
+Two examples of analysis are shown below. Detailed use of the functions can be found in the vignettes for the analysis based on a [first](first-order.html) or [second](second-order.html) order differential equation.
 Let us consider a variable following a first order differential equation and set out of equilibrium by a given excitation function. It can be generated as follows:
 
 ```{r}
@@ -71,7 +74,7 @@ plot(est_result)+
 
 The blue curve is the curve reconstructed from the coefficients estimated by the analysis, to be compared to the magenta curve, representing the model underlying the noisy data analyzed. The `est_result` object contains all estimated coefficients.
 
-The same can be performed for a noisy signal following a second order differential equation driven by the same excitation. Let us generate noisy data driven by the excitation and governed bty a seocnd order differential equation:
+The same can be performed for a noisy signal following a second order differential equation driven by the same excitation. Let us generate noisy data driven by the excitation and governed by a second order differential equation:
 
 ```{r}
 set.seed(123)
@@ -106,7 +109,7 @@ plot(est_result2)+
 The first step of the analysis consists in estimating the time derivatives of the variable. Several methods are proposed. They all depend on the number of point they consider (the embedding number) or on a smoothing parameter. More detail can be found in the [section detailing the package functions](#functions) and in the [vignette associated](derivatives.html).
 Once the derivatives are estimated, the constant coefficients of the first or second order differential equation can be estimated by a simple linear mixed-effects (multilevel) regression. As the embedding number or smoothing parameter affects the estimation of the derivatives, it will also impact the quality of the estimation of the differential equation coefficients. The package doremi provides a function **optimum_param** which estimates the optimum embedding number (gold/glla) or smoothing parameter (fda) by varying the latter in a range provided as input and keeping the parameter that produces the optimal estimation. 
 
-# FIRST ORDER DIFERENTIAL EQUATION MODEL {#first}
+# FIRST ORDER DIFFERENTIAL EQUATION MODEL {#first}
 
 We will shortly describe the first order differential equation and its coefficients here. A more detailed explanation of the possible analysis for a variable following a first order differential equation can be found in this [vignette](first-order.html).
 
@@ -171,7 +174,7 @@ ggplot2::ggtitle( "First order differential equation solution")+
 
 Once the derivative estimated, doremi performs a linear mixed-effect regression to estimate these parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
 
-# SECOND ORDER DIFERENTIAL EQUATION MODEL {#second}
+# SECOND ORDER DIFFERENTIAL EQUATION MODEL {#second}
 
 We will in this section shortly describe the second order differential equation and its coefficients. A more detailed explanation of the possible analysis for a variable following a second order differential equation can be found in this [vignette](second-order.html).
 The differential equation considered in this case is the following:
@@ -208,7 +211,7 @@ And regarding the coefficients:
 
 Once the derivative estimated, doremi performs a linear mixed-effect regression to estimate these parameters. The estimated variable can be reconstructed for each individual using the numerical estimation provided by the function `ode` from the package deSolve.
 
-We can use `generate.2order` to generate a solution of this differential equation, for a given $U(t)$, a period of 15, and a daming factor of 0.2:
+We can use `generate.2order` to generate a solution of this differential equation, for a given $U(t)$, a period of 15, and a damping factor of 0.2:
 
 ```{r fig.width = 5, fig.height = 4, fig.align = "center", echo = FALSE}
 time <- 0:130

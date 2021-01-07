@@ -11,6 +11,9 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   warning = FALSE,
+  fig.align="center",
+  fig.width = 5,
+  fig.height = 5,
   comment = "#>"
 )
 ```
@@ -74,11 +77,11 @@ Note that random effects are estimated for the intercept ($b_{0} + b_{0j}$), var
 
 The fixed effect coefficients estimated from the regression are:
 
-* $ gamma =  b_{1} $
-* $yeqgamma =  b_{0} $
-* $kgamma =  b_{2} $
+* Coefficient $gamma =  b_{1}$
+* Coefficient $yeqgamma =  b_{0}$
+* Coefficient $kgamma =  b_{2} $
 
-The coefficients of the diferential equation can thus be calculated as:
+The coefficients of the differential equation can thus be calculated as:
 
 * Decay time: $tau = \tau = \frac{1}{b_{1}}$  
 * Gain: $k = \frac{b_{2} }{b_{1}}$
@@ -198,12 +201,12 @@ res3 <- analyze.1order(data = data3,
                       derparam = 0.7)
 ```
 Note that the `input` parameter has been omitted when calling the function. 
-The result display the summary of the fixed effect cefficients:
+The result display the summary of the fixed effect coefficients:
 
 ```{r}
 res3
 ```
-The data.table `result_id` gives the coeficients estimated for each individual:
+The data.table `result_id` gives the coefficients estimated for each individual:
 ```{r}
 res3$resultid
 ```
@@ -222,22 +225,22 @@ Analyzing the signals with noise generated above, we can verify that the paramet
 # Simulating data
 ## Example 1a - Generating signals with no noise
 
-To generate the excitation process perturbing the system we want to simulate, wa can use the `generate.excitation` function, which generate a sequence of squarre pulses of a given length randomly distributed:
+To generate the excitation process perturbing the system we want to simulate, we can use the `generate.excitation` function, which generate a sequence of square pulses of a given length randomly distributed:
 
 ```{r}
 set.seed(123)
-U <- generate.excitation(nexc = 3, # number of squarre pulses
+U <- generate.excitation(nexc = 3, # number of square pulses
                            duration = 10, # pulse duration
                            deltatf = 1, # time spacing between points
                            tmax = 100, # maximum time
-                           minspacing = 20) # minimum spacin between squarre pulses
+                           minspacing = 20) # minimum spacin between square pulses
 plot(U$t,U$exc)
 ```
 
 Note that the time vector and excitation vector can be of any form and created by the user.
 
 In this example we will use the excitation vector we just generated and the `generate.panel.1order` function to generate the variable following the first order differential equation for 4 individuals with a decay time of 10s. The signal follows exactly the differential equation (no measurement noise) with no variation of the decay time, the gain and the equilibrium value across individuals (no interindividual noise). 
-```{r excitation term example1a}
+```{r excitation term example1a,fig.width = 7, fig.height = 6, fig.align = "center"}
 
 res1a <- generate.panel.1order(time = U$t,
                                excitation = U$exc,
@@ -266,7 +269,7 @@ res1b <- generate.panel.1order(time = U$t,
 plot(res1b)
 ```
 
-And it can be observed how the system tends to equilibrum ($t_{eq} = 2$) from the initial condition ($y_0 = 3$) after being perturbed by the excitations.
+And it can be observed how the system tends to equilibrium ($t_{eq} = 2$) from the initial condition ($y_0 = 3$) after being perturbed by the excitations.
 
 
 ## Example 2 - Generating signals with noise
@@ -437,7 +440,7 @@ res3b$d
 
 And can be seen that from the range provided, an embedding number of `{r} res3b$d` produces the best fit and the coefficients are closer to their true values than the ones estimated in the previous example.
 
-THe optimum_param function generates an object of class "doremiparam". If we want to graphically see the evolution of the coefficients according to the embedding number, we can easily plot the results with the `plot` function too:
+The optimum_param function generates an object of class "doremiparam". If we want to graphically see the evolution of the coefficients according to the embedding number, we can easily plot the results with the `plot` function too:
 
 ```{r plot res3b,fig.width = 7, fig.height = 6, fig.align = "center"}
 plot(res3b)
@@ -579,14 +582,14 @@ plot(res7)+
 Using the `cardio` dataset present in this package, we will apply the model to real heart frequency measurements. The data fields are described with detail in the pdf manual of the package, together with the source from which the data was obtained.
 The data consists in  heart rate measurements from 21 individuals carrying out an effort test on a cycle ergometer. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min). Here is an example of these data:
 
-```{r}
+```{rf,ig.width = 6, fig.height = 5, fig.align = "center"}
 ggplot2::ggplot(cardio[id == 2],
                 ggplot2::aes(x = time))+
   ggplot2::geom_point(ggplot2::aes(y = hr,color = "heart rate (beat/s)"))+
   ggplot2::geom_line(ggplot2::aes(y = load,color = "effort load (W)"))
 ```
 
-We can perfrom the analysis using `analyze.1order`:
+We can perform the analysis using `analyze.1order`:
 
 ```{r cardio data}
 resc1a <- analyze.1order(data = cardio,
@@ -598,7 +601,7 @@ resc1a <- analyze.1order(data = cardio,
                  derparam = 5)
 ```
 
-And use the `plot` function to plott the analysis results for all 21 participants. Note that omitting the argument `id` would lead to only the first 6 participants being plotted by default.
+And use the `plot` function to plot the analysis results for all 21 participants. Note that omitting the argument `id` would lead to only the first 6 participants being plotted by default.
 
 ```{r plot cardio data,fig.width = 7, fig.height = 16, fig.align = "center"}
 plot(resc1a, id = 1:21) + 
@@ -651,7 +654,7 @@ In the plot, each workload step of the exercise test appear in one different col
 plot(resc1b,id=1:10)+ ggplot2::facet_wrap(~id,ncol=3,scales="free")
 ```
 
-This analysis has been the main analyis in [Mongin et al.,2020c](https://iopscience.iop.org/article/10.1088/1361-6579/abbb6e) and used in [Mongin et al.,2020d](https://doi.org/10.1109/ESGCO49734.2020.9158156).
+This analysis has been the main analysis in [Mongin et al.,2020c](https://iopscience.iop.org/article/10.1088/1361-6579/abbb6e) and used in [Mongin et al.,2020d](https://doi.org/10.1109/ESGCO49734.2020.9158156).
 
 ## Measurements of response time of individuals when carrying out mental rotation tasks
 

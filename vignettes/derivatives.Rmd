@@ -10,6 +10,9 @@ vignette: >
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
+  fig.align="center",
+  fig.width = 5,
+  fig.height = 5,
   comment = "#>"
 )
 ```
@@ -26,7 +29,7 @@ There are several way to estimate the derivative of a variable. Three are implem
 
   * **calculate.gold:**, calculates the derivative using GOLD - Generalized Orthogonal Local Derivative - method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps. This method allows calculating over a number of measurement points (called the embedding number) the first and second derivatives (or higher, depending on the order set as input parameter) with errors uncorrelated with the variable. 
   
-  * **calculate.fda:**, calculates the derivative using FDA - Functional Data Analysis - method. It generates a B-spline function controled by a smoothing parameter that fits the outcome to be studied, to then estimates the derivative of that function. 
+  * **calculate.fda:**, calculates the derivative using FDA - Functional Data Analysis - method. It generates a B-spline function controlled by a smoothing parameter that fits the outcome to be studied, to then estimates the derivative of that function. 
   
 Let's present a simple example of the use and interest of these functions. Consider a variable of the time following $y(t) = t^2 $ with some measurement noise:
 
@@ -60,7 +63,7 @@ Our three functions `calculate.gold`, `calculate.glla` and `calculate.fda` work 
 
 The functions output a `dsignal` data.frame with `n+1` column, each column corresponding to a derivative order (the first column is the zeroth order derivative estimate, the second one the first order derivative etc), and a `dtime` vector with the corresponding time.
 
-Let's now construct an example where we can see the effect of the number of point considered to evaluate different derivative order. We construct a long table, were the preceeding example is replicated for embedding dimension between 3 and 10, derivative order between 0 and 2, and for the three calculation methods:
+Let's now construct an example where we can see the effect of the number of point considered to evaluate different derivative order. We construct a long table, were the preceding example is replicated for embedding dimension between 3 and 10, derivative order between 0 and 2, and for the three calculation methods:
 
 ```{r}
 conditions <- data.table::CJ(embedding = 3:10,
@@ -90,7 +93,7 @@ derivative_example[der  == 0,truder := signal]
 
 
 Lets us apply our three functions to estimate the zeroth, first and second order derivative (the zeroth order derivative is a smooth estimate of the variable) for various embedding number and compare with the true derivatives.
-In our example, we calculate for each value of embedding and for each value of derivativeorder the derivative. For example, for the gold method, we will do:
+In our example, we calculate the derivative for each value of embedding. For example, for the gold method, we will do:
 
 ```{r}
 derivative_example[method == "GOLD",
@@ -114,7 +117,7 @@ derivative_example[method == "GOLD",
 
 Doing the same for the other methods
 
-```{r}
+```{r,fig.height=7,fig.width=6}
 
 # calculation of the derivatives with calculate.glla
 derivative_example[method == "GLLA",
@@ -155,4 +158,4 @@ ggplot2::ggplot(derivative_example)+
   ggplot2::theme_bw()
 ```
 
-In the above example, the derivatives estimated for different embedding number or smoothing parameters are represented in colour, and the true derivatives in black. We see that these different functions manage provide an estimation of the derivatives with a precision depending on the embedding number or the smoothing parameter. As visible in the example above with FDA, there is an optimum value of the smoothing parameter or embedding number for which the derivative estimated is the closest to the true derivative.
+In the above example, the derivatives estimated for different embedding number or smoothing parameters are represented in color, and the true derivatives in black. We see that these different functions manage provide an estimation of the derivatives with a precision depending on the embedding number or the smoothing parameter. As visible in the example above with FDA, there is an optimum value of the smoothing parameter or embedding number for which the derivative estimated is the closest to the true derivative.

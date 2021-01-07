@@ -31,7 +31,7 @@ Must be a value between minimum and maximum value of the time vector}
 \item{tau}{Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
-\item{k}{Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+\item{k}{Signal gain. Default is 1. It represents the proportionality between the stationary increase of signal and the excitation increase that caused it.
 Only relevant if the excitation is non null.}
 
 \item{yeq}{Signal equilibrium value. Stationary value when the excitation term is 0.}
@@ -83,8 +83,6 @@ generate.panel.1order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
 \code{\link{generate.1order}} for calculation of the numerical solution to the differential equation
 and \code{\link{generate.excitation}} for excitation signal generation
 }
-\keyword{differential}
-\keyword{equation}
-\keyword{first}
-\keyword{order,}
-\keyword{simulation,}
+\keyword{differential-equation}
+\keyword{first-order}
+\keyword{simulation}

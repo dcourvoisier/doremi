@@ -23,7 +23,7 @@ analyze.2order(
 If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 of the linear mixed-effects regression.}
 
-\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 If this parameter is not entered when calling the function,
 the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 for the excitation term. If no excitation term is supplied, one of the initial conditions is different from 0 (signal or derivative) and xi<1 the function will estimate
@@ -41,7 +41,7 @@ Its value by default is 3 as at least three points are needed for the calculatio
 spar, the parameter related to the smoothing parameter lambda used in the penalization function of the function \code{smooth.spline} to estimate the derivative via splines (Functional Data Analysis)}
 
 \item{order}{is the maximum order of the derivative to estimate. Using an order higher than that of the maximum derivative to estimate (1 in first order differential equations and
-2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
+2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \doi{10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
 
 \item{verbose}{Is a boolean that displays status messages of the function when set to 1.}
 }
@@ -55,7 +55,7 @@ Where y(t) is the individual's signal, \eqn{\frac{dy}{dt}(t)} is its first deriv
 and u(t) is the excitation.
 The function estimates the coefficients \eqn{2\xi\omega_{n}, \omega_{n}^2 k} and \eqn{\omega_{n}^2 y_{eq}},
 from which the oscillation period T, the damping ratio \eqn{\xi}, the equilibrium \eqn{y_{eq}} value and the gain k can be derived.
-Th estimation is based on a two step procedure: the first step sonsist in estimating the derivatives to then estimate in a second step the differential equation
+Th estimation is based on a two step procedure: the first step consists in estimating the derivatives to then estimate in a second step the differential equation
 coefficients through a linear mixed-effect model. Three different method to estimate the derivative during the first step are proposed.
 }
 \details{
@@ -142,6 +142,5 @@ plot(res)
 \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar
 See \code{\link{generate.2order}} for the generation of the solution of the second order differential equation.
 }
-\keyword{analysis,}
-\keyword{order}
-\keyword{second}
+\keyword{analysis}
+\keyword{second-order}

@@ -28,7 +28,7 @@ Must be a value between minimum and maximum value of the time vector}
 \item{tau}{Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
-\item{k}{Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+\item{k}{Signal gain. Default is 1. It represents the proportionality between the stationary increase of signal and the excitation increase that caused it.
 Only relevant if the excitation is non null.}
 
 \item{yeq}{Signal equilibrium value. Stationary value when the excitation term is 0.}
@@ -85,9 +85,5 @@ tmp[,k := as.factor(x)][]
   ggplot2::geom_line(ggplot2::aes(t,y,color = k))+
   ggplot2::geom_line(ggplot2::aes(t,exc,color = "excitation"))
 }
-\keyword{coefficients}
-\keyword{constant}
-\keyword{differential}
-\keyword{equation,}
-\keyword{first}
-\keyword{order}
+\keyword{differential-equation}
+\keyword{first-order}
