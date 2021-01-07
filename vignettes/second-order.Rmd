@@ -17,25 +17,9 @@ knitr::opts_chunk$set(
 
 ```{r libraries, setup}
 library(doremi)
-library(ggplot2)
-library(data.table)
-library(magrittr)
-library(deSolve)
-library(gridExtra)
-set.seed(1)
 ```
 
 
-```{r, eval = FALSE, echo = FALSE}
-# to supress, just to test locally
-source("../R/doremi.R")
-source("../R/others.R")
-library(futile.logger)
-library(lme4)
-library(lmerTest)
-library(deSolve)
-library(zoo)
-```
 
 # SECOND ORDER DIFFERENTIAL EQUATIONS
 
@@ -91,7 +75,7 @@ $$\frac{dy}{dt}(t=0)=v_{0}$$
 The shape of the solution to equation (2) -also called trajectory, or system response in engineering- will change according to the values of the parameters $\xi$ and $\omega_{n}^2$ presented, specially the values of $\xi$, as this parameter will define if the behavior is divergent, oscillating or undamped, underdamped (oscillations decreasing exponentially) or overdamped (system going back to equilibrium without oscillations) as it can be seen in the figure below:
 
 ```{r different forms according to xi,fig.width = 5, fig.height = 4, fig.align = "center"}
-data11a <- rbindlist(lapply(seq(0,2,0.2), 
+data11a <- data.table::rbindlist(lapply(seq(0,2,0.2), 
                             function(eps){
                               generate.2order(time = 0:49, 
                                               y0 = 1, 
@@ -316,9 +300,10 @@ The function `generate.2order` generated for all time given the unique solution 
 The excitation can be of any form. This package can also be used to simulate driven damped oscillators:
 
 ```{r simulation plot example4, fig.width = 5, fig.height = 4, fig.align = "center"}
-
-driven_dlo <- generate.panel.2order(time = 0:99, 
-                              excitation = 5*sin(2*pi*t/10), 
+t <- 0:99
+excitation <- 5*sin(2*pi*t/10)
+driven_dlo <- generate.panel.2order(time = t, 
+                              excitation = excitation, 
                               y0 = 10, 
                               xi = 0.2, 
                               period = 20,
@@ -451,7 +436,7 @@ y2 <- generate.2order(time = time,
                       excitation = et2)$y 
 
 #Generating table with signals
-dataa4 <- data.table(id = rep(c(1, 2), c(length(et1), length(et2))), 
+dataa4 <- data.table::data.table(id = rep(c(1, 2), c(length(et1), length(et2))), 
                  time = c(time, time),
                  excitation1 = rep(u1,2),
                  excitation2 = rep(u2,2),

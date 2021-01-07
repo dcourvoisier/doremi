@@ -2,14 +2,14 @@
 % Please edit documentation in R/doremi.R
 \name{generate.1order}
 \alias{generate.1order}
-\title{Generation of the first order differential equation solution with deSolve}
+\title{Generation of the first order differential equation solution with deSolve, for given fixed coefficients
+and initial condition}
 \usage{
 generate.1order(
   time = 0:100,
-  excitation = as.numeric(0:100 > 50),
+  excitation = NULL,
   y0 = 0,
-  t0 = 0,
-  exc0 = 0,
+  t0 = NULL,
   tau = 10,
   k = 1,
   yeq = 0
@@ -18,44 +18,72 @@ generate.1order(
 \arguments{
 \item{time}{Is a vector containing the time values corresponding to the excitation signal.}
 
-\item{excitation}{Is a vector containing the values of the excitation signal.}
+\item{excitation}{Is a vector containing the values of the excitation signal (u(t) in the equation). If NULL, it is considered to be 0.}
 
-\item{y0}{Signal initial value y(t=t0)}
+\item{y0}{Signal initial value y(t=t0). Default is 0}
 
-\item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
-within the interval defined by it)}
-
-\item{exc0}{is the initial value for the excitation: u(t=t0)}
+\item{t0}{Time corresponding to the signal initial value y(t=t0). Default is the minimum value of the time vector.
+Must be a value between minimum and maximum value of the time vector}
 
 \item{tau}{Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
-\item{k}{Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
-for differential equations including an excitation term.}
+\item{k}{Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+Only relevant if the excitation is non null.}
 
-\item{yeq}{Signal equilibrium value. Value reached when the excitation term is 0 or constant.}
+\item{yeq}{Signal equilibrium value. Stationary value when the excitation term is 0.}
 }
 \value{
-Returns a list containing two elements:
+Returns a data.table containing three elements:
 \itemize{
   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a first order differential equation with the constant
   coefficients provided as input.
   \item  t is a vector containing the corresponding time values
+  \item exc
 }
 }
 \description{
-\code{generate.1order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a first order
-differential equation whith the coefficients are provided as inputs:
-\deqn{\frac{dy(t)}{dt} - \gamma (y(t) - yeq) = k*u(t)}
-Where y(t) is the signal, dy(t) its derivative, \eqn{\gamma} is the damping rate, k the gain and yeq the equilibrium value.
-u(t) is an external excitation perturbing the dynamics.
-The latter is also provided as input and it can be null (then the solution
-will be a decreasing exponential). The numerical solution is generated with deSolve.
+\code{generate.1order} returns a data frame containing the time (supplied as input) and the solution to a first order
+differential equation. The coefficients are provided as inputs, as well as the initial condition
+\deqn{\frac{dy(t)}{dt} + \frac{(y(t) - yeq)}{\tau}  =  \frac{k}{\tau} u(t)}
+Where y(t) is the signal, dy(t) its derivative, \eqn{\tau} is the decay time, k the gain and yeq the equilibrium value.
+u(t) is the source term of the equation, that is an external excitation perturbing the dynamics.
+The latter is provided as input or is set to null. The numerical solution is generated with deSolve.
 }
 \examples{
-generate.1order()
 generate.1order(t0 = 2.5,y0 = 2)
-generate.1order(time = 0:49, excitation = c(rep(0,10),rep(1,40)))
+test <- generate.1order(time = 0:49, excitation = c(rep(0,10),rep(1,40)))
+plot(test$t,test$y)
+lines(test$t,test$exc,col = 2)
+
+### see the influence of tau
+
+different_tau <- data.table::rbindlist(lapply(1:5*4,function(x){
+tmp <- generate.1order(t0 = 0,
+                       y0 = 2,
+                       tau = x)
+tmp[,tau := as.factor(x)][]
+}))
+
+ggplot2::ggplot(data = different_tau,
+                ggplot2::aes(t,y,color = tau))+
+  ggplot2::geom_line()
+
+### effect of the gain
+
+different_gain <- data.table::rbindlist(lapply(1:5,function(x){
+tmp <- generate.1order(
+  time = 1:100,
+  excitation = as.numeric(1:100 > 50),
+  y0 = 0,
+  tau = 10,
+  k = x)
+tmp[,k := as.factor(x)][]
+}) )
+
+  ggplot2::ggplot(different_gain)+
+  ggplot2::geom_line(ggplot2::aes(t,y,color = k))+
+  ggplot2::geom_line(ggplot2::aes(t,exc,color = "excitation"))
 }
 \keyword{coefficients}
 \keyword{constant}

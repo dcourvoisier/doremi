@@ -4,7 +4,7 @@
 \alias{calculate.gold}
 \title{Calculation of derivatives using the GOLD method}
 \usage{
-calculate.gold(signal, time, embedding = 2, n = 2)
+calculate.gold(signal, time, embedding = 3, n = 2)
 }
 \arguments{
 \item{signal}{is a vector containing the data from which the derivative is estimated.}
@@ -14,25 +14,24 @@ calculate.gold(signal, time, embedding = 2, n = 2)
 \item{embedding}{is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
 two points are needed for the calculation of the first derivative and at least 3 for the calculation of the second derivative.}
 
-\item{n}{is the maximum order of derivative to estimate ("m" in the cited paper)}
+\item{n}{is the maximum order of derivative to estimate.}
 }
 \value{
-Returns a list containing the following columns:
+Returns a list containing the following elements:
 
 dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 
-dsignal- is a data.frame containing three columns and the same number of rows as the signal.
-The first column is the moving average of the signal over embedding points, the second is the first derivative,
-and the third is the second derivative.
+dsignal- is a data.frame containing n+1 columns and the same number of rows as the signal.
+The column k is the k-1 order derivative of the signal over embedding points.
 
-embedding- contains the number of points used for the derivative calculation, which is constant.
+embedding- number of points used for the derivative calculation.
 
-order - contains the order of the maximum derivative to calculate (introduced as input parameter)
+n - the maximum derivative order calculated n
 }
 \description{
 \code{calculate.gold} estimates the derivatives of a variable using the Generalized Orthogonal Local Derivative (GOLD)
 method described in \href{https://doi.org/10.1080/00273171.2010.498294}{Deboeck (2010)}. The code available on this paper was extracted and adapted for non constant time steps.
-This method allows calculating over a number of measurement points (called the embedding number) the first derivative with errors uncorrelated with the signal.
+This method allows calculating over a number of measurement points (called the embedding number) derivatives with uncorrelated errors.
 }
 \examples{
 #In the following example the derivatives for the function y(t) = t^2 are calculated.

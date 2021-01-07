@@ -22,18 +22,17 @@ Returns a list containing three columns:
 
 dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
 
-dsignal- is a data.frame containing three columns and the same number of rows as the signal.
-The first column is the moving average of the signal over embedding points, the second is the first derivative,
-and the third is the second derivative.
+dsignal- is a data.frame containing n+1 columns and the same number of rows as the signal.
+The column k is the k-1 order derivative of the signal over embedding points.
 
-embedding- contains the number of points used for the derivative calculation, which is constant.
+embedding- number of points used for the derivative calculation.
 
-order - contains the order of the maximum derivative to calculate (introduced as input parameter)
+n - the maximum derivative order calculated n
 }
 \description{
 \code{calculate.glla} estimates the derivatives of a variable using the Generalized Local Linear Approximation (GLLA) method
 described in \href{https://doi.org/10.4324/9780203864746}{Boker et al.(2010)}.
-This method allows to estimate the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
+This method estimates the derivatives over a number of measurement points called the embedding number assuming an equally spaced time series.
 }
 \examples{
 #In the following example the derivatives for the function y(t) = t^2 are calculated.

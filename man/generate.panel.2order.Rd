@@ -2,15 +2,14 @@
 % Please edit documentation in R/doremi.R
 \name{generate.panel.2order}
 \alias{generate.panel.2order}
-\title{Generation of first order differential equation solutions for several individuals with intra and inter noise}
+\title{Generation of second order differential equation solutions for several individuals with intra-individual and inter-individual noise}
 \usage{
 generate.panel.2order(
   time,
   excitation = NULL,
-  y0 = 0,
+  y0 = 1,
   v0 = 0,
-  t0 = 0,
-  exc0 = 0,
+  t0 = NULL,
   xi = 0.1,
   period = 10,
   k = 1,
@@ -29,25 +28,23 @@ generate.panel.2order(
 
 \item{v0}{is the initial condition for the derivative dy(t=t0), (0, by default), it is a scalar.}
 
-\item{t0}{is the initial time}
-
-\item{exc0}{is the initial value for the excitation: u(t=t0)}
+\item{t0}{is the time corresponding to the initial condition y0 and v0. Default is the minimum value of the time vector.}
 
 \item{xi}{is the damping factor. A negative value will produce divergence from equilibrium.}
 
 \item{period}{is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned}
 
-\item{k}{is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
-for differential equations including an excitation term.}
+\item{k}{Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+Only relevent if the excitation is non null.}
 
-\item{yeq}{is the signal equilibrium value. Value reached when the excitation term is 0 or constant.}
+\item{yeq}{is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.}
 
 \item{nind}{number of individuals.}
 
 \item{internoise}{Is the inter-individual noise added. The damping factor across individuals follows a normal distribution centered on the input parameter xi
 with a standard deviation of internoise*xi. The same applies to the other coefficients of the differential equation (T,k and yeq) and to the initial conditions (y0 and v0)}
 
-\item{intranoise}{Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise}
+\item{intranoise}{Is the noise to signal  ratio: dynamic noise added to each signal defined as the ratio between the variance  of the noise and the variance of the signal}
 }
 \value{
 Returns a data frame with signal and time values for the time and excitation vectors provided.
@@ -61,10 +58,10 @@ It contains the following columns:
 }
 }
 \description{
-\code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra and inter noise.
+\code{generate.panel.2order} Generation of second order differential equation solutions for several individuals with intra-individual and inter-individual noise.
 The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
 It then calls the function \code{\link{generate.2order}} to generate a solution of a second order differential equation with these parameters for the nind individuals.
-Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
+Finally it adds measurement noise to each signal according to the value of the parameter intranoise.
 }
 \details{
 Used for simulations in the context of the package.
@@ -72,14 +69,9 @@ Used for simulations in the context of the package.
 \examples{
 generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
                       excitation = generate.excitation(3, 6, 2, 1, 200, 2)$exc,
-                      y0 = 0,
-                      v0 = 0,
-                      t0 = 0,
-                      exc0 = 0,
                       xi = 0.1,
                       period = 0.5,
                       k = 1,
-                      yeq = 0,
                       nind = 5,
                       internoise = 0.2,
                       intranoise = 0.1)

@@ -6,7 +6,7 @@
 \usage{
 optimum_param(
   data,
-  id,
+  id = NULL,
   input = NULL,
   time,
   signal,
@@ -22,11 +22,11 @@ optimum_param(
 \arguments{
 \item{data}{Is a data frame containing at least one column, that is the signal to be analyzed.}
 
-\item{id}{Is a STRING containing the NAME of the column of data containing the identifier of the individual.
+\item{id}{Is a CHARACTER containing the NAME of the column of data containing the identifier of the individual.
 If this parameter is not entered when calling the function, a single individual is assumed and a linear regression is done instead
 of the linear mixed-effects regression.}
 
-\item{input}{Is a STRING or a VECTOR OF STRINGS containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
+\item{input}{Is a CHARACTER or a VECTOR OF CHARACTERs containing the NAME(s) of data column(s) containing the EXCITATION vector(s).
 If this parameter is not entered when calling the function,
 the excitation is assumed to be unknown. In this case, the linear mixed-effect regression is still carried out but no coefficient is calculated
 for the excitation term. The function then uses the parameters estimated by the regression to carry out an exponential fit of the signal
@@ -34,14 +34,17 @@ and build the estimated curve.
 The function will consider as an excitation each column of data having a name contained in the input vector.
 The function will return a coefficient for each one of the excitation variables included in the input vector.}
 
-\item{time}{Is a STRING containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
+\item{time}{Is a CHARACTER containing the NAME of the column of data containing the time vector. If this parameter is not entered when calling the function,
 it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.}
 
-\item{signal}{Is a STRING containing the NAME of the column of the data frame containing the SIGNAL to be studied.}
+\item{signal}{Is a CHARACTER containing the NAME of the column of the data frame containing the SIGNAL to be studied.}
 
 \item{dermethod}{is the derivative estimation method. The methods currently available are: "gold","glla" and "fda" (see their respective function for more details)}
 
 \item{model}{is the model to be used for analysis of the signal. The models available are "1order" and "2order"}
+
+\item{order}{is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
+Using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})}
 
 \item{pmin}{is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)}
 
@@ -50,20 +53,20 @@ it is assumed that time steps are of 1 unit and the time vector is generated int
 \item{pstep}{is the step that will be considered when varying the parameter. For instance pmin=3, pmax=7 and pstep=2 and dermethod="gold" will make the embedding number take
 the values 3,5 and 7.}
 
-\item{verbose}{Is a boolean that displays status messages of the function (and functions it calls) when set to 1.}
+\item{verbose}{Is a boolean that displays status messages of the function (and functions it calls) when set to TRUE.}
 }
 \value{
 Returns a list of three objects:
 \itemize{
   \item  analysis is a data.frame containing the resultmean object of the analysis made (result of the analyze.1order or analyze.2order function
-  according to model chosen) with the different values of embedding/spar and the resulting R2.
-  \item  summary_opt is a data.frame containing the analysis that had the best R2 from the analysis data.frame previously mentioned
+  according to model chosen) with the different values of embedding/spar and the resulting $R^2$.
+  \item  summary_opt is a data.frame containing the analysis that had the best $R^2$ from the analysis data.frame previously mentioned
   \item d contains the optimum value of the embedding/spar
 }
 }
 \description{
 \code{optimum_param}  calculates the optimum parameter for derivative estimation by varying the latter in a range introduced as input and keeping the parameter and
-coefficients having the R2 closest to 1.
+coefficients having the $R^2$ closest to 1.
 }
 \examples{
 s2 <- generate.panel.2order(time = 0:100,

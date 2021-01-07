@@ -9,7 +9,7 @@
 #' @param embedding is an integer indicating the number of points to consider for derivative calculation. Embedding must be greater than 1 because at least
 #' two points are needed for the calculation of the first derivative and at least 3 for the calculation of the second derivative.
 #' @param n is the maximum order of derivative to estimate.
-#' @keywords derivative, embed, rollmean
+#' @keywords derivative embedding-number
 #' @return Returns a list containing the following elements:
 #'
 #' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
@@ -130,7 +130,7 @@ calculate.gold <-  function(signal,
 #' Embedding must be at least #' 2 for the calculation of the first derivative (first order models) and at least 3 for the calculation of
 #' the second derivative (second order models).
 #' @param n is the maximum order of the derivative to calculate
-#' @keywords derivative, embedding dimension, rollmean
+#' @keywords derivative embedding-number
 #' @return Returns a list containing three columns:
 #'
 #' dtime- contains the time values in which the derivative was calculated. That is, the moving average of the input time over embedding points.
@@ -223,8 +223,8 @@ calculate.glla <-  function(signal,
 #' @param signal is a vector containing the data from which the derivative is estimated.
 #' @param time is a vector containing the time values corresponding to the signal. Arguments signal and time must have the same length.
 #' @param spar is the smoothing parameter used by the roughness penalty function in the smooth.spline R function.
-#' @param n not used
-#' @keywords derivative, fda, spline
+#' @param order parameter not used, for consistency with calculate.glla and calculate.gold
+#' @keywords derivative fda spline
 #' @return Returns a list containing two elements:
 #'
 #' dtime- contains the initial time values provided.
@@ -272,7 +272,7 @@ calculate.fda <-  function(signal,
 #' @param tmax is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.
 #' @param minspacing as pulses are generated randomly, minspacing is a value greater than or equal to 0 that indicates minimum spacing between pulses, thus avoiding
 #' overlapping of the pulses in time. A value of 0 indicates that pulses can follow one another.
-#' @keywords excitation, simulation
+#' @keywords excitation simulation
 #' @return Returns two vectors:
 #'
 #' E- vector containing the values of the excitation generated.
@@ -385,7 +385,7 @@ generate.excitation = function(amplitude = 1,
 #' @param k Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
 #' Only relevant if the excitation is non null.
 #' @param yeq Signal equilibrium value. Stationary value when the excitation term is 0.
-#' @keywords first order differential equation, constant coefficients
+#' @keywords first-order differential-equation
 #' @return Returns a data.table containing three elements:
 #' \itemize{
 #'   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a first order differential equation with the constant
@@ -400,20 +400,21 @@ generate.excitation = function(amplitude = 1,
 #' lines(test$t,test$exc,col = 2)
 #'
 #' ### see the influence of tau
-#' library(magrittr)
-#' lapply(1:5*4,function(x){
+#'
+#' different_tau <- data.table::rbindlist(lapply(1:5*4,function(x){
 #' tmp <- generate.1order(t0 = 0,
 #'                        y0 = 2,
 #'                        tau = x)
 #' tmp[,tau := as.factor(x)][]
-#' }) %>%
-#'   rbindlist() %>%
-#'   ggplot(aes(t,y,color = tau))+
-#'   geom_line()
+#' }))
+#'
+#' ggplot2::ggplot(data = different_tau,
+#'                 ggplot2::aes(t,y,color = tau))+
+#'   ggplot2::geom_line()
 #'
 #' ### effect of the gain
 #'
-#'   lapply(1:5,function(x){
+#' different_gain <- data.table::rbindlist(lapply(1:5,function(x){
 #' tmp <- generate.1order(
 #'   time = 1:100,
 #'   excitation = as.numeric(1:100 > 50),
@@ -421,11 +422,11 @@ generate.excitation = function(amplitude = 1,
 #'   tau = 10,
 #'   k = x)
 #' tmp[,k := as.factor(x)][]
-#' }) %>%
-#'   rbindlist() %>%
-#'   ggplot()+
-#'   geom_line(aes(t,y,color = k))+
-#'   geom_line(aes(t,exc,color = "excitation"))
+#' }) )
+#'
+#'   ggplot2::ggplot(different_gain)+
+#'   ggplot2::geom_line(ggplot2::aes(t,y,color = k))+
+#'   ggplot2::geom_line(ggplot2::aes(t,exc,color = "excitation"))
 
 
 #'@export
@@ -439,6 +440,7 @@ generate.1order <- function(time = 0:100,
                             k = 1,
                             yeq = 0){
 
+  exc <- NULL # local binding of variable declared in data.table, for note compiling
   flog.appender(appender.console())
   #Error management
   #If excitation is not supplied, then creation of an empty vector
@@ -551,7 +553,7 @@ generate.1order <- function(time = 0:100,
 #' @param k  Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
 #' Only relevent if the excitation is non null.
 #' @param yeq is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.
-#' @keywords second order differential equation, constant coefficients
+#' @keywords second-order differential-equation
 #' @return Returns a data.table containing four elements:
 #' \itemize{
 #'   \item  t is a vector containing the corresponding time values
@@ -575,6 +577,7 @@ generate.2order <- function(time = 0:100,
                             period = 10,
                             k = 1,
                             yeq = 0){
+  exc <- NULL # local binding of variable declared in data.table, for note compiling
   flog.appender(appender.console())
   #Error management
   #If excitation is not supplied, then creation of an empty vector
@@ -666,7 +669,7 @@ generate.2order <- function(time = 0:100,
 #' with a standard deviation of internoise*tau, except if any decay time is negative (see Details section). The same applies to the other coefficients of the differential
 #' equation (k and yeq)
 #' @param intranoise Is the noise to signal  ratio: dynamic noise added to each signal defined as the ratio between the variance  of the noise and the variance of the signal
-#' @keywords simulation, first order, differential equation
+#' @keywords simulation first-order differential-equation
 #' @return Returns a data frame containing the following columns:
 #' \itemize{
 #'    \item id - individual identifier (from 1 to nind).
@@ -774,7 +777,7 @@ generate.panel.1order <- function(time,
 #' with a standard deviation of internoise*xi. The same applies to the other coefficients of the differential equation (T,k and yeq) and to the initial conditions (y0 and v0)
 #' @param intranoise Is the noise to signal  ratio: dynamic noise added to each signal defined as the ratio between the variance  of the noise and the variance of the signal
 
-#' @keywords simulation, second order, differential equation
+#' @keywords simulation second-order
 #' @return Returns a data frame with signal and time values for the time and excitation vectors provided.
 #' It contains the following columns:
 #' \itemize{
@@ -790,13 +793,9 @@ generate.panel.1order <- function(time,
 #' @examples
 #' generate.panel.2order(time = generate.excitation(3, 6, 2, 1, 200, 2)$t,
 #'                       excitation = generate.excitation(3, 6, 2, 1, 200, 2)$exc,
-#'                       y0 = 0,
-#'                       v0 = 0,
-#'                       t0 = 0,
 #'                       xi = 0.1,
 #'                       period = 0.5,
 #'                       k = 1,
-#'                       yeq = 0,
 #'                       nind = 5,
 #'                       internoise = 0.2,
 #'                       intranoise = 0.1)
@@ -905,7 +904,7 @@ generate.panel.2order <- function(time,
 #' @param order is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
 #' Although only the first derivative is used here, using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1. Useful for debugging.
-#' @keywords analysis, first order, exponential
+#' @keywords analysis first-order exponential
 #' @return Returns a summary of the fixed effect coefficients estimated by the linear regression
 #' @details The analysis performs the following linear mixed-effects regression:
 #' \deqn{ \dot{y_{ij}} \sim   (b_{0} +b_{0j}) + (b_{1}+b_{1j}) y_{ij}+ (b_{2}+b_{2j}) u_{ij} +e_{ij}}
@@ -987,6 +986,8 @@ analyze.1order <- function(data,
                            derparam = 3,
                            order = 1,
                            verbose = FALSE){
+  yeqgamma <- NULL # binding for compilation
+
   flog.appender(appender.console())
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
@@ -1324,7 +1325,7 @@ analyze.1order <- function(data,
 #' @param order is the maximum order of the derivative to estimate. Using an order higher than that of the maximum derivative to estimate (1 in first order differential equations and
 #' 2 in second order differential equations), for instance, order=4 might enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param verbose Is a boolean that displays status messages of the function when set to 1.
-#' @keywords analysis, second order
+#' @keywords analysis second-order
 #' @return Returns a summary of the fixed effect coefficients (see details)
 #' @details The analysis performs the following linear mixed-effects regression:
 #' \deqn{ \ddot{y_{ij}} \sim   (b_{0} +b_{0j}) + (b_{1}+b_{1j}) \dot{y_{ij}} + (b_{2}+b_{2j}) y_{ij} + (b_{3}+b_{3j}) u_{ij} + e_{ij}}
@@ -1380,10 +1381,10 @@ analyze.1order <- function(data,
 #'  the smoothing parameter spar if the chosen method is fda
 #' }
 #' @seealso \code{\link{calculate.gold}, \link{calculate.glla}, \link{calculate.fda}} to compute the derivatives, for details on embedding/spar
-#' See \code{\link{generate.2order} for the generation of the solution of the second order differential equation.
+#' See \code{\link{generate.2order}} for the generation of the solution of the second order differential equation.
 #' @examples
 #' # generate a panel of oscillating signals
-#' test <- generate.panel.2order(time = 0:100,
+#' test   <- generate.panel.2order(time = 0:100,
 #'                               excitation = as.numeric(0:100>50),
 #'                               period = 15,
 #'                               xi = 0.3,
@@ -1393,8 +1394,8 @@ analyze.1order <- function(data,
 #'                               nind = 10)
 #'
 #'# plot the signal to analyze
-#' ggplot(test,aes(time,signal,color = as.factor(id)))+
-#'   geom_line()
+#' plot(test)
+#'
 #'
 #'# analyze them
 #' res <- analyze.2order(data = test,
@@ -1404,6 +1405,7 @@ analyze.1order <- function(data,
 #'                       signal = "signal",
 #'                       derparam = 13)
 #' res
+#' plot(res)
 #'@export
 #'@import data.table
 #'@importFrom lmerTest lmer
@@ -1423,6 +1425,8 @@ analyze.2order <- function(data,
                            derparam = 3,
                            order = 2,
                            verbose = FALSE){
+  xi2omega <- komega2 <- k <- NULL # binding for compilation notes, see https://www.r-bloggers.com/2019/08/no-visible-binding-for-global-variable/
+
   flog.appender(appender.console())
   intdata <- setDT(copy(data)) # Makes a copy of original data so that it can rename columns freely if needed. setDT converts it to data.table
   noinput <- FALSE #Flag that will allow to differentiate if there is an excitation term or not when doing the regression
@@ -1736,13 +1740,15 @@ analyze.2order <- function(data,
 #' it is assumed that time steps are of 1 unit and the time vector is generated internally in the function.
 #' @param signal Is a CHARACTER containing the NAME of the column of the data frame containing the SIGNAL to be studied.
 #' @param dermethod is the derivative estimation method. The methods currently available are: "gold","glla" and "fda" (see their respective function for more details)
+#' @param order is the maximum order of the derivative estimated when using \code{calculate.gold} or \code{calculate.glla}.
+#' Using a higher order can enhance derivative estimation (see \href{https://doi.org/10.1080/00273171.2015.1123138}{Chow et al.(2016)})
 #' @param model is the model to be used for analysis of the signal. The models available are "1order" and "2order"
 #' @param pmin is the minimum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
 #' @param pmax is the maximum of the interval in which to vary the parameter (embedding number or spar according to derivative method chosen)
 #' @param pstep is the step that will be considered when varying the parameter. For instance pmin=3, pmax=7 and pstep=2 and dermethod="gold" will make the embedding number take
 #' the values 3,5 and 7.
 #' @param verbose Is a boolean that displays status messages of the function (and functions it calls) when set to TRUE.
-#' @keywords optimum, embedding number, smoothing parameter, derivative
+#' @keywords optimum embedding-number derivative
 #' @return Returns a list of three objects:
 #' \itemize{
 #'   \item  analysis is a data.frame containing the resultmean object of the analysis made (result of the analyze.1order or analyze.2order function
@@ -1771,8 +1777,8 @@ analyze.2order <- function(data,
 #'                           model = "2order",
 #'                           dermethod = "gold",
 #'                           pmin = 3,
-#'                           pmax = 15,
-#'                           pstep = 1,
+#'                           pmax = 13,
+#'                           pstep = 2,
 #'                           verbose = TRUE)
 #'@export
 #'@import data.table

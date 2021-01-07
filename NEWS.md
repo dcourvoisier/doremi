@@ -1,15 +1,15 @@
-### doremi v0.2.0
+### doremi v1.0.0
 ### New features
 1. Added several methods for the estimation of derivatives in two-step procedures: functions calculate.glla, calculate.fda
 2. calculate.gold handle non equidistant time points
-2. Added input parameter "n" which is the maximum order of derivative to calculate (functions calculate.gold and calculate.glla)
+2. Added input parameter "order" which is the maximum order of derivative to calculate (functions calculate.gold and calculate.glla)
 3. Added function that find the optimum parameter for derivative estimation (embedding number in the case of gold and glla procedures and smoothing parameter in the case of fda).
 Addition of a plot method to visualize the results of this function: evolution of R2 and parameter estimation with embedding number/smoothing parameter.
 4. Added functions for the generation of simulation signals following a second order differential equation and the corresponding analysis tools for this type of signals
 5. Modified the function that generates simulation signals. It now uses deSolve and it is able to generate a signal even for initial conditions different from t0=0
 6. Summary from analysis function gives the coefficients estimted by the regression with their standard errors, together with the transformed coefficients characteristic from the model
 7. Uses package futile.logger to log all events on the console (info, warning and errors). Info messages can be displayed by activating parameter "verbose=T"in analysis functions (first and second order).
-8. Three vignettes are given: an introduction vignette, a first-order vignette, and the second order vignette
+8. Four vignettes are given: an introduction vignette, a first-order vignette, the second order vignette and the derivaties vignette
 
 ### doremi v0.1.1 
 #### BUG FIXES

@@ -33,6 +33,7 @@ print.doremi = function (x, ...){
 #' @param ... includes the additional arguments inherited from the generic print method
 #' @return Returns the DOREMIDATA object (datatable))
 #' @examples
+#' time <- 0:100
 #' data <- generate.panel.2order(time = time,
 #'                               y0 = 10,
 #'                               v0 = 0,
@@ -94,7 +95,6 @@ summary.doremi = function (object, ...){
 #'                                 excitation = sin(0:100),
 #'                                 y0 = 0,
 #'                                 t0 = 0,
-#'                                 exc0 = 0,
 #'                                 tau = 2,
 #'                                 k = 1,
 #'                                 yeq = 0,

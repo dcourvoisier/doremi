@@ -9,8 +9,7 @@ generate.2order(
   excitation = NULL,
   y0 = 0,
   v0 = 0,
-  t0 = 0,
-  exc0 = 0,
+  t0 = NULL,
   xi = 0.1,
   period = 10,
   k = 1,
@@ -26,34 +25,33 @@ generate.2order(
 
 \item{v0}{is the initial condition for the derivative dy(t=t0), (0, by default), it is a scalar.}
 
-\item{t0}{is the initial time}
-
-\item{exc0}{is the initial value for the excitation: u(t=t0)}
+\item{t0}{is the time corresponding to the initial condition y0 and v0. Default is the minimum value of the time vector.}
 
 \item{xi}{is the damping factor. A negative value will produce divergence from equilibrium.}
 
 \item{period}{is the period T of the oscillation, \eqn{T = \frac{2*\pi}{\omega_{n}}} as mentioned}
 
-\item{k}{is the gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
-for differential equations including an excitation term.}
+\item{k}{Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+Only relevent if the excitation is non null.}
 
-\item{yeq}{is the signal equilibrium value. Value reached when the excitation term is 0 or constant.}
+\item{yeq}{is the signal equilibrium value, i.e. the stationary value reached when the excitation term is 0.}
 }
 \value{
-Returns a list containing two elements:
+Returns a data.table containing four elements:
 \itemize{
   \item  t is a vector containing the corresponding time values
   \item  y is a vector containing the values calculated with deSolve so that y is a solution to a second order differential equation with constant
   coefficients (provided as input) evaluated at the time points given by t
   \item dy is a vector containing the values of the derivative calculated at the same time points
+  \item exc is the excitation vector
 }
 }
 \description{
 \code{generate.2order} returns a data frame containing the time (supplied as input) and a simulated signal generated as a solution to a second order
 differential equation whith constant coefficients that are provided as inputs:
-\deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = k*u(t)}
+\deqn{\frac{d^2y}{dt} + 2\xi\omega_{n}\frac{dy}{dt} + \omega_{n}^2 y = \omega_{n}^2 k*u(t)}
 Where:
-y(t) is the signal, dy(t) its derivative and \eqn{d^2y(t)} its second derivative
+y(t) is the signal, \eqn{\frac{dy}{dt}} its derivative and \eqn{\frac{d^2y}{dt}} its second derivative
 \itemize{
    \item \eqn{\omega_{n} = \frac{2\pi}{T}} -where T is the period of the oscillation- is the system's natural frequency, the frequency with which the system would vibrate if there were no damping.
    The term \eqn{\omega_{n}^2} represents thus the ratio between the attraction to the equilibrium and the inertia. If we considered the example
@@ -63,7 +61,7 @@ y(t) is the signal, dy(t) its derivative and \eqn{d^2y(t)} its second derivative
    The value of \eqn{\xi} determines the shape of the system time response, which can be:
    \eqn{\xi<0}	Unstable, oscillations of increasing magnitude
    \eqn{\xi=0}	Undamped, oscillating
-   \eqn{0<\xi<1}	Underdamped or simply "damped". Most of the studies use this model, also referring to it as "Damped Linear Oscillator" (DLO).
+   \eqn{0<\xi<1}	Underdamped or simply "damped": the oscillations are damped by an exponential of damping rate \eqn{\xi\omega_{n}}
    \eqn{\xi=1}	Critically damped
    \eqn{\xi>1}	Over-damped, no oscillations in the return to equilibrium
    \item k is the gain

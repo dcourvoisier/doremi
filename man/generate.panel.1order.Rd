@@ -2,14 +2,14 @@
 % Please edit documentation in R/doremi.R
 \name{generate.panel.1order}
 \alias{generate.panel.1order}
-\title{Generation of first order differential equation solutions for several individuals with intra and inter noise}
+\title{Generation of first order differential equation solutions for several individuals with intra-individual
+and inter-individual noise}
 \usage{
 generate.panel.1order(
   time,
   excitation = NULL,
   y0 = 0,
-  t0 = 0,
-  exc0 = 0,
+  t0 = NULL,
   tau = 10,
   k = 1,
   yeq = 0,
@@ -21,22 +21,20 @@ generate.panel.1order(
 \arguments{
 \item{time}{Is a vector containing the time values corresponding to the excitation signal.}
 
-\item{excitation}{Is a vector containing the values of the excitation signal.}
+\item{excitation}{Is a vector containing the values of the excitation signal (u(t) in the equation). If NULL, it is considered to be 0.}
 
-\item{y0}{Signal initial value y(t=t0)}
+\item{y0}{Signal initial value y(t=t0). Default is 0}
 
-\item{t0}{Time for the signal initial value y(t=t0), 0 by default but it can be different from 0 or even be absent from the time vector (as long as it is contained
-within the interval defined by it)}
-
-\item{exc0}{is the initial value for the excitation: u(t=t0)}
+\item{t0}{Time corresponding to the signal initial value y(t=t0). Default is the minimum value of the time vector.
+Must be a value between minimum and maximum value of the time vector}
 
 \item{tau}{Signal decay time. It represents the characteristic response time of the solution of the differential equation.
 A negative value will produce divergence from equilibrium.}
 
-\item{k}{Signal gain. It represents the proportionnality between the equilibrium value and the input maximum amplitude. It is thus relevant only
-for differential equations including an excitation term.}
+\item{k}{Signal gain. Default is 1. It represents the proportionnality between the stationary increase of signal and the excitation increase that caused it.
+Only relevant if the excitation is non null.}
 
-\item{yeq}{Signal equilibrium value. Value reached when the excitation term is 0 or constant.}
+\item{yeq}{Signal equilibrium value. Stationary value when the excitation term is 0.}
 
 \item{nind}{number of individuals.}
 
@@ -44,7 +42,7 @@ for differential equations including an excitation term.}
 with a standard deviation of internoise*tau, except if any decay time is negative (see Details section). The same applies to the other coefficients of the differential
 equation (k and yeq)}
 
-\item{intranoise}{Is the signal to noise ratio: dynamic noise added to each signal defined as the ratio between the variance of the signal and the variance of the noise}
+\item{intranoise}{Is the noise to signal  ratio: dynamic noise added to each signal defined as the ratio between the variance  of the noise and the variance of the signal}
 }
 \value{
 Returns a data frame containing the following columns:
@@ -57,10 +55,10 @@ Returns a data frame containing the following columns:
 }
 }
 \description{
-\code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra and inter noise.
-The function generates the equation coefficients following a normal distribution based on the parameter internoise and the coefficients provided as input.
-It then calls the function \code{\link{generate.1order}} to generate a solution of a first order differential equation with these parameters for the nind individuals.
-Finally it adds dynamic noise to each signal according to the value of the parameter intranoise.
+\code{generate.panel.1order} Generation of first order differential equation solutions for several individuals with intra-individual and inter-individual noise.
+For a panel of nind individual, the function generates
+nind solutions of a first order differential equation with constant coefficients distributed along a normal distribution.
+Measurement noise is added to each individual signal according to the value of the intranoise parameter.
 }
 \details{
 Used for simulations in the context of the package.

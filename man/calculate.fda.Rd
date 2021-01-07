@@ -13,10 +13,10 @@ calculate.fda(signal, time, spar = NULL, order = NULL)
 
 \item{spar}{is the smoothing parameter used by the roughness penalty function in the smooth.spline R function.}
 
-\item{order}{not used}
+\item{order}{parameter not used, for consistency with calculate.glla and calculate.gold}
 }
 \value{
-Returns a list containing three columns:
+Returns a list containing two elements:
 
 dtime- contains the initial time values provided.
 

@@ -19,17 +19,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r, eval = FALSE, echo = FALSE}
-source("../R/doremi.R")
-source("../R/others.R")
-library(ggplot2)
-library(data.table)
-library(futile.logger)
-library(deSolve)
-library(zoo)
-library(lme4)
-library(lmerTest)
-```
 
 The main purpose of the Dynamics Of Return to Equilibrium during Multiple Inputs (doremi) package is to provide methods to estimate the dynamics parameters of self-regulated homeostatic systems experiencing multiple excitations. To do so, doremi provides functions to generate solutions of a first or second order differential equation, functions to estimate the derivatives of a given variable, and functions to estimate the coefficients of a first or second order differential equations with constant coefficients using a two-step estimation method. 
 

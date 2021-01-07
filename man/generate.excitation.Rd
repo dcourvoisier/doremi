@@ -14,7 +14,7 @@ generate.excitation(
 )
 }
 \arguments{
-\item{amplitude}{is vector of values different than 0 indicating the amplitude of the excitation. It should contain as many values
+\item{amplitude}{is a vector of values different from 0 indicating the amplitude of the excitation. It should contain as many values
 as the number of pulses (nexc). If the elements are less than the number of pulses, the amplitude vector will be "recycled" and the elements from it will be repeated until
 all the pulses are covered (for instance, if the number of excitations nexc is 6 and the amplitude vector has two elements, pulses 1,3 and 5 will
 have the same amplitude as the first element of the amplitude vector and pulses 2,4 and 6 that of the second element).}
@@ -29,8 +29,8 @@ all the pulses are covered.}
 
 \item{tmax}{is a value greater than 0 indicating the maximum time range of the excitation vector in time units. The time vector generated will go from 0 to tmax.}
 
-\item{minspacing}{as pulses are generated randomly, minspacing is a value greater than 0 that indicates minimum spacing between pulses, thus avoiding
-overlapping of the pulses in time. It can be 0 indicating that pulses can follow one another.}
+\item{minspacing}{as pulses are generated randomly, minspacing is a value greater than or equal to 0 that indicates minimum spacing between pulses, thus avoiding
+overlapping of the pulses in time. A value of 0 indicates that pulses can follow one another.}
 }
 \value{
 Returns two vectors:
@@ -48,7 +48,7 @@ for a given duration and then returns back to 0, thus producing a square shape.
 Used for simulations in the context of the package. Beware that the following condition should apply:
 \deqn{tmax >= (duration+minspacing)*nexc}
 so that the pulses "fit" in the time lapse defined.
-Compared to \code{pulsew} from the \code{seewave} package this function can generate pulses of different duration and amplitude.
+Compared to \code{pulsew} from the \code{seewave} package, this function can generate pulses of different duration and amplitude.
 }
 \examples{
 generate.excitation (amplitude = 3,

@@ -63,7 +63,7 @@ The functions output a `dsignal` data.frame with `n+1` column, each column corre
 Let's now construct an example where we can see the effect of the number of point considered to evaluate different derivative order. We construct a long table, were the preceeding example is replicated for embedding dimension between 3 and 10, derivative order between 0 and 2, and for the three calculation methods:
 
 ```{r}
-conditions <- CJ(embedding = 3:10,
+conditions <- data.table::CJ(embedding = 3:10,
                  method = c("GLLA","GOLD","FDA"),
                  der = 0:2)
 derivative_example <- conditions[,.(time = timevec),by = .(embedding,method,der)]
@@ -71,7 +71,7 @@ derivative_example[,signal := time^2]
 derivative_example[,signal_noise := signal + noisevec]
 
 ggplot2::ggplot(derivative_example)+
-  ggplot2::geom_point(aes(time,signal_noise))+
+  ggplot2::geom_point(ggplot2::aes(time,signal_noise))+
   ggplot2::theme_bw()+
   ggplot2::labs(y = "y", 
                x = "t",
@@ -145,8 +145,8 @@ derivative_example[method == "FDA",
 derivative_example[,derlegend := factor(der,levels = 0:2,labels = c("0th order","first order","second order"))]
 # plot of the results
 ggplot2::ggplot(derivative_example)+
-  ggplot2::geom_line(aes(timeder,derivate,color = as.factor(embedding)),size = 0.8)+
-  ggplot2::geom_line(aes(time,truder),color = "black",size = 0.1)+
+  ggplot2::geom_line(ggplot2::aes(timeder,derivate,color = as.factor(embedding)),size = 0.8)+
+  ggplot2::geom_line(ggplot2::aes(time,truder),color = "black",size = 0.1)+
   ggplot2::facet_grid(derlegend~method,scales = "free")+
   ggplot2::labs(color = "Embedding",
        x = "time",

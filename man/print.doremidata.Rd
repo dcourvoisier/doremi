@@ -18,6 +18,7 @@ Returns the DOREMIDATA object (datatable))
 \code{print.doremidata} prints the a DOREMIDATA object
 }
 \examples{
+time <- 0:100
 data <- generate.panel.2order(time = time,
                               y0 = 10,
                               v0 = 0,

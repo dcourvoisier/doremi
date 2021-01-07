@@ -17,23 +17,9 @@ knitr::opts_chunk$set(
 
 ```{r libraries, setup}
 library(doremi)
-library(ggplot2)
-library(data.table)
-library(futile.logger)
-set.seed(1)
 ```
 
 
-```{r, eval = FALSE, echo = FALSE}
-# to supress, just to test locally
-source("../R/doremi.R")
-source("../R/others.R")
-library(futile.logger)
-library(lme4)
-library(lmerTest)
-library(deSolve)
-library(zoo)
-```
 
 # FIRST ORDER DIFFERENTIAL EQUATIONS
 
@@ -162,7 +148,8 @@ res1b <- generate.panel.1order(time = timevec,
 
 
 ```{r changing initial condition plot res1b,fig.width = 7, fig.height = 6, fig.align = "center"}
-plot(res1b) + scale_y_continuous(limits = c(0, 3))
+plot(res1b) + 
+  ggplot2::scale_y_continuous(limits = c(0, 3))
 ```
 
 ### Example 2a - Generating signals with noise
@@ -593,9 +580,10 @@ Using the `cardio` dataset present in this package, we will apply the model to r
 The data consists in  heart rate measurements from 21 individuals carrying out an effort test on a cycle ergometer. Participants pedal on a bicycle with increasing resistance. The resistance load is measured in watts, with higher load forcing the individual to greater effort. His/her heart frequency will then vary according to the effort supplied and the participant’s fitness. According to this, the `cardio` data includes, for each individual, the time since the beginning of the test (seconds), the bicycle load (Watts) and the heart rate (1/min). Here is an example of these data:
 
 ```{r}
-ggplot2::ggplot(cardio[id == 2],aes(x = time))+
-  geom_point(aes(y = hr,color = "heart rate (beat/s)"))+
-  geom_line(aes(y = load,color = "effort load (W)"))
+ggplot2::ggplot(cardio[id == 2],
+                ggplot2::aes(x = time))+
+  ggplot2::geom_point(ggplot2::aes(y = hr,color = "heart rate (beat/s)"))+
+  ggplot2::geom_line(ggplot2::aes(y = load,color = "effort load (W)"))
 ```
 
 We can perfrom the analysis using `analyze.1order`:
@@ -619,7 +607,7 @@ plot(resc1a, id = 1:21) +
 
 As can be seen, the model reproduces reasonably well the variation of the heart rate, and can be used to fully characterize the heart rate dynamics with three simple parameters: the resting heart rate (the equilibrium value), the characteristic time of heart rate change (the decay time), and the increase of heart rate for a given effort (the gain).
 
-Such analysis has been used in [(Mongin et al., 2020)](https://doi.org/10.1080/00273171.2020.1754155) and [Mongin et al., 2020](https://doi.org/10.1038/s41598-020-69218-1).
+Such analysis has been used in [(Mongin et al., 2020a)](https://doi.org/10.1080/00273171.2020.1754155) and [Mongin et al., 2020b](https://doi.org/10.1038/s41598-020-69218-1).
 
 ## Measuring heart frequency during effort tests by considering several excitations
 
@@ -629,12 +617,12 @@ Let us first create a new column for each step of effort load:
 ```{r cardio multiple excitations generate}
 mydata <- cardio[id %in% 1:10]
 # create a index indicate which step of the exercise test 
-mydata[,load_idx := rleid(load),by = id]
+mydata[,load_idx := data.table::rleid(load),by = id]
 # transforming to large format, to have one column per workload step
-mydata_large <- dcast(id + time + hr  ~ paste0("load_",load_idx),data = mydata,value.var = "load")
+mydata_large <- data.table::dcast(id + time + hr  ~ paste0("load_",load_idx),data = mydata,value.var = "load")
 # replacing NAs by 0s
 load_cols <- paste0("load_",1:max(mydata$load_idx))
-mydata_large[,c(load_cols) := lapply(.SD,function(col) fifelse(is.na(col),0,col)),.SDcols = load_cols]
+mydata_large[,c(load_cols) := lapply(.SD,function(col) data.table::fifelse(is.na(col),0,col)),.SDcols = load_cols]
 
 head(mydata_large)
 ```
@@ -663,7 +651,7 @@ In the plot, each workload step of the exercise test appear in one different col
 plot(resc1b,id=1:10)+ ggplot2::facet_wrap(~id,ncol=3,scales="free")
 ```
 
-This analysis has been the main one in [Mongin et al.](https://doi.org/10.1088/1361-6579/abbb6e) and used in [Mongin et al.](https://doi.org/10.1109/ESGCO49734.2020.9158156).
+This analysis has been the main analyis in [Mongin et al.,2020c](https://iopscience.iop.org/article/10.1088/1361-6579/abbb6e) and used in [Mongin et al.,2020d](https://doi.org/10.1109/ESGCO49734.2020.9158156).
 
 ## Measurements of response time of individuals when carrying out mental rotation tasks
 
@@ -699,39 +687,3 @@ Plotting analysis results:
 ```{r plot menta rotation data,fig.width = 7, fig.height = 6, fig.align = "center"}
 plot(resc2a, id = 1:17)
 ```
-
-# D - Print, summary, plot and predict with doremi objects
-
-As seen earlier, it is possible to print a doremi object by just calling the variable in which the doremi object is stored. It is also possible to print a summary of it by using the `summary` function available in R and to plot it directly using the `plot` function. In the same way, a S3 method for the `predict` function has been included to handle doremi objects. Thus, it is possible to carry out an analysis of a given signal and excitation and then use the analysis results to predict the signal that would have occurred if another different excitation had happened. Taking example 4, we will select only the first individual, and the first part of the data to have a single excitation. We will then use the results to carry out a prediction of the second signal to the second excitation. Finally, we will verify that the result of the predict function matches the second signal.
-  
-```{r   print summary predict, fig.width = 5,fig.height = 4, fig.pos = 0.5, fig.align = "center"}
-#Input data from previous example
-datad1 <- setDT(data4)[id==1,.(id,time,excitation,signalcol)]
-
-#Analysis 
-resd1 <- analyze.1order(data = datad1,
-                        input = "excitation",
-                        time = "time",
-                        signal = "signalcol",
-                        dermethod = "glla",
-                        derparam = 7)
-                                 
-#Creating data frame with et2 that will be supplied as new excitation for the predict function
-datad1n <- copy(datad1)
-datad1n$excitation <- as.numeric(datad1$time>50 & datad1$time<60)
-
-
-#Calling the predict function
-predresd1<- predict(resd1,
-                    newdata = datad1n)
-
-#Comparing predicted value with signal y2
-ggplot2::ggplot(data = predresd1$data) +
-ggplot2::geom_point(ggplot2::aes(time, signalcol_estimated,colour = "predicted signalcol")) +
-ggplot2::geom_point(ggplot2::aes(time, signalcol,colour = "signalcol")) +
-ggplot2::geom_line(data= datad1, ggplot2::aes(time, excitation,colour = "Original excitation")) + 
-ggplot2::geom_line(data= datad1n, ggplot2::aes(time, excitation,colour = "New excitation"))  
-
-```
-
-
