@@ -117,7 +117,7 @@ SImulation presenting the statistical propoerties of the ethod can be found in \
 Example of application of this function can be found in:
 \itemize{
     \item \doi{10.1088/1361-6579/abbb6e}
-    \item \doi{ESGCO49734.2020.9158156}
+    \item \doi{10.1109/ESGCO49734.2020.9158156}
     \item \doi{10.1080/00273171.2020.1754155}
     \item \doi{10.1038/s41598-020-69218-1}
 }

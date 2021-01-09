@@ -18,7 +18,7 @@
 #' Measurements of response time of 17 individuals when carrying out mental rotation tasks
 #'
 #' Data containing reaction time to a mental rotation task over a 60 day period for 17 individuals
-#' \href{https://doi.org/10.1016/j.yhbeh.2012.12.007}{(Courvoisier et al., 2013)}.
+#' \doi{10.1016/j.yhbeh.2012.12.007}{(Courvoisier et al., 2013)}.
 #'
 #' @format A data frame with 619 rows and 5 variables
 #' \describe{
@@ -40,7 +40,7 @@
 #'
 #' Pages 345-351,
 #'
-#' https://doi.org/10.1016/j.yhbeh.2012.12.007
+#' \doi{10.1016/j.yhbeh.2012.12.007}
 
 #' @docType data
 #' @usage data(rotation)
