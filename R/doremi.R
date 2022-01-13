@@ -1838,7 +1838,7 @@ optimum_param <- function(data,
   analyze <- get(model)
 
   analysis <- rbindlist(lapply(seq(pmin,pmax,pstep),function(embedding){
-    flog.info("Analyzing for embedding %d",embedding)
+    flog.info("Analyzing for embedding %f",embedding)
     res <- analyze(data = data,
                    id = id,
                    input = input,
